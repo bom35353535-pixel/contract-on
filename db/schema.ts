@@ -56,3 +56,54 @@ export const contractStageHistory = sqliteTable(
 
 export type ContractRecord = typeof contracts.$inferSelect;
 export type StageHistoryRecord = typeof contractStageHistory.$inferSelect;
+
+export const knowledgeDocuments = sqliteTable(
+  "knowledge_documents",
+  {
+    id: text("id").primaryKey(),
+    documentName: text("document_name").notNull(),
+    originalName: text("original_name").notNull(),
+    category: text("category").notNull(),
+    year: integer("year"),
+    effectiveFrom: text("effective_from"),
+    effectiveTo: text("effective_to"),
+    uploadedAt: text("uploaded_at").notNull(),
+    status: text("status").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    sourceKind: text("source_kind").notNull(),
+    openaiFileId: text("openai_file_id"),
+    vectorStoreFileId: text("vector_store_file_id"),
+    errorMessage: text("error_message"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("idx_knowledge_documents_status_uploaded").on(table.status, table.uploadedAt),
+    index("idx_knowledge_documents_category_year").on(table.category, table.year),
+  ],
+);
+
+export const knowledgeSettings = sqliteTable("knowledge_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const knowledgeQueries = sqliteTable(
+  "knowledge_queries",
+  {
+    id: text("id").primaryKey(),
+    question: text("question").notNull(),
+    answer: text("answer").notNull(),
+    evidenceStatus: text("evidence_status").notNull(),
+    sourcesJson: text("sources_json").notNull(),
+    responseId: text("response_id"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("idx_knowledge_queries_created_at").on(table.createdAt)],
+);
+
+export type KnowledgeDocumentRecord = typeof knowledgeDocuments.$inferSelect;
+export type KnowledgeQueryRecord = typeof knowledgeQueries.$inferSelect;

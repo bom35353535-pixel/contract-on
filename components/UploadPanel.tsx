@@ -9,7 +9,7 @@ export function UploadPanel() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
-  function useFile(file?: File) {
+  function selectFile(file?: File) {
     if (!file) return;
     setFileName(file.name);
     setNotice("파일을 선택했습니다. 실제 문서 분석은 Phase 3에서 연결됩니다.");
@@ -26,14 +26,14 @@ export function UploadPanel() {
       <div
         className={`drop-zone ${fileName ? "has-file" : ""}`}
         onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => { event.preventDefault(); useFile(event.dataTransfer.files[0]); }}
+        onDrop={(event) => { event.preventDefault(); selectFile(event.dataTransfer.files[0]); }}
       >
         <span className="upload-symbol">{fileName ? "✓" : "＋"}</span>
         <div>
           <strong>{fileName ?? "파일을 끌어놓거나 선택하세요"}</strong>
           <small>{notice || "AI 분석은 Phase 3에서 연결됩니다."}</small>
         </div>
-        <input ref={inputRef} type="file" accept={ACCEPTED} hidden onChange={(event) => useFile(event.target.files?.[0])} />
+        <input ref={inputRef} type="file" accept={ACCEPTED} hidden onChange={(event) => selectFile(event.target.files?.[0])} />
         <button type="button" onClick={() => inputRef.current?.click()}>{fileName ? "다시 선택" : "견적서 선택"}</button>
       </div>
       <button className="analysis-button" type="button" disabled={!fileName} onClick={() => setNotice("Phase 1에서는 화면만 확인합니다. 분석 기능은 Phase 3에서 구현합니다.")}>견적서 분석 시작</button>

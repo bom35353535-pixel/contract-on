@@ -50,6 +50,49 @@ const CREATE_HISTORY = `
   )
 `;
 
+const CREATE_KNOWLEDGE_DOCUMENTS = `
+  CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_name TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    year INTEGER,
+    effective_from TEXT,
+    effective_to TEXT,
+    uploaded_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_key TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    openai_file_id TEXT,
+    vector_store_file_id TEXT,
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
+const CREATE_KNOWLEDGE_SETTINGS = `
+  CREATE TABLE IF NOT EXISTS knowledge_settings (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
+const CREATE_KNOWLEDGE_QUERIES = `
+  CREATE TABLE IF NOT EXISTS knowledge_queries (
+    id TEXT PRIMARY KEY NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    evidence_status TEXT NOT NULL,
+    sources_json TEXT NOT NULL,
+    response_id TEXT,
+    created_at TEXT NOT NULL
+  )
+`;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -67,10 +110,16 @@ async function initialize() {
   await d1.batch([
     d1.prepare(CREATE_CONTRACTS),
     d1.prepare(CREATE_HISTORY),
+    d1.prepare(CREATE_KNOWLEDGE_DOCUMENTS),
+    d1.prepare(CREATE_KNOWLEDGE_SETTINGS),
+    d1.prepare(CREATE_KNOWLEDGE_QUERIES),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_stage_history_contract_time ON contract_stage_history(contract_id, occurred_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_status_uploaded ON knowledge_documents(status, uploaded_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_category_year ON knowledge_documents(category, year)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_queries_created_at ON knowledge_queries(created_at)"),
   ]);
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();
