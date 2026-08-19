@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const contracts = sqliteTable(
   "contracts",
@@ -107,3 +107,85 @@ export const knowledgeQueries = sqliteTable(
 
 export type KnowledgeDocumentRecord = typeof knowledgeDocuments.$inferSelect;
 export type KnowledgeQueryRecord = typeof knowledgeQueries.$inferSelect;
+
+export const quotationAnalyses = sqliteTable(
+  "quotation_analyses",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id").references(() => contracts.id, { onDelete: "set null" }),
+    originalName: text("original_name").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    status: text("status").notNull(),
+    projectName: text("project_name"),
+    constructionType: text("construction_type"),
+    purpose: text("purpose"),
+    location: text("location"),
+    companyName: text("company_name"),
+    quotationDate: text("quotation_date"),
+    totalAmount: integer("total_amount"),
+    supplyAmount: integer("supply_amount"),
+    vatAmount: integer("vat_amount"),
+    materialCost: integer("material_cost"),
+    directLaborCost: integer("direct_labor_cost"),
+    indirectLaborCost: integer("indirect_labor_cost"),
+    expenses: integer("expenses"),
+    statutoryExpenses: integer("statutory_expenses"),
+    overhead: integer("overhead"),
+    profit: integer("profit"),
+    safetyHealthCost: integer("safety_health_cost"),
+    plannedStartDate: text("planned_start_date"),
+    plannedCompletionDate: text("planned_completion_date"),
+    extractionJson: text("extraction_json").notNull(),
+    responseId: text("response_id"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    confirmedAt: text("confirmed_at"),
+  },
+  (table) => [
+    index("idx_quotation_analyses_status_created").on(table.status, table.createdAt),
+    index("idx_quotation_analyses_contract_id").on(table.contractId),
+  ],
+);
+
+export const quotationItems = sqliteTable(
+  "quotation_items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    analysisId: text("analysis_id").notNull().references(() => quotationAnalyses.id, { onDelete: "cascade" }),
+    category: text("category"),
+    trade: text("trade"),
+    itemName: text("item_name"),
+    specification: text("specification"),
+    unit: text("unit"),
+    quantity: real("quantity"),
+    unitPrice: integer("unit_price"),
+    amount: integer("amount"),
+    sourceText: text("source_text"),
+  },
+  (table) => [index("idx_quotation_items_analysis_id").on(table.analysisId)],
+);
+
+export const aiDecisionAudit = sqliteTable(
+  "ai_decision_audit",
+  {
+    id: text("id").primaryKey(),
+    analysisId: text("analysis_id").references(() => quotationAnalyses.id, { onDelete: "set null" }),
+    contractId: text("contract_id").references(() => contracts.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    sourceFile: text("source_file").notNull(),
+    extractedJson: text("extracted_json").notNull(),
+    aiJudgment: text("ai_judgment").notNull(),
+    userCorrectedJson: text("user_corrected_json"),
+    finalJson: text("final_json"),
+    decidedAt: text("decided_at").notNull(),
+  },
+  (table) => [
+    index("idx_ai_decision_audit_analysis_id").on(table.analysisId),
+    index("idx_ai_decision_audit_contract_id").on(table.contractId),
+  ],
+);
+
+export type QuotationAnalysisRecord = typeof quotationAnalyses.$inferSelect;
+export type QuotationItemRecord = typeof quotationItems.$inferSelect;

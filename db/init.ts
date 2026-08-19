@@ -93,6 +93,77 @@ const CREATE_KNOWLEDGE_QUERIES = `
   )
 `;
 
+const CREATE_QUOTATION_ANALYSES = `
+  CREATE TABLE IF NOT EXISTS quotation_analyses (
+    id TEXT PRIMARY KEY NOT NULL,
+    contract_id TEXT,
+    original_name TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_key TEXT NOT NULL,
+    status TEXT NOT NULL,
+    project_name TEXT,
+    construction_type TEXT,
+    purpose TEXT,
+    location TEXT,
+    company_name TEXT,
+    quotation_date TEXT,
+    total_amount INTEGER,
+    supply_amount INTEGER,
+    vat_amount INTEGER,
+    material_cost INTEGER,
+    direct_labor_cost INTEGER,
+    indirect_labor_cost INTEGER,
+    expenses INTEGER,
+    statutory_expenses INTEGER,
+    overhead INTEGER,
+    profit INTEGER,
+    safety_health_cost INTEGER,
+    planned_start_date TEXT,
+    planned_completion_date TEXT,
+    extraction_json TEXT NOT NULL,
+    response_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    confirmed_at TEXT,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+  )
+`;
+
+const CREATE_QUOTATION_ITEMS = `
+  CREATE TABLE IF NOT EXISTS quotation_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    analysis_id TEXT NOT NULL,
+    category TEXT,
+    trade TEXT,
+    item_name TEXT,
+    specification TEXT,
+    unit TEXT,
+    quantity REAL,
+    unit_price INTEGER,
+    amount INTEGER,
+    source_text TEXT,
+    FOREIGN KEY (analysis_id) REFERENCES quotation_analyses(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_AI_DECISION_AUDIT = `
+  CREATE TABLE IF NOT EXISTS ai_decision_audit (
+    id TEXT PRIMARY KEY NOT NULL,
+    analysis_id TEXT,
+    contract_id TEXT,
+    action TEXT NOT NULL,
+    source_file TEXT NOT NULL,
+    extracted_json TEXT NOT NULL,
+    ai_judgment TEXT NOT NULL,
+    user_corrected_json TEXT,
+    final_json TEXT,
+    decided_at TEXT NOT NULL,
+    FOREIGN KEY (analysis_id) REFERENCES quotation_analyses(id) ON DELETE SET NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE SET NULL
+  )
+`;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -113,6 +184,9 @@ async function initialize() {
     d1.prepare(CREATE_KNOWLEDGE_DOCUMENTS),
     d1.prepare(CREATE_KNOWLEDGE_SETTINGS),
     d1.prepare(CREATE_KNOWLEDGE_QUERIES),
+    d1.prepare(CREATE_QUOTATION_ANALYSES),
+    d1.prepare(CREATE_QUOTATION_ITEMS),
+    d1.prepare(CREATE_AI_DECISION_AUDIT),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
@@ -120,6 +194,11 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_status_uploaded ON knowledge_documents(status, uploaded_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_category_year ON knowledge_documents(category, year)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_queries_created_at ON knowledge_queries(created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_analyses_status_created ON quotation_analyses(status, created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_analyses_contract_id ON quotation_analyses(contract_id)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_items_analysis_id ON quotation_items(analysis_id)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_analysis_id ON ai_decision_audit(analysis_id)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_contract_id ON ai_decision_audit(contract_id)"),
   ]);
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();
