@@ -50,9 +50,10 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file) return setUploadMessage("등록할 파일을 선택해 주세요.");
+    const formElement = event.currentTarget;
     setUploading(true);
     setUploadMessage("");
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     form.set("file", file);
     try {
       const response = await fetch("/api/knowledge", { method: "POST", body: form });
@@ -60,7 +61,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
       if (!response.ok || !payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
       setDocuments((current) => [payload.document!, ...current]);
       setFile(null);
-      event.currentTarget.reset();
+      formElement.reset();
       setUploadMessage(payload.message || "지식자료를 등록했습니다.");
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "자료를 등록하지 못했습니다.");
