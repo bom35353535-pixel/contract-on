@@ -224,6 +224,58 @@ const CREATE_QUOTATION_REVIEW_ITEMS = `
   )
 `;
 
+const CREATE_CONTRACT_DOCUMENT_FILES = `
+  CREATE TABLE IF NOT EXISTS contract_document_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    contract_id TEXT NOT NULL,
+    document_stage TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_key TEXT NOT NULL,
+    openai_file_id TEXT,
+    detected_type TEXT,
+    detection_status TEXT NOT NULL,
+    summary TEXT,
+    uploaded_at TEXT NOT NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_CONTRACT_DOCUMENT_REVIEWS = `
+  CREATE TABLE IF NOT EXISTS contract_document_reviews (
+    id TEXT PRIMARY KEY NOT NULL,
+    contract_id TEXT NOT NULL,
+    document_stage TEXT NOT NULL,
+    submitted_count INTEGER NOT NULL DEFAULT 0,
+    missing_count INTEGER NOT NULL DEFAULT 0,
+    check_count INTEGER NOT NULL DEFAULT 0,
+    response_id TEXT,
+    warning TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_CONTRACT_DOCUMENT_REVIEW_ITEMS = `
+  CREATE TABLE IF NOT EXISTS contract_document_review_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    review_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    required_name TEXT NOT NULL,
+    uploaded_file_id TEXT,
+    detail TEXT NOT NULL,
+    evidence_document_id TEXT,
+    evidence_document_name TEXT,
+    evidence_year INTEGER,
+    evidence_location TEXT,
+    evidence_excerpt TEXT,
+    FOREIGN KEY (review_id) REFERENCES contract_document_reviews(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_file_id) REFERENCES contract_document_files(id) ON DELETE SET NULL,
+    FOREIGN KEY (evidence_document_id) REFERENCES knowledge_documents(id) ON DELETE SET NULL
+  )
+`;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -250,6 +302,9 @@ async function initialize() {
     d1.prepare(CREATE_AI_DECISION_AUDIT),
     d1.prepare(CREATE_QUOTATION_REVIEWS),
     d1.prepare(CREATE_QUOTATION_REVIEW_ITEMS),
+    d1.prepare(CREATE_CONTRACT_DOCUMENT_FILES),
+    d1.prepare(CREATE_CONTRACT_DOCUMENT_REVIEWS),
+    d1.prepare(CREATE_CONTRACT_DOCUMENT_REVIEW_ITEMS),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
@@ -265,6 +320,9 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_contract_id ON ai_decision_audit(contract_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_reviews_contract_created ON quotation_reviews(contract_id, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_review_items_review_status ON quotation_review_items(review_id, status)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_files_contract_stage_time ON contract_document_files(contract_id, document_stage, uploaded_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_reviews_contract_stage_time ON contract_document_reviews(contract_id, document_stage, created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_review_items_review_status ON contract_document_review_items(review_id, status)"),
   ]);
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();

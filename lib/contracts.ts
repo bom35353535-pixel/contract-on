@@ -39,13 +39,16 @@ const completionFieldByNextStage: Partial<Record<ContractStage, string>> = {
   INSPECTION: "actual_completion_date",
 };
 
-export async function advanceContractStage(id: string) {
+export async function advanceContractStage(id: string, source: "generic" | "phase6-documents" = "generic") {
   const contract = await getContract(id);
   if (!contract || !isContractStage(contract.currentStage)) throw new Error("계약 정보를 찾을 수 없습니다.");
 
   const currentStage = contract.currentStage;
   if (currentStage === "PURCHASE_REQUEST" || currentStage === "INTERNAL_APPROVAL") {
     throw new Error("품의/기안 화면에서 문서를 확인하고 완료 처리해 주세요.");
+  }
+  if ((currentStage === "NARA_CONTRACT" || currentStage === "PRE_CONSTRUCTION") && source !== "phase6-documents") {
+    throw new Error("해당 서류 화면에서 업로드 분석 결과를 확인하고 완료 처리해 주세요.");
   }
   const nextStage = getNextStage(currentStage);
   if (!nextStage) throw new Error("이미 완료된 계약입니다.");

@@ -255,3 +255,60 @@ export const quotationReviewItems = sqliteTable(
 
 export type QuotationReviewRecord = typeof quotationReviews.$inferSelect;
 export type QuotationReviewItemRecord = typeof quotationReviewItems.$inferSelect;
+
+export const contractDocumentFiles = sqliteTable(
+  "contract_document_files",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    documentStage: text("document_stage").notNull(),
+    originalName: text("original_name").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    openaiFileId: text("openai_file_id"),
+    detectedType: text("detected_type"),
+    detectionStatus: text("detection_status").notNull(),
+    summary: text("summary"),
+    uploadedAt: text("uploaded_at").notNull(),
+  },
+  (table) => [index("idx_contract_document_files_contract_stage_time").on(table.contractId, table.documentStage, table.uploadedAt)],
+);
+
+export const contractDocumentReviews = sqliteTable(
+  "contract_document_reviews",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    documentStage: text("document_stage").notNull(),
+    submittedCount: integer("submitted_count").notNull().default(0),
+    missingCount: integer("missing_count").notNull().default(0),
+    checkCount: integer("check_count").notNull().default(0),
+    responseId: text("response_id"),
+    warning: text("warning"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("idx_contract_document_reviews_contract_stage_time").on(table.contractId, table.documentStage, table.createdAt)],
+);
+
+export const contractDocumentReviewItems = sqliteTable(
+  "contract_document_review_items",
+  {
+    id: text("id").primaryKey(),
+    reviewId: text("review_id").notNull().references(() => contractDocumentReviews.id, { onDelete: "cascade" }),
+    status: text("status").notNull(),
+    requiredName: text("required_name").notNull(),
+    uploadedFileId: text("uploaded_file_id").references(() => contractDocumentFiles.id, { onDelete: "set null" }),
+    detail: text("detail").notNull(),
+    evidenceDocumentId: text("evidence_document_id").references(() => knowledgeDocuments.id, { onDelete: "set null" }),
+    evidenceDocumentName: text("evidence_document_name"),
+    evidenceYear: integer("evidence_year"),
+    evidenceLocation: text("evidence_location"),
+    evidenceExcerpt: text("evidence_excerpt"),
+  },
+  (table) => [index("idx_contract_document_review_items_review_status").on(table.reviewId, table.status)],
+);
+
+export type ContractDocumentFileRecord = typeof contractDocumentFiles.$inferSelect;
+export type ContractDocumentReviewRecord = typeof contractDocumentReviews.$inferSelect;
+export type ContractDocumentReviewItemRecord = typeof contractDocumentReviewItems.$inferSelect;
