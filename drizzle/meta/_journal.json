@@ -22,6 +22,13 @@
       "when": 1787107319016,
       "tag": "0002_tiny_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787110212833,
+      "tag": "0003_fair_praxagora",
+      "breakpoints": true
     }
   ]
 }

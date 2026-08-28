@@ -164,6 +164,47 @@ const CREATE_AI_DECISION_AUDIT = `
   )
 `;
 
+const CREATE_QUOTATION_REVIEWS = `
+  CREATE TABLE IF NOT EXISTS quotation_reviews (
+    id TEXT PRIMARY KEY NOT NULL,
+    analysis_id TEXT NOT NULL,
+    contract_id TEXT NOT NULL,
+    normal_count INTEGER NOT NULL DEFAULT 0,
+    check_count INTEGER NOT NULL DEFAULT 0,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    no_basis_count INTEGER NOT NULL DEFAULT 0,
+    response_id TEXT,
+    warning TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (analysis_id) REFERENCES quotation_analyses(id) ON DELETE CASCADE,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_QUOTATION_REVIEW_ITEMS = `
+  CREATE TABLE IF NOT EXISTS quotation_review_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    review_id TEXT NOT NULL,
+    section TEXT NOT NULL,
+    target_key TEXT NOT NULL,
+    label TEXT NOT NULL,
+    status TEXT NOT NULL,
+    quoted_value REAL,
+    expected_value REAL,
+    difference REAL,
+    difference_rate REAL,
+    calculation TEXT,
+    detail TEXT NOT NULL,
+    evidence_document_id TEXT,
+    evidence_document_name TEXT,
+    evidence_year INTEGER,
+    evidence_location TEXT,
+    evidence_excerpt TEXT,
+    FOREIGN KEY (review_id) REFERENCES quotation_reviews(id) ON DELETE CASCADE,
+    FOREIGN KEY (evidence_document_id) REFERENCES knowledge_documents(id) ON DELETE SET NULL
+  )
+`;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -187,6 +228,8 @@ async function initialize() {
     d1.prepare(CREATE_QUOTATION_ANALYSES),
     d1.prepare(CREATE_QUOTATION_ITEMS),
     d1.prepare(CREATE_AI_DECISION_AUDIT),
+    d1.prepare(CREATE_QUOTATION_REVIEWS),
+    d1.prepare(CREATE_QUOTATION_REVIEW_ITEMS),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
@@ -199,6 +242,8 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_items_analysis_id ON quotation_items(analysis_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_analysis_id ON ai_decision_audit(analysis_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_contract_id ON ai_decision_audit(contract_id)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_reviews_contract_created ON quotation_reviews(contract_id, created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_review_items_review_status ON quotation_review_items(review_id, status)"),
   ]);
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();

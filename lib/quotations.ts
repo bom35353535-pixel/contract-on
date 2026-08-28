@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureDatabase } from "@/db/init";
-import { quotationAnalyses, quotationItems } from "@/db/schema";
+import { quotationAnalyses, quotationItems, quotationReviewItems, quotationReviews } from "@/db/schema";
 
 export async function getQuotationAnalysis(id: string) {
   await ensureDatabase();
@@ -19,4 +19,13 @@ export async function getQuotationByContract(contractId: string) {
   if (!analysis) return null;
   const items = await db.select().from(quotationItems).where(eq(quotationItems.analysisId, analysis.id)).orderBy(quotationItems.id);
   return { analysis, items };
+}
+
+export async function getLatestQuotationReview(contractId: string) {
+  await ensureDatabase();
+  const db = getDb();
+  const [review] = await db.select().from(quotationReviews).where(eq(quotationReviews.contractId, contractId)).orderBy(desc(quotationReviews.createdAt)).limit(1);
+  if (!review) return null;
+  const items = await db.select().from(quotationReviewItems).where(eq(quotationReviewItems.reviewId, review.id)).orderBy(quotationReviewItems.section, quotationReviewItems.label);
+  return { review, items };
 }

@@ -189,3 +189,47 @@ export const aiDecisionAudit = sqliteTable(
 
 export type QuotationAnalysisRecord = typeof quotationAnalyses.$inferSelect;
 export type QuotationItemRecord = typeof quotationItems.$inferSelect;
+
+export const quotationReviews = sqliteTable(
+  "quotation_reviews",
+  {
+    id: text("id").primaryKey(),
+    analysisId: text("analysis_id").notNull().references(() => quotationAnalyses.id, { onDelete: "cascade" }),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    normalCount: integer("normal_count").notNull().default(0),
+    checkCount: integer("check_count").notNull().default(0),
+    errorCount: integer("error_count").notNull().default(0),
+    noBasisCount: integer("no_basis_count").notNull().default(0),
+    responseId: text("response_id"),
+    warning: text("warning"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("idx_quotation_reviews_contract_created").on(table.contractId, table.createdAt)],
+);
+
+export const quotationReviewItems = sqliteTable(
+  "quotation_review_items",
+  {
+    id: text("id").primaryKey(),
+    reviewId: text("review_id").notNull().references(() => quotationReviews.id, { onDelete: "cascade" }),
+    section: text("section").notNull(),
+    targetKey: text("target_key").notNull(),
+    label: text("label").notNull(),
+    status: text("status").notNull(),
+    quotedValue: real("quoted_value"),
+    expectedValue: real("expected_value"),
+    difference: real("difference"),
+    differenceRate: real("difference_rate"),
+    calculation: text("calculation"),
+    detail: text("detail").notNull(),
+    evidenceDocumentId: text("evidence_document_id").references(() => knowledgeDocuments.id, { onDelete: "set null" }),
+    evidenceDocumentName: text("evidence_document_name"),
+    evidenceYear: integer("evidence_year"),
+    evidenceLocation: text("evidence_location"),
+    evidenceExcerpt: text("evidence_excerpt"),
+  },
+  (table) => [index("idx_quotation_review_items_review_status").on(table.reviewId, table.status)],
+);
+
+export type QuotationReviewRecord = typeof quotationReviews.$inferSelect;
+export type QuotationReviewItemRecord = typeof quotationReviewItems.$inferSelect;

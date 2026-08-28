@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdvanceStageButton } from "@/components/AdvanceStageButton";
 import { AppShell } from "@/components/AppShell";
+import { QuotationReviewDashboard } from "@/components/QuotationReviewDashboard";
 import { StageTimeline } from "@/components/StageTimeline";
 import { formatWon, getContract, getContractHistory, getDeadlineForContract, listContracts } from "@/lib/contracts";
-import { getQuotationByContract } from "@/lib/quotations";
+import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
 import { formatKoreanDate, getDdayLabel, getKoreanToday, getNextStage, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,9 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 export default async function ContractDetailPage({ params, searchParams }: DetailProps) {
   const { id } = await params;
   const tab = (await searchParams)?.tab === "estimate" ? "estimate" : "basic";
-  const [contract, contracts, history, quotation] = await Promise.all([getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id)]);
+  const [contract, contracts, history, quotation, quotationReview] = await Promise.all([
+    getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id),
+  ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
   const nextStage = getNextStage(currentStage);
@@ -59,21 +62,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         {["품의/기안", "계약서류", "착공서류", "공사진행", "준공서류", "검사검수", "하자관리", "AI 업무비서"].map((label) => <span key={label}>{label}<small>후속</small></span>)}
       </nav>
 
-      {tab === "estimate" && quotation ? <section className="review-card contract-estimate-card">
-        <div className="review-heading"><div><span className="section-kicker">담당자 확정본</span><h2>견적서 추출정보</h2></div><span className="phase4-badge">검산은 Phase 4</span></div>
-        <p className="estimate-source">원본: {quotation.analysis.originalName} · {quotation.analysis.confirmedAt?.slice(0, 10)} 확정</p>
-        <dl className="info-list">
-          {[
-            ["총액", quotation.analysis.totalAmount === null ? "[확인 필요]" : formatWon(quotation.analysis.totalAmount)],
-            ["공급가액", quotation.analysis.supplyAmount === null ? "[확인 필요]" : formatWon(quotation.analysis.supplyAmount)],
-            ["부가가치세", quotation.analysis.vatAmount === null ? "[확인 필요]" : formatWon(quotation.analysis.vatAmount)],
-            ["재료비", quotation.analysis.materialCost === null ? "[확인 필요]" : formatWon(quotation.analysis.materialCost)],
-            ["직접노무비", quotation.analysis.directLaborCost === null ? "[확인 필요]" : formatWon(quotation.analysis.directLaborCost)],
-            ["경비", quotation.analysis.expenses === null ? "[확인 필요]" : formatWon(quotation.analysis.expenses)],
-          ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-        </dl>
-        {quotation.items.length > 0 && <div className="quotation-table-wrap"><table className="quotation-table readonly"><thead><tr><th>구분</th><th>공종/직종</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>{quotation.items.map((item) => <tr key={item.id}><td>{item.category ?? "-"}</td><td>{item.trade ?? "-"}</td><td>{item.itemName ?? "-"}</td><td>{item.specification ?? "-"}</td><td>{item.unit ?? "-"}</td><td>{item.quantity ?? "-"}</td><td>{item.unitPrice === null ? "-" : formatWon(item.unitPrice)}</td><td>{item.amount === null ? "-" : formatWon(item.amount)}</td></tr>)}</tbody></table></div>}
-      </section> : <section className="detail-grid">
+      {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} /> : <section className="detail-grid">
         <article className="info-card">
           <div className="card-title"><div><span className="section-kicker">기준정보</span><h2>계약 기본정보</h2></div><span className="read-once-badge">한 번 입력 · 계속 사용</span></div>
           <dl className="info-list">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
