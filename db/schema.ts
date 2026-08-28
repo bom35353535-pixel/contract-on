@@ -1,4 +1,4 @@
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const contracts = sqliteTable(
   "contracts",
@@ -56,6 +56,28 @@ export const contractStageHistory = sqliteTable(
 
 export type ContractRecord = typeof contracts.$inferSelect;
 export type StageHistoryRecord = typeof contractStageHistory.$inferSelect;
+
+export const administrativeDocuments = sqliteTable(
+  "administrative_documents",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    documentType: text("document_type").notNull(),
+    content: text("content").notNull(),
+    contractMethod: text("contract_method"),
+    recommendation: text("recommendation"),
+    evidenceStatus: text("evidence_status"),
+    sourcesJson: text("sources_json").notNull().default("[]"),
+    responseId: text("response_id"),
+    status: text("status").notNull().default("DRAFT"),
+    confirmedAt: text("confirmed_at"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("idx_administrative_documents_contract_type").on(table.contractId, table.documentType)],
+);
+
+export type AdministrativeDocumentRecord = typeof administrativeDocuments.$inferSelect;
 
 export const knowledgeDocuments = sqliteTable(
   "knowledge_documents",

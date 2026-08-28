@@ -50,6 +50,25 @@ const CREATE_HISTORY = `
   )
 `;
 
+const CREATE_ADMINISTRATIVE_DOCUMENTS = `
+  CREATE TABLE IF NOT EXISTS administrative_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    contract_id TEXT NOT NULL,
+    document_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    contract_method TEXT,
+    recommendation TEXT,
+    evidence_status TEXT,
+    sources_json TEXT NOT NULL DEFAULT '[]',
+    response_id TEXT,
+    status TEXT NOT NULL DEFAULT 'DRAFT',
+    confirmed_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
 const CREATE_KNOWLEDGE_DOCUMENTS = `
   CREATE TABLE IF NOT EXISTS knowledge_documents (
     id TEXT PRIMARY KEY NOT NULL,
@@ -222,6 +241,7 @@ async function initialize() {
   await d1.batch([
     d1.prepare(CREATE_CONTRACTS),
     d1.prepare(CREATE_HISTORY),
+    d1.prepare(CREATE_ADMINISTRATIVE_DOCUMENTS),
     d1.prepare(CREATE_KNOWLEDGE_DOCUMENTS),
     d1.prepare(CREATE_KNOWLEDGE_SETTINGS),
     d1.prepare(CREATE_KNOWLEDGE_QUERIES),
@@ -234,6 +254,7 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_stage_history_contract_time ON contract_stage_history(contract_id, occurred_at)"),
+    d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_administrative_documents_contract_type ON administrative_documents(contract_id, document_type)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_status_uploaded ON knowledge_documents(status, uploaded_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_documents_category_year ON knowledge_documents(category, year)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_queries_created_at ON knowledge_queries(created_at)"),

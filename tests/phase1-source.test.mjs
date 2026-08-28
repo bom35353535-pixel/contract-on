@@ -11,7 +11,7 @@ test("Phase 1 주요 화면과 메뉴가 구성되어 있다", async () => {
     readFile(new URL("app/contracts/[id]/page.tsx", root), "utf8"),
     readFile(new URL("components/AppShell.tsx", root), "utf8"),
   ]);
-  assert.match(home, /멋진 주무관님/);
+  assert.match(home, /멋진 선생님/);
   assert.match(home, /UploadPanel/);
   assert.match(contracts, /계약 현황/);
   assert.match(detail, /StageTimeline/);

@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdvanceStageButton } from "@/components/AdvanceStageButton";
+import { AdministrativeDocumentsWorkspace } from "@/components/AdministrativeDocumentsWorkspace";
 import { AppShell } from "@/components/AppShell";
 import { QuotationReviewDashboard } from "@/components/QuotationReviewDashboard";
 import { StageTimeline } from "@/components/StageTimeline";
 import { formatWon, getContract, getContractHistory, getDeadlineForContract, listContracts } from "@/lib/contracts";
+import { buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
+import { getAdministrativeDocuments } from "@/lib/administrative-documents";
 import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
 import { formatKoreanDate, getDdayLabel, getKoreanToday, getNextStage, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
@@ -30,9 +33,10 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 
 export default async function ContractDetailPage({ params, searchParams }: DetailProps) {
   const { id } = await params;
-  const tab = (await searchParams)?.tab === "estimate" ? "estimate" : "basic";
-  const [contract, contracts, history, quotation, quotationReview] = await Promise.all([
-    getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id),
+  const requestedTab = (await searchParams)?.tab;
+  const tab = requestedTab === "estimate" || requestedTab === "documents" ? requestedTab : "basic";
+  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments] = await Promise.all([
+    getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -59,10 +63,18 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
       <nav className="detail-tabs" aria-label="계약 상세 메뉴">
         <Link className={tab === "basic" ? "active" : ""} href={`/contracts/${id}`}>기본정보</Link>
         {quotation ? <Link className={tab === "estimate" ? "active" : ""} href={`/contracts/${id}?tab=estimate`}>견적검토</Link> : <span>견적검토<small>후속</small></span>}
-        {["품의/기안", "계약서류", "착공서류", "공사진행", "준공서류", "검사검수", "하자관리", "AI 업무비서"].map((label) => <span key={label}>{label}<small>후속</small></span>)}
+        <Link className={tab === "documents" ? "active" : ""} href={`/contracts/${id}?tab=documents`}>품의/기안</Link>
+        {["계약서류", "착공서류", "공사진행", "준공서류", "검사검수", "하자관리", "AI 업무비서"].map((label) => <span key={label}>{label}<small>후속</small></span>)}
       </nav>
 
-      {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} /> : <section className="detail-grid">
+      {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
+        contractId={id}
+        currentStage={currentStage}
+        purchaseDefault={buildPurchaseRequestContent(contract)}
+        internalDefault={buildInternalApprovalContent(contract)}
+        documents={administrativeDocuments}
+        initialContractMethod={contract.contractMethod}
+      /> : <section className="detail-grid">
         <article className="info-card">
           <div className="card-title"><div><span className="section-kicker">기준정보</span><h2>계약 기본정보</h2></div><span className="read-once-badge">한 번 입력 · 계속 사용</span></div>
           <dl className="info-list">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
@@ -72,7 +84,10 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
           <article className="next-action-card">
             <span className="section-kicker">현재 단계</span><h2>{STAGE_INFO[currentStage].label}</h2><p>{STAGE_INFO[currentStage].description}</p>
             {contract.attention && <div className="attention-box">{contract.attention}</div>}
-            {nextStage ? <AdvanceStageButton contractId={contract.id} label={STAGE_INFO[currentStage].action} /> : <div className="finished-box">계약업무 완료 · 하자관리 연결 준비</div>}
+            {nextStage ? currentStage === "PURCHASE_REQUEST" || currentStage === "INTERNAL_APPROVAL"
+              ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=documents`}>{currentStage === "PURCHASE_REQUEST" ? "품의내용 작성" : "내부기안문 작성"}</Link>
+              : <AdvanceStageButton contractId={contract.id} label={STAGE_INFO[currentStage].action} />
+              : <div className="finished-box">계약업무 완료 · 하자관리 연결 준비</div>}
             <small className="confirmation-note">중요한 단계변경은 담당자가 확인해야만 처리됩니다.</small>
           </article>
 

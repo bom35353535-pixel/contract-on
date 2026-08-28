@@ -31,7 +31,7 @@ export default async function Home() {
   return (
     <AppShell active="home" contractCount={contracts.length}>
       <header className="topbar">
-        <div><span className="today-label">오늘의 계약업무</span><h1>멋진 주무관님, 안녕하세요!</h1><p>오늘도 청렴한 하루 되세요.</p></div>
+        <div><span className="today-label">오늘의 계약업무</span><h1>멋진 선생님, 안녕하세요!</h1><p>오늘도 청렴한 하루 되세요.</p></div>
         <div className="top-actions"><span className="sample-data-label">샘플 데이터</span><span className="date-chip">{formatTodayHeading(today)}</span></div>
       </header>
 

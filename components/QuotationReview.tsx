@@ -47,6 +47,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
   async function confirm() {
     if (confirmedContractId || busy) return;
+    if (!window.confirm("이 견적으로 계속 진행하시겠습니까?\n확인하면 계약 건이 생성되고 공사관리 현황판에 표시됩니다.")) return;
     setBusy(true); setError("");
     try {
       const response = await fetch(`/api/estimates/${analysisId}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
@@ -94,7 +95,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         {data.items.length ? <div className="quotation-table-wrap"><table className="quotation-table"><thead><tr><th>구분</th><th>공종/직종</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>{data.items.map((item, index) => <tr key={`${index}-${item.sourceText ?? "item"}`}><td><input value={item.category ?? ""} onChange={(event) => updateItem(index, "category", event.target.value)} /></td><td><input value={item.trade ?? ""} onChange={(event) => updateItem(index, "trade", event.target.value)} /></td><td><input value={item.itemName ?? ""} onChange={(event) => updateItem(index, "itemName", event.target.value)} /></td><td><input value={item.specification ?? ""} onChange={(event) => updateItem(index, "specification", event.target.value)} /></td><td><input value={item.unit ?? ""} onChange={(event) => updateItem(index, "unit", event.target.value)} /></td><td><input inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => updateItem(index, "quantity", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.unitPrice)} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.amount)} onChange={(event) => updateItem(index, "amount", event.target.value)} /></td></tr>)}</tbody></table></div> : <div className="empty-items">세부내역을 읽지 못했습니다. 기본정보를 확인한 뒤 계약업무를 시작할 수 있습니다.</div>}
       </section>
 
-      <section className="confirm-bar"><div><strong>AI는 견적서를 읽었고, 최종 확정은 담당자가 합니다.</strong><small>확정 후 계약 건이 생성되며 품의 단계에서 시작합니다.</small>{error && <p>{error}</p>}</div><button type="button" disabled={busy} onClick={confirm}>{busy ? "저장 중…" : "확정하고 계약업무 시작"}</button></section>
+      <section className="confirm-bar"><div><strong>이 견적으로 계속 진행하시겠습니까?</strong><small>아직 공사관리 현황판에는 반영되지 않았습니다. 확인하면 계약 건이 생성되고 품의 단계에서 시작합니다.</small>{error && <p>{error}</p>}</div><button type="button" disabled={busy} onClick={confirm}>{busy ? "저장 중…" : "예, 이 견적으로 계약업무 시작"}</button></section>
     </>
   );
 }

@@ -44,6 +44,9 @@ export async function advanceContractStage(id: string) {
   if (!contract || !isContractStage(contract.currentStage)) throw new Error("계약 정보를 찾을 수 없습니다.");
 
   const currentStage = contract.currentStage;
+  if (currentStage === "PURCHASE_REQUEST" || currentStage === "INTERNAL_APPROVAL") {
+    throw new Error("품의/기안 화면에서 문서를 확인하고 완료 처리해 주세요.");
+  }
   const nextStage = getNextStage(currentStage);
   if (!nextStage) throw new Error("이미 완료된 계약입니다.");
 

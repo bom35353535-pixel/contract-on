@@ -29,6 +29,13 @@
       "when": 1787110212833,
       "tag": "0003_fair_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787877141826,
+      "tag": "0004_freezing_fantastic_four",
+      "breakpoints": true
     }
   ]
 }
