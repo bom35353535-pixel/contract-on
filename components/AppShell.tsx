@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 type ActiveSection = "home" | "contracts" | "knowledge";
@@ -12,9 +11,9 @@ export function AppShell({ children, active, contractCount }: { children: ReactN
           <span><strong>공사계약 통합지원</strong><small>교육행정 업무시스템</small></span>
         </div>
         <nav className="side-nav" aria-label="주요 메뉴">
-          <Link className={`nav-item ${active === "home" ? "active" : ""}`} href="/" aria-current={active === "home" ? "page" : undefined}><span className="nav-icon">⌂</span> 홈</Link>
-          <Link className={`nav-item ${active === "contracts" ? "active" : ""}`} href="/contracts" aria-current={active === "contracts" ? "page" : undefined}><span className="nav-icon">▤</span> 계약 현황<span className="nav-count">{contractCount}</span></Link>
-          <Link className={`nav-item ${active === "knowledge" ? "active" : ""}`} href="/knowledge" aria-current={active === "knowledge" ? "page" : undefined}><span className="nav-icon">⌕</span> 지식관리<span className="phase-chip">검색 가능</span></Link>
+          <a className={`nav-item ${active === "home" ? "active" : ""}`} href="/" aria-current={active === "home" ? "page" : undefined}><span className="nav-icon">⌂</span> 홈</a>
+          <a className={`nav-item ${active === "contracts" ? "active" : ""}`} href="/contracts" aria-current={active === "contracts" ? "page" : undefined}><span className="nav-icon">▤</span> 계약 현황<span className="nav-count">{contractCount}</span></a>
+          <a className={`nav-item ${active === "knowledge" ? "active" : ""}`} href="/knowledge" aria-current={active === "knowledge" ? "page" : undefined}><span className="nav-icon">⌕</span> 지식관리<span className="phase-chip">검색 가능</span></a>
         </nav>
         <div className="principle-card">
           <span className="principle-eyebrow">업무 원칙</span>

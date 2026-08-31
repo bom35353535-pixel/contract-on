@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdvanceStageButton } from "@/components/AdvanceStageButton";
 import { AdministrativeDocumentsWorkspace } from "@/components/AdministrativeDocumentsWorkspace";
@@ -66,7 +65,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
 
   return (
     <AppShell active="contracts" contractCount={contracts.length}>
-      <Link className="back-link" href="/contracts">← 계약 현황으로</Link>
+      <a className="back-link" href="/contracts">← 계약 현황으로</a>
       <header className="detail-header">
         <div><span className="contract-id">{contract.id}</span><h1>{contract.projectName}</h1><p>{contract.companyName} · {formatWon(contract.contractAmount)}</p></div>
         <div className="detail-status"><span className="current-stage-chip">{STAGE_INFO[currentStage].label}</span><strong>{dday}</strong></div>
@@ -75,15 +74,15 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
       <section className="timeline-card"><div className="timeline-heading"><span>계약 진행단계</span><strong>{contract.progress}% 진행</strong></div><StageTimeline currentStage={currentStage} /></section>
 
       <nav className="detail-tabs" aria-label="계약 상세 메뉴">
-        <Link className={tab === "basic" ? "active" : ""} href={`/contracts/${id}`}>기본정보</Link>
-        {quotation ? <Link className={tab === "estimate" ? "active" : ""} href={`/contracts/${id}?tab=estimate`}>견적검토</Link> : <span>견적검토<small>후속</small></span>}
-        <Link className={tab === "documents" ? "active" : ""} href={`/contracts/${id}?tab=documents`}>품의/기안</Link>
-        <Link className={tab === "contract-documents" ? "active" : ""} href={`/contracts/${id}?tab=contract-documents`}>계약서류</Link>
-        <Link className={tab === "construction-documents" ? "active" : ""} href={`/contracts/${id}?tab=construction-documents`}>착공서류</Link>
-        <Link className={tab === "construction-progress" ? "active" : ""} href={`/contracts/${id}?tab=construction-progress`}>공사진행</Link>
-        <Link className={tab === "completion-documents" ? "active" : ""} href={`/contracts/${id}?tab=completion-documents`}>준공서류</Link>
-        <Link className={tab === "inspection" ? "active" : ""} href={`/contracts/${id}?tab=inspection`}>검사검수</Link>
-        <Link className={tab === "warranty" ? "active" : ""} href={`/contracts/${id}?tab=warranty`}>하자관리</Link>
+        <a className={tab === "basic" ? "active" : ""} href={`/contracts/${id}`}>기본정보</a>
+        {quotation ? <a className={tab === "estimate" ? "active" : ""} href={`/contracts/${id}?tab=estimate`}>견적검토</a> : <span>견적검토<small>후속</small></span>}
+        <a className={tab === "documents" ? "active" : ""} href={`/contracts/${id}?tab=documents`}>품의/기안</a>
+        <a className={tab === "contract-documents" ? "active" : ""} href={`/contracts/${id}?tab=contract-documents`}>계약서류</a>
+        <a className={tab === "construction-documents" ? "active" : ""} href={`/contracts/${id}?tab=construction-documents`}>착공서류</a>
+        <a className={tab === "construction-progress" ? "active" : ""} href={`/contracts/${id}?tab=construction-progress`}>공사진행</a>
+        <a className={tab === "completion-documents" ? "active" : ""} href={`/contracts/${id}?tab=completion-documents`}>준공서류</a>
+        <a className={tab === "inspection" ? "active" : ""} href={`/contracts/${id}?tab=inspection`}>검사검수</a>
+        <a className={tab === "warranty" ? "active" : ""} href={`/contracts/${id}?tab=warranty`}>하자관리</a>
         <span>AI 업무비서<small>후속</small></span>
       </nav>
 
@@ -126,19 +125,19 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
             {contract.attention && <div className="attention-box">{contract.attention}</div>}
             {currentStage === "COMMITMENT" && <div className="attention-box commitment-guidance">에듀파인 원인행위 처리가 필요합니다.</div>}
             {nextStage ? currentStage === "PURCHASE_REQUEST" || currentStage === "INTERNAL_APPROVAL"
-              ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=documents`}>{currentStage === "PURCHASE_REQUEST" ? "품의내용 작성" : "내부기안문 작성"}</Link>
+              ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=documents`}>{currentStage === "PURCHASE_REQUEST" ? "품의내용 작성" : "내부기안문 작성"}</a>
               : currentStage === "NARA_CONTRACT"
-                ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=contract-documents`}>계약서류 업로드·분석</Link>
+                ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=contract-documents`}>계약서류 업로드·분석</a>
               : currentStage === "PRE_CONSTRUCTION"
-                ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=construction-documents`}>착공서류 업로드·분석</Link>
+                ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=construction-documents`}>착공서류 업로드·분석</a>
               : currentStage === "IN_CONSTRUCTION"
-                ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=construction-progress`}>공사중 확인사항 관리</Link>
+                ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=construction-progress`}>공사중 확인사항 관리</a>
               : currentStage === "COMPLETION"
-                ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=completion-documents`}>준공서류 업로드·분석</Link>
+                ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=completion-documents`}>준공서류 업로드·분석</a>
               : currentStage === "INSPECTION"
-                ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=inspection`}>검사검수·대금지급 확인</Link>
+                ? <a className="stage-workspace-link" href={`/contracts/${id}?tab=inspection`}>검사검수·대금지급 확인</a>
               : <AdvanceStageButton contractId={contract.id} label={STAGE_INFO[currentStage].action} />
-              : <Link className="stage-workspace-link" href={`/contracts/${id}?tab=warranty`}>{warrantyWorkspace.warranty ? "하자관리 일정 확인" : "하자기간 확인·확정"}</Link>}
+              : <a className="stage-workspace-link" href={`/contracts/${id}?tab=warranty`}>{warrantyWorkspace.warranty ? "하자관리 일정 확인" : "하자기간 확인·확정"}</a>}
             <small className="confirmation-note">중요한 단계변경은 담당자가 확인해야만 처리됩니다.</small>
           </article>
 

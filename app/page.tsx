@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { UploadPanel } from "@/components/UploadPanel";
 import { getDeadlineForContract, formatWon, listContracts } from "@/lib/contracts";
@@ -53,7 +52,7 @@ export default async function Home() {
 
       <section className="workspace-grid">
         <div className="contract-panel">
-          <div className="panel-heading"><div><span className="section-kicker">진행 현황</span><h2>지금 확인할 계약</h2></div><Link href="/contracts">전체보기 <span>→</span></Link></div>
+          <div className="panel-heading"><div><span className="section-kicker">진행 현황</span><h2>지금 확인할 계약</h2></div><a href="/contracts">전체보기 <span>→</span></a></div>
           <div className="contract-list">
             {focusContracts.map((contract) => {
               const stage = isContractStage(contract.currentStage) ? STAGE_INFO[contract.currentStage].label : "[확인 필요]";
@@ -61,11 +60,11 @@ export default async function Home() {
               const dday = getDdayLabel(deadline.date, deadline.prefix, today);
               const tone = contract.currentStage === "IN_CONSTRUCTION" ? "green" : contract.currentStage === "PRE_CONSTRUCTION" ? "blue" : "amber";
               return (
-                <Link className="contract-row" href={`/contracts/${contract.id}`} key={contract.id}>
+                <a className="contract-row" href={`/contracts/${contract.id}`} key={contract.id}>
                   <div className="contract-main"><span className={`stage-badge ${tone}`}>{stage}</span><div><strong>{contract.projectName}</strong><small>{contract.companyName} · {formatWon(contract.contractAmount)}</small></div></div>
                   <div className="contract-progress"><div className="progress-meta"><span>{contract.nextTask ?? "[확인 필요]"}</span><strong>{contract.progress}%</strong></div><div className="progress-track"><span style={{ width: `${contract.progress}%` }} /></div></div>
                   <span className={`dday ${tone}`}>{dday}</span><span className="row-arrow">›</span>
-                </Link>
+                </a>
               );
             })}
           </div>

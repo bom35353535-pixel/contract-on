@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { getDeadlineForContract, formatWon, listContracts } from "@/lib/contracts";
 import { getDdayLabel, getKoreanToday, isContractStage, STAGE_INFO } from "@/lib/workflow";
@@ -24,7 +23,7 @@ export default async function ContractsPage() {
             const deadline = getDeadlineForContract(contract);
             const dday = getDdayLabel(deadline.date, deadline.prefix, today);
             return (
-              <Link href={`/contracts/${contract.id}`} className="contract-table-row" key={contract.id}>
+              <a href={`/contracts/${contract.id}`} className="contract-table-row" key={contract.id}>
                 <span className="table-project"><strong>{contract.projectName}</strong><small>{contract.companyName} · {contract.id}</small></span>
                 <strong className="amount-cell">{formatWon(contract.contractAmount)}</strong>
                 <span><span className={`stage-pill stage-${contract.currentStage.toLowerCase()}`}>{stage}</span></span>
@@ -32,7 +31,7 @@ export default async function ContractsPage() {
                 <span className="next-task-cell">{contract.nextTask ?? "[확인 필요]"}</span>
                 <span className={`table-dday ${dday.includes("지남") || dday.includes("D-Day") ? "urgent" : ""}`}>{dday}</span>
                 <span className="row-arrow">›</span>
-              </Link>
+              </a>
             );
           })}
         </div>

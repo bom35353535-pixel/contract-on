@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { QuotationReview } from "@/components/QuotationReview";
@@ -29,7 +28,7 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
   };
   const knowledgeReadyCount = knowledgeDocuments.filter((document) => document.status === "READY").length;
   const knowledgePendingCount = knowledgeDocuments.filter((document) => document.status !== "READY").length;
-  return <AppShell active="home" contractCount={contracts.length}><Link className="back-link" href="/">← 새 견적서 선택으로</Link><QuotationReview
+  return <AppShell active="home" contractCount={contracts.length}><a className="back-link" href="/">← 새 견적서 선택으로</a><QuotationReview
     analysisId={id}
     originalName={record.analysis.originalName}
     initial={initial}

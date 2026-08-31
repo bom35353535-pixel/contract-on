@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -40,7 +39,7 @@ export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { kn
     <>
     <section className={`knowledge-first-home ${knowledgeReadyCount ? "ready" : "needs"}`}>
       <div className="knowledge-first-copy"><span className="workflow-step-number">1</span><div><span className="section-kicker">견적검토 준비</span><h2>지식자료를 먼저 등록하세요.</h2><p>{knowledgeReadyCount ? `검색 가능한 기준자료 ${knowledgeReadyCount}건이 준비되어 있습니다.` : knowledgePendingCount ? `원본 ${knowledgePendingCount}건은 저장되어 있으나 검색 색인이 필요합니다. 토큰이 준비되면 재시도할 수 있습니다.` : "계약·노임단가·제비율·자재가격 자료를 견적서보다 먼저 올릴 수 있습니다."}</p></div></div>
-      <Link href="/knowledge">지식관리 먼저 열기</Link>
+      <a href="/knowledge">지식관리 먼저 열기</a>
     </section>
     <section className="upload-section" aria-labelledby="upload-title">
       <div className="upload-copy">

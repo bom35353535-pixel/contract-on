@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { QuotationReviewItemRecord, QuotationReviewRecord } from "@/db/schema";
 import type { QuotationExtraction } from "@/lib/estimate";
@@ -96,7 +95,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     }
   }
 
-  if (confirmedContractId) return <section className="review-complete"><span>✓</span><h2>이미 계약업무를 시작했습니다.</h2><p>확정한 견적정보는 계약 상세화면에서 계속 확인할 수 있습니다.</p><Link href={`/contracts/${confirmedContractId}?tab=estimate`}>계약 건으로 이동</Link></section>;
+  if (confirmedContractId) return <section className="review-complete"><span>✓</span><h2>이미 계약업무를 시작했습니다.</h2><p>확정한 견적정보는 계약 상세화면에서 계속 확인할 수 있습니다.</p><a href={`/contracts/${confirmedContractId}?tab=estimate`}>계약 건으로 이동</a></section>;
 
   const emptyCount = mainFields.filter(([field, , required]) => required && !data[field]).length + (!data.totalAmount ? 1 : 0);
 
@@ -109,7 +108,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
       <section className={`knowledge-first-review ${knowledgeReadyCount ? "ready" : "needs"}`}>
         <div><span className="workflow-step-number">1</span><div><strong>지식자료 먼저 준비</strong><small>{knowledgeReadyCount ? `검색 가능한 자료 ${knowledgeReadyCount}건으로 검토합니다.` : knowledgePendingCount ? `원본 ${knowledgePendingCount}건이 등록되어 있으나 검색 색인이 필요합니다.` : "등록된 검색자료가 없습니다. 견적검토 전에 지식자료를 먼저 올릴 수 있습니다."}</small></div></div>
-        <Link href="/knowledge">지식관리에서 먼저 업로드</Link>
+        <a href="/knowledge">지식관리에서 먼저 업로드</a>
       </section>
 
       <section className="review-card">
