@@ -315,3 +315,38 @@ export const contractDocumentReviewItems = sqliteTable(
 export type ContractDocumentFileRecord = typeof contractDocumentFiles.$inferSelect;
 export type ContractDocumentReviewRecord = typeof contractDocumentReviews.$inferSelect;
 export type ContractDocumentReviewItemRecord = typeof contractDocumentReviewItems.$inferSelect;
+
+export const constructionChecklistRuns = sqliteTable(
+  "construction_checklist_runs",
+  {
+    id: text("id").primaryKey(),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    responseId: text("response_id"),
+    warning: text("warning"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("idx_construction_checklist_runs_contract_time").on(table.contractId, table.createdAt)],
+);
+
+export const constructionChecklistItems = sqliteTable(
+  "construction_checklist_items",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id").notNull().references(() => constructionChecklistRuns.id, { onDelete: "cascade" }),
+    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    detail: text("detail").notNull(),
+    status: text("status").notNull().default("PENDING"),
+    evidenceDocumentId: text("evidence_document_id").references(() => knowledgeDocuments.id, { onDelete: "set null" }),
+    evidenceDocumentName: text("evidence_document_name"),
+    evidenceYear: integer("evidence_year"),
+    evidenceLocation: text("evidence_location"),
+    evidenceExcerpt: text("evidence_excerpt"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("idx_construction_checklist_items_contract_status").on(table.contractId, table.status)],
+);
+
+export type ConstructionChecklistRunRecord = typeof constructionChecklistRuns.$inferSelect;
+export type ConstructionChecklistItemRecord = typeof constructionChecklistItems.$inferSelect;

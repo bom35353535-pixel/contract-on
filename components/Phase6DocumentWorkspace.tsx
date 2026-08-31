@@ -31,8 +31,9 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [error, setError] = useState("");
   const editable = currentStage === documentStage;
   const isContract = documentStage === "NARA_CONTRACT";
-  const title = isContract ? "나라장터 계약서류" : "착공계·착공서류";
-  const completeLabel = isContract ? "나라장터 계약 완료" : "착공 확인 완료";
+  const isCompletion = documentStage === "COMPLETION";
+  const title = isContract ? "나라장터 계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
+  const completeLabel = isContract ? "나라장터 계약 완료" : isCompletion ? "준공서류 확인 완료" : "착공 확인 완료";
 
   async function analyze() {
     if (!selected.length) { setError("분석할 서류를 한 개 이상 선택해 주세요."); return; }
@@ -79,13 +80,15 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   return <>
     <section className="phase6-workspace-head">
-      <div><span className="section-kicker">Phase 6 · {isContract ? "계약" : "착공"} 관리</span><h2>{title}</h2><p>여러 서류를 한 번에 올리면 AI가 문서 종류를 판독하고, 등록된 지식자료의 제출 기준과 비교합니다.</p></div>
+      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>여러 서류를 한 번에 올리면 AI가 문서 종류를 판독하고, 등록된 지식자료의 제출 기준과 비교합니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
 
     {!isContract && <section className={`start-day-card ${isStartDay ? "today" : ""}`}>
-      <div><span className="start-day-label">착공 일정</span><strong>{ddayLabel || "일정 확인 필요"}</strong></div>
-      <p>{isStartDay ? "오늘은 착공일입니다. 착공계를 제출하고 착공서류를 확인하세요." : "착공계 제출 후 등록자료 기준에 따라 착공서류를 확인하세요."}</p>
+      <div><span className="start-day-label">{isCompletion ? "준공 일정" : "착공 일정"}</span><strong>{ddayLabel || "일정 확인 필요"}</strong></div>
+      <p>{isCompletion
+        ? isStartDay ? "오늘은 계약상 준공일입니다. 준공계 송부 여부와 준공서류를 확인하세요." : "준공계 접수 후 등록자료 기준에 따라 준공서류를 확인하세요."
+        : isStartDay ? "오늘은 착공일입니다. 착공계를 제출하고 착공서류를 확인하세요." : "착공계 제출 후 등록자료 기준에 따라 착공서류를 확인하세요."}</p>
     </section>}
 
     {message && <div className="document-message success" role="status">{message}</div>}

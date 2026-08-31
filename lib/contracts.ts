@@ -39,7 +39,7 @@ const completionFieldByNextStage: Partial<Record<ContractStage, string>> = {
   INSPECTION: "actual_completion_date",
 };
 
-export async function advanceContractStage(id: string, source: "generic" | "phase6-documents" = "generic") {
+export async function advanceContractStage(id: string, source: "generic" | "phase6-documents" | "phase7" = "generic") {
   const contract = await getContract(id);
   if (!contract || !isContractStage(contract.currentStage)) throw new Error("계약 정보를 찾을 수 없습니다.");
 
@@ -49,6 +49,9 @@ export async function advanceContractStage(id: string, source: "generic" | "phas
   }
   if ((currentStage === "NARA_CONTRACT" || currentStage === "PRE_CONSTRUCTION") && source !== "phase6-documents") {
     throw new Error("해당 서류 화면에서 업로드 분석 결과를 확인하고 완료 처리해 주세요.");
+  }
+  if ((currentStage === "IN_CONSTRUCTION" || currentStage === "COMPLETION" || currentStage === "INSPECTION") && source !== "phase7") {
+    throw new Error("공사중·준공 화면에서 확인 절차를 완료해 주세요.");
   }
   const nextStage = getNextStage(currentStage);
   if (!nextStage) throw new Error("이미 완료된 계약입니다.");
@@ -70,16 +73,29 @@ export async function advanceContractStage(id: string, source: "generic" | "phas
 
   if ((result.meta.changes ?? 0) !== 1) throw new Error("다른 작업에서 단계가 변경되었습니다. 화면을 새로고침해주세요.");
 
-  if (nextStage === "FINISHED") {
-    await d1.prepare("UPDATE contracts SET inspection_date = COALESCE(inspection_date, ?), payment_date = COALESCE(payment_date, ?) WHERE id = ?").bind(today, today, id).run();
-  }
-
   await d1
     .prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(id, currentStage, nextStage, STAGE_INFO[currentStage].action, "담당자", occurredAt)
     .run();
 
   return { currentStage, nextStage };
+}
+
+export async function finishContractAfterPayment(id: string) {
+  const contract = await getContract(id);
+  if (!contract) throw new Error("계약 정보를 찾을 수 없습니다.");
+  if (contract.currentStage !== "INSPECTION") throw new Error("검사검수 단계에서만 대금지급 완료 처리를 할 수 있습니다.");
+  if (!contract.inspectionDate) throw new Error("먼저 검사·검수 완료를 확인해 주세요.");
+  const today = getKoreanToday();
+  const occurredAt = new Date().toISOString();
+  const d1 = getD1();
+  const result = await d1.prepare(`UPDATE contracts SET current_stage = 'FINISHED', progress = 100, payment_date = ?, next_task = '하자관리 기준 확인',
+      next_task_date = NULL, attention = '공사완료 처리되었습니다. Phase 8에서 하자관리 기준을 확인합니다.', updated_at = ?
+      WHERE id = ? AND current_stage = 'INSPECTION' AND inspection_date IS NOT NULL`).bind(today, occurredAt, id).run();
+  if ((result.meta.changes ?? 0) !== 1) throw new Error("다른 작업에서 단계가 변경되었습니다. 화면을 새로고침해주세요.");
+  await d1.prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, 'INSPECTION', 'FINISHED', '대금지급 완료 및 공사완료', '담당자', ?)")
+    .bind(id, occurredAt).run();
+  return { currentStage: "INSPECTION", nextStage: "FINISHED" };
 }
 
 export function getDeadlineForContract(contract: { currentStage: string; plannedStartDate: string | null; plannedCompletionDate: string | null; nextTaskDate: string | null }) {

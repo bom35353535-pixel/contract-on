@@ -20,7 +20,7 @@ export const STAGE_INFO: Record<ContractStage, { label: string; action: string; 
   PRE_CONSTRUCTION: { label: "착공", action: "착공 확인 완료", description: "착공계와 착공서류를 확인합니다." },
   IN_CONSTRUCTION: { label: "공사중", action: "준공 접수 확인", description: "공사 진행사항과 준공계 접수를 확인합니다." },
   COMPLETION: { label: "준공", action: "준공서류 확인 완료", description: "준공서류의 제출과 확인을 완료합니다." },
-  INSPECTION: { label: "검사검수", action: "검사검수·대금지급 완료", description: "검사검수와 대금지급을 모두 확인합니다." },
+  INSPECTION: { label: "검사검수", action: "검사검수 완료", description: "검사검수 완료 후 대금지급을 별도로 확인합니다." },
   FINISHED: { label: "공사완료", action: "완료됨", description: "계약업무가 완료되어 하자관리로 이어집니다." },
 };
 

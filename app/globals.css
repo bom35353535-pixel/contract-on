@@ -654,3 +654,46 @@ a { color: inherit; text-decoration: none; }
   .document-actions button { width: 100%; }
   .copy-document-button { margin-right: 0; }
 }
+
+.phase7-head { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:18px; padding:28px; border:1px solid #dfe6e2; border-radius:22px; background:linear-gradient(135deg,#fff 0%,#f6fbf8 100%); }
+.phase7-head h2 { margin:7px 0 8px; font-size:28px; color:#183a2c; }
+.phase7-head p { margin:0; color:#60716a; }
+.completion-day-card { display:flex; justify-content:space-between; gap:24px; align-items:center; padding:20px 24px; margin-bottom:18px; border-radius:18px; background:#173f31; color:#fff; }
+.completion-day-card.today { background:linear-gradient(135deg,#9b3f25,#d16a35); }
+.completion-day-card div { display:flex; flex-direction:column; gap:4px; }
+.completion-day-card span { font-size:12px; opacity:.72; font-weight:800; }
+.completion-day-card strong { font-size:24px; }
+.completion-day-card p { margin:0; max-width:620px; font-size:14px; opacity:.9; }
+.construction-check-card { border:1px solid #dde6e1; border-radius:22px; background:#fff; padding:24px; box-shadow:0 12px 35px rgba(22,55,42,.06); }
+.checklist-reload { border:1px solid #b9cec3; background:#f5faf7; color:#24523f; border-radius:12px; padding:10px 14px; font-weight:800; cursor:pointer; }
+.phase7-empty { padding:32px 20px; text-align:center; color:#718078; border:1px dashed #ccd9d2; background:#fafcfb; border-radius:15px; }
+.construction-check-list { display:grid; gap:12px; }
+.construction-check-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; border:1px solid #e2e9e5; border-left:5px solid #d7dfda; border-radius:16px; padding:18px; }
+.construction-check-item.completed { border-left-color:#30966b; background:#f7fcf9; }
+.construction-check-item.not_applicable { border-left-color:#9aa49f; background:#fafafa; }
+.construction-check-item > div:first-child > strong { display:block; color:#1d3e31; margin-bottom:5px; }
+.construction-check-item p { margin:0; color:#617169; font-size:14px; line-height:1.55; }
+.construction-check-item details { margin-top:10px; }
+.construction-check-item summary { cursor:pointer; color:#547065; font-size:12px; font-weight:800; }
+.check-status-actions { display:flex; gap:6px; }
+.check-status-actions button { border:1px solid #d5dfda; background:#fff; color:#67736d; border-radius:10px; padding:8px 10px; font-size:12px; font-weight:800; cursor:pointer; }
+.check-status-actions button.active { background:#1f5b44; border-color:#1f5b44; color:#fff; }
+.inspection-flow { display:grid; gap:14px; }
+.inspection-flow article { display:grid; grid-template-columns:48px minmax(0,1fr) auto; gap:16px; align-items:center; padding:22px; border:1px solid #e0e7e3; border-radius:18px; background:#fff; }
+.inspection-flow article > span { width:42px; height:42px; display:grid; place-items:center; border-radius:50%; background:#edf2ef; color:#6f7c76; font-weight:900; }
+.inspection-flow article.current { border-color:#b8d5c7; box-shadow:0 10px 28px rgba(37,98,72,.08); }
+.inspection-flow article.current > span { background:#1f5b44; color:#fff; }
+.inspection-flow article.done { background:#f6fbf8; }
+.inspection-flow article.done > span { background:#2f946a; color:#fff; }
+.inspection-flow h3 { margin:0 0 5px; color:#193b2d; }
+.inspection-flow p { margin:0; color:#64736c; }
+.inspection-flow button { border:0; border-radius:12px; background:#1f5b44; color:#fff; padding:11px 15px; font-weight:900; cursor:pointer; }
+.inspection-flow article.waiting { opacity:.72; }
+
+@media (max-width: 760px) {
+  .phase7-head,.completion-day-card { flex-direction:column; }
+  .construction-check-item { grid-template-columns:1fr; }
+  .check-status-actions { flex-wrap:wrap; }
+  .inspection-flow article { grid-template-columns:42px 1fr; }
+  .inspection-flow article button { grid-column:1 / -1; }
+}

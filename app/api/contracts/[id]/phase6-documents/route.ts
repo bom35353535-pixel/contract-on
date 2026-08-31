@@ -25,7 +25,7 @@ const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
 const MAX_FILES = 10;
 
 function isDocumentStage(value: FormDataEntryValue | unknown): value is DocumentStage {
-  return value === "NARA_CONTRACT" || value === "PRE_CONSTRUCTION";
+  return value === "NARA_CONTRACT" || value === "PRE_CONSTRUCTION" || value === "COMPLETION";
 }
 
 function errorResponse(message: string, status = 400) {
@@ -150,9 +150,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     await d1.prepare(`
       INSERT INTO ai_decision_audit (id, analysis_id, contract_id, action, source_file, extracted_json, ai_judgment, user_corrected_json, final_json, decided_at)
-      VALUES (?, NULL, ?, 'PHASE6_DOCUMENT_REVIEW', ?, ?, ?, NULL, ?, ?)
+      VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, ?, ?)
     `).bind(
-      crypto.randomUUID(), contractId, files.map((file) => file.name).join(", "), JSON.stringify(classification.documents),
+      crypto.randomUUID(), contractId, stage === "COMPLETION" ? "PHASE7_COMPLETION_DOCUMENT_REVIEW" : "PHASE6_DOCUMENT_REVIEW",
+      files.map((file) => file.name).join(", "), JSON.stringify(classification.documents),
       JSON.stringify(rawCandidates), JSON.stringify({ counts, items }), now,
     ).run();
 
@@ -174,7 +175,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const workspace = await getPhase6DocumentWorkspace(contractId, body.documentStage);
   if (!workspace.review) return errorResponse("먼저 서류를 업로드하고 분석 결과를 확인해 주세요.", 409);
   try {
-    const result = await advanceContractStage(contractId, "phase6-documents");
+    const result = await advanceContractStage(contractId, body.documentStage === "COMPLETION" ? "phase7" : "phase6-documents");
     return Response.json(result);
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "단계를 변경하지 못했습니다.", 409);

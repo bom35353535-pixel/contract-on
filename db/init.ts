@@ -276,6 +276,38 @@ const CREATE_CONTRACT_DOCUMENT_REVIEW_ITEMS = `
   )
 `;
 
+const CREATE_CONSTRUCTION_CHECKLIST_RUNS = `
+  CREATE TABLE IF NOT EXISTS construction_checklist_runs (
+    id TEXT PRIMARY KEY NOT NULL,
+    contract_id TEXT NOT NULL,
+    response_id TEXT,
+    warning TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_CONSTRUCTION_CHECKLIST_ITEMS = `
+  CREATE TABLE IF NOT EXISTS construction_checklist_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    run_id TEXT NOT NULL,
+    contract_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    evidence_document_id TEXT,
+    evidence_document_name TEXT,
+    evidence_year INTEGER,
+    evidence_location TEXT,
+    evidence_excerpt TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (run_id) REFERENCES construction_checklist_runs(id) ON DELETE CASCADE,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+    FOREIGN KEY (evidence_document_id) REFERENCES knowledge_documents(id) ON DELETE SET NULL
+  )
+`;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -305,6 +337,8 @@ async function initialize() {
     d1.prepare(CREATE_CONTRACT_DOCUMENT_FILES),
     d1.prepare(CREATE_CONTRACT_DOCUMENT_REVIEWS),
     d1.prepare(CREATE_CONTRACT_DOCUMENT_REVIEW_ITEMS),
+    d1.prepare(CREATE_CONSTRUCTION_CHECKLIST_RUNS),
+    d1.prepare(CREATE_CONSTRUCTION_CHECKLIST_ITEMS),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
@@ -324,6 +358,8 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_files_contract_stage_time ON contract_document_files(contract_id, document_stage, uploaded_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_reviews_contract_stage_time ON contract_document_reviews(contract_id, document_stage, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_review_items_review_status ON contract_document_review_items(review_id, status)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_construction_checklist_runs_contract_time ON construction_checklist_runs(contract_id, created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_construction_checklist_items_contract_status ON construction_checklist_items(contract_id, status)"),
   ]);
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();

@@ -1,4 +1,4 @@
-export type DocumentStage = "NARA_CONTRACT" | "PRE_CONSTRUCTION";
+export type DocumentStage = "NARA_CONTRACT" | "PRE_CONSTRUCTION" | "COMPLETION";
 export type DocumentReviewStatus = "SUBMITTED" | "MISSING" | "CHECK";
 
 export type RequiredDocumentCriterion = {
