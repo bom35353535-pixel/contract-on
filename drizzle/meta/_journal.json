@@ -57,6 +57,13 @@
       "when": 1788140429137,
       "tag": "0007_broken_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788155096814,
+      "tag": "0008_red_meggan",
+      "breakpoints": true
     }
   ]
 }

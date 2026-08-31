@@ -308,6 +308,40 @@ const CREATE_CONSTRUCTION_CHECKLIST_ITEMS = `
   )
 `;
 
+const CREATE_WARRANTY_CRITERIA = `CREATE TABLE IF NOT EXISTS warranty_criteria (
+  id TEXT PRIMARY KEY NOT NULL, category TEXT NOT NULL, work_name TEXT NOT NULL,
+  keywords_json TEXT NOT NULL DEFAULT '[]', warranty_years INTEGER NOT NULL, bond_rate REAL,
+  source_name TEXT NOT NULL, source_page TEXT NOT NULL, source_excerpt TEXT NOT NULL
+)`;
+const CREATE_CONTRACT_WARRANTIES = `CREATE TABLE IF NOT EXISTS contract_warranties (
+  contract_id TEXT PRIMARY KEY NOT NULL, criterion_id TEXT NOT NULL, warranty_years INTEGER NOT NULL,
+  bond_rate REAL, warranty_start_date TEXT NOT NULL, warranty_end_date TEXT NOT NULL,
+  confirmed_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+  FOREIGN KEY (criterion_id) REFERENCES warranty_criteria(id)
+)`;
+const CREATE_WARRANTY_INSPECTIONS = `CREATE TABLE IF NOT EXISTS warranty_inspections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, contract_id TEXT NOT NULL, sequence INTEGER NOT NULL,
+  scheduled_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'SCHEDULED', inspected_at TEXT, note TEXT,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+)`;
+
+const WARRANTY_CRITERIA = [
+  ["W01","토목","상수도·하수도(관로 매설), 관개수로 또는 매립",3,0.03],
+  ["W02","조경","부지정지, 조경시설물 또는 조경식재",2,0.05],
+  ["W03","건축","건축물의 기둥·내력벽 등 주요 구조부",5,0.03],
+  ["W04","건축","방수·지붕·주요 구조부 외 철근콘크리트·콘크리트포장·승강기·인양기계설비",3,0.03],
+  ["W05","건축·설비","토공·석공·조적·철물·온실·아스팔트포장·급배수·공동구·지하저수조·냉난방·환기·공기조화·자동제어·가스·배연설비",2,0.03],
+  ["W06","건축·설비","실내의장·미장·타일·도장·창호·보링·기타 건물 내 설비·건축물 조립·판금·보일러 설치·기타 토목공사",1,0.03],
+  ["W07","전기","배전설비 철탑공사",3,0.02],
+  ["W08","전기","철탑공사 외 배전설비공사",2,0.02],
+  ["W09","전기","건축물·구조물의 전기설비공사 및 그 밖의 전기설비공사",1,0.02],
+  ["W10","정보통신","그 밖의 통신공사",1,0.02],
+  ["W11","소방","피난기구·유도등·유도표지·비상경보·비상조명·비상방송·무선통신보조설비",2,0.02],
+  ["W12","소방","자동식소화기·옥내외소화전·스프링클러·물분무등소화·자동화재탐지·소화용수·소화활동설비",3,0.02],
+] as const;
+
 const INSERT_CONTRACT = `
   INSERT INTO contracts (
     id, project_name, construction_type, purpose, location,
@@ -339,6 +373,9 @@ async function initialize() {
     d1.prepare(CREATE_CONTRACT_DOCUMENT_REVIEW_ITEMS),
     d1.prepare(CREATE_CONSTRUCTION_CHECKLIST_RUNS),
     d1.prepare(CREATE_CONSTRUCTION_CHECKLIST_ITEMS),
+    d1.prepare(CREATE_WARRANTY_CRITERIA),
+    d1.prepare(CREATE_CONTRACT_WARRANTIES),
+    d1.prepare(CREATE_WARRANTY_INSPECTIONS),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_current_stage ON contracts(current_stage)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_start_date ON contracts(planned_start_date)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contracts_planned_completion_date ON contracts(planned_completion_date)"),
@@ -360,7 +397,13 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_review_items_review_status ON contract_document_review_items(review_id, status)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_construction_checklist_runs_contract_time ON construction_checklist_runs(contract_id, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_construction_checklist_items_contract_status ON construction_checklist_items(contract_id, status)"),
+    d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_warranty_inspections_contract_sequence ON warranty_inspections(contract_id, sequence)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_warranty_inspections_contract_date ON warranty_inspections(contract_id, scheduled_date)"),
   ]);
+
+  await d1.batch(WARRANTY_CRITERIA.map(([id, category, workName, years, rate]) => d1.prepare(
+    "INSERT OR IGNORE INTO warranty_criteria (id, category, work_name, keywords_json, warranty_years, bond_rate, source_name, source_page, source_excerpt) VALUES (?, ?, ?, '[]', ?, ?, '하자기간.pdf', 'p.155', ?)"
+  ).bind(id, category, workName, years, rate, `${workName}: ${years}년, 하자보수보증금률 ${Math.round(rate * 100)}%`)));
 
   const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();
   if ((countRow?.count ?? 0) === 0) {

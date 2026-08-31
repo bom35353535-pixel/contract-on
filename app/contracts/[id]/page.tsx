@@ -8,6 +8,7 @@ import { QuotationReviewDashboard } from "@/components/QuotationReviewDashboard"
 import { Phase6DocumentWorkspace } from "@/components/Phase6DocumentWorkspace";
 import { Phase7ConstructionWorkspace } from "@/components/Phase7ConstructionWorkspace";
 import { Phase7InspectionWorkspace } from "@/components/Phase7InspectionWorkspace";
+import { Phase8WarrantyWorkspace } from "@/components/Phase8WarrantyWorkspace";
 import { StageTimeline } from "@/components/StageTimeline";
 import { formatWon, getContract, getContractHistory, getDeadlineForContract, listContracts } from "@/lib/contracts";
 import { buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
@@ -15,6 +16,7 @@ import { getAdministrativeDocuments } from "@/lib/administrative-documents";
 import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
 import { getConstructionChecklist } from "@/lib/construction-checklist";
+import { getWarrantyWorkspace } from "@/lib/warranty";
 import { formatKoreanDate, getDdayLabel, getKoreanToday, getNextStage, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +41,12 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 export default async function ContractDetailPage({ params, searchParams }: DetailProps) {
   const { id } = await params;
   const requestedTab = (await searchParams)?.tab;
-  const availableTabs = ["estimate", "documents", "contract-documents", "construction-documents", "construction-progress", "completion-documents", "inspection"];
+  const availableTabs = ["estimate", "documents", "contract-documents", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
-  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist] = await Promise.all([
+  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace] = await Promise.all([
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
     getPhase6DocumentWorkspace(id, "NARA_CONTRACT"), getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION"),
-    getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id),
+    getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id), getWarrantyWorkspace(id),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -81,7 +83,8 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         <Link className={tab === "construction-progress" ? "active" : ""} href={`/contracts/${id}?tab=construction-progress`}>공사진행</Link>
         <Link className={tab === "completion-documents" ? "active" : ""} href={`/contracts/${id}?tab=completion-documents`}>준공서류</Link>
         <Link className={tab === "inspection" ? "active" : ""} href={`/contracts/${id}?tab=inspection`}>검사검수</Link>
-        {["하자관리", "AI 업무비서"].map((label) => <span key={label}>{label}<small>후속</small></span>)}
+        <Link className={tab === "warranty" ? "active" : ""} href={`/contracts/${id}?tab=warranty`}>하자관리</Link>
+        <span>AI 업무비서<small>후속</small></span>
       </nav>
 
       {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
@@ -107,6 +110,10 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         ddayLabel={completionDday} isStartDay={isCompletionDay}
       /> : tab === "inspection" ? <Phase7InspectionWorkspace
         contractId={id} currentStage={currentStage} inspectionDate={contract.inspectionDate} paymentDate={contract.paymentDate}
+      /> : tab === "warranty" ? <Phase8WarrantyWorkspace
+        contractId={id} currentStage={currentStage} constructionType={contract.constructionType}
+        defaultStartDate={contract.inspectionDate ?? contract.actualCompletionDate}
+        criteria={warrantyWorkspace.criteria} warranty={warrantyWorkspace.warranty} inspections={warrantyWorkspace.inspections}
       /> : <section className="detail-grid">
         <article className="info-card">
           <div className="card-title"><div><span className="section-kicker">기준정보</span><h2>계약 기본정보</h2></div><span className="read-once-badge">한 번 입력 · 계속 사용</span></div>
@@ -131,7 +138,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
               : currentStage === "INSPECTION"
                 ? <Link className="stage-workspace-link" href={`/contracts/${id}?tab=inspection`}>검사검수·대금지급 확인</Link>
               : <AdvanceStageButton contractId={contract.id} label={STAGE_INFO[currentStage].action} />
-              : <Link className="stage-workspace-link" href={`/contracts/${id}?tab=inspection`}>공사완료 내역 확인</Link>}
+              : <Link className="stage-workspace-link" href={`/contracts/${id}?tab=warranty`}>{warrantyWorkspace.warranty ? "하자관리 일정 확인" : "하자기간 확인·확정"}</Link>}
             <small className="confirmation-note">중요한 단계변경은 담당자가 확인해야만 처리됩니다.</small>
           </article>
 

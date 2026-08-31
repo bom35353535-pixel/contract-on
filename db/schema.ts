@@ -350,3 +350,45 @@ export const constructionChecklistItems = sqliteTable(
 
 export type ConstructionChecklistRunRecord = typeof constructionChecklistRuns.$inferSelect;
 export type ConstructionChecklistItemRecord = typeof constructionChecklistItems.$inferSelect;
+
+export const warrantyCriteria = sqliteTable("warranty_criteria", {
+  id: text("id").primaryKey(),
+  category: text("category").notNull(),
+  workName: text("work_name").notNull(),
+  keywordsJson: text("keywords_json").notNull().default("[]"),
+  warrantyYears: integer("warranty_years").notNull(),
+  bondRate: real("bond_rate"),
+  sourceName: text("source_name").notNull(),
+  sourcePage: text("source_page").notNull(),
+  sourceExcerpt: text("source_excerpt").notNull(),
+});
+
+export const contractWarranties = sqliteTable("contract_warranties", {
+  contractId: text("contract_id").primaryKey().references(() => contracts.id, { onDelete: "cascade" }),
+  criterionId: text("criterion_id").notNull().references(() => warrantyCriteria.id),
+  warrantyYears: integer("warranty_years").notNull(),
+  bondRate: real("bond_rate"),
+  warrantyStartDate: text("warranty_start_date").notNull(),
+  warrantyEndDate: text("warranty_end_date").notNull(),
+  confirmedAt: text("confirmed_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const warrantyInspections = sqliteTable("warranty_inspections", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+  sequence: integer("sequence").notNull(),
+  scheduledDate: text("scheduled_date").notNull(),
+  status: text("status").notNull().default("SCHEDULED"),
+  inspectedAt: text("inspected_at"),
+  note: text("note"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [
+  uniqueIndex("idx_warranty_inspections_contract_sequence").on(table.contractId, table.sequence),
+  index("idx_warranty_inspections_contract_date").on(table.contractId, table.scheduledDate),
+]);
+
+export type WarrantyCriterionRecord = typeof warrantyCriteria.$inferSelect;
+export type ContractWarrantyRecord = typeof contractWarranties.$inferSelect;
+export type WarrantyInspectionRecord = typeof warrantyInspections.$inferSelect;
