@@ -3,11 +3,12 @@ import { AppShell } from "@/components/AppShell";
 import { UploadPanel } from "@/components/UploadPanel";
 import { getDeadlineForContract, formatWon, listContracts } from "@/lib/contracts";
 import { daysBetween, formatTodayHeading, getDdayLabel, getKoreanToday, isContractStage, STAGE_INFO } from "@/lib/workflow";
+import { listKnowledgeDocuments } from "@/lib/knowledge";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const contracts = await listContracts();
+  const [contracts, knowledgeDocuments] = await Promise.all([listContracts(), listKnowledgeDocuments()]);
   const today = getKoreanToday();
   const inProgress = contracts.filter((contract) => contract.currentStage !== "FINISHED").length;
   const startingSoon = contracts.filter((contract) => contract.plannedStartDate && !contract.actualStartDate && daysBetween(today, contract.plannedStartDate) >= 0 && daysBetween(today, contract.plannedStartDate) <= 30).length;
@@ -35,7 +36,10 @@ export default async function Home() {
         <div className="top-actions"><span className="sample-data-label">샘플 데이터</span><span className="date-chip">{formatTodayHeading(today)}</span></div>
       </header>
 
-      <UploadPanel />
+      <UploadPanel
+        knowledgeReadyCount={knowledgeDocuments.filter((document) => document.status === "READY").length}
+        knowledgePendingCount={knowledgeDocuments.filter((document) => document.status !== "READY").length}
+      />
 
       <section className="summary-grid" aria-label="계약업무 요약">
         {summaryCards.map((card) => (

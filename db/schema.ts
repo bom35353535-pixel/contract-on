@@ -217,7 +217,7 @@ export const quotationReviews = sqliteTable(
   {
     id: text("id").primaryKey(),
     analysisId: text("analysis_id").notNull().references(() => quotationAnalyses.id, { onDelete: "cascade" }),
-    contractId: text("contract_id").notNull().references(() => contracts.id, { onDelete: "cascade" }),
+    contractId: text("contract_id").references(() => contracts.id, { onDelete: "cascade" }),
     normalCount: integer("normal_count").notNull().default(0),
     checkCount: integer("check_count").notNull().default(0),
     errorCount: integer("error_count").notNull().default(0),
@@ -226,7 +226,10 @@ export const quotationReviews = sqliteTable(
     warning: text("warning"),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("idx_quotation_reviews_contract_created").on(table.contractId, table.createdAt)],
+  (table) => [
+    index("idx_quotation_reviews_contract_created").on(table.contractId, table.createdAt),
+    index("idx_quotation_reviews_analysis_created").on(table.analysisId, table.createdAt),
+  ],
 );
 
 export const quotationReviewItems = sqliteTable(

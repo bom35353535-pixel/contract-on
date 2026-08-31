@@ -29,3 +29,12 @@ export async function getLatestQuotationReview(contractId: string) {
   const items = await db.select().from(quotationReviewItems).where(eq(quotationReviewItems.reviewId, review.id)).orderBy(quotationReviewItems.section, quotationReviewItems.label);
   return { review, items };
 }
+
+export async function getLatestQuotationReviewByAnalysis(analysisId: string) {
+  await ensureDatabase();
+  const db = getDb();
+  const [review] = await db.select().from(quotationReviews).where(eq(quotationReviews.analysisId, analysisId)).orderBy(desc(quotationReviews.createdAt)).limit(1);
+  if (!review) return null;
+  const items = await db.select().from(quotationReviewItems).where(eq(quotationReviewItems.reviewId, review.id)).orderBy(quotationReviewItems.section, quotationReviewItems.label);
+  return { review, items };
+}

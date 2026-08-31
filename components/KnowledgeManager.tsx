@@ -27,6 +27,7 @@ const statusLabel: Record<string, string> = {
   INDEXING: "색인 중",
   UPLOADING: "업로드 중",
   PENDING_CONFIGURATION: "API 설정 대기",
+  PENDING_INDEXING: "색인 대기",
   FAILED: "처리 실패",
 };
 
@@ -159,6 +160,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             <label><span>적용 시작일</span><input name="effectiveFrom" type="date" /></label>
             <label><span>적용 종료일</span><input name="effectiveTo" type="date" /></label>
           </div>
+          <label className="defer-indexing-option"><input type="checkbox" name="deferIndexing" value="true" defaultChecked aria-label="지금은 원본만 저장" /><span><strong>지금은 원본만 저장</strong><small>토큰을 사용하지 않고 업로드한 뒤, 나중에 ‘재시도’로 검색 색인을 진행합니다.</small></span></label>
           <div className="form-footer">
             <span>{uploadMessage || "표 파일은 검색용 텍스트 사본도 함께 생성합니다."}</span>
             <button className="primary-button" disabled={uploading || !file}>{uploading ? "등록 중…" : "지식자료 등록"}</button>

@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const ACCEPTED = ".pdf,.xlsx,.xls,.docx,.csv";
 
-export function UploadPanel() {
+export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { knowledgeReadyCount: number; knowledgePendingCount: number }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -36,9 +37,14 @@ export function UploadPanel() {
   }
 
   return (
+    <>
+    <section className={`knowledge-first-home ${knowledgeReadyCount ? "ready" : "needs"}`}>
+      <div className="knowledge-first-copy"><span className="workflow-step-number">1</span><div><span className="section-kicker">견적검토 준비</span><h2>지식자료를 먼저 등록하세요.</h2><p>{knowledgeReadyCount ? `검색 가능한 기준자료 ${knowledgeReadyCount}건이 준비되어 있습니다.` : knowledgePendingCount ? `원본 ${knowledgePendingCount}건은 저장되어 있으나 검색 색인이 필요합니다. 토큰이 준비되면 재시도할 수 있습니다.` : "계약·노임단가·제비율·자재가격 자료를 견적서보다 먼저 올릴 수 있습니다."}</p></div></div>
+      <Link href="/knowledge">지식관리 먼저 열기</Link>
+    </section>
     <section className="upload-section" aria-labelledby="upload-title">
       <div className="upload-copy">
-        <span className="section-kicker">새 계약업무 시작</span>
+        <span className="section-kicker">2 · 새 계약업무 시작</span>
         <h2 id="upload-title">이곳에 견적서를 첨부해주세요.</h2>
         <p>문서에 있는 정보는 한 번만 읽고, 계약 완료와 하자관리까지 이어집니다.</p>
         <div className="upload-tags"><span>PDF</span><span>XLSX</span><span>XLS</span><span>DOCX</span><span>CSV</span></div>
@@ -51,5 +57,6 @@ export function UploadPanel() {
       </div>
       <button className="analysis-button" type="button" disabled={!file || busy} onClick={analyze}>{busy ? "분석 중…" : "견적서 분석 시작"}</button>
     </section>
+    </>
   );
 }

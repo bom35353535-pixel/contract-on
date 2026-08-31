@@ -4,13 +4,16 @@ import { AppShell } from "@/components/AppShell";
 import { QuotationReview } from "@/components/QuotationReview";
 import { listContracts } from "@/lib/contracts";
 import type { QuotationExtraction } from "@/lib/estimate";
-import { getQuotationAnalysis } from "@/lib/quotations";
+import { listKnowledgeDocuments } from "@/lib/knowledge";
+import { getLatestQuotationReviewByAnalysis, getQuotationAnalysis } from "@/lib/quotations";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotationReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [record, contracts] = await Promise.all([getQuotationAnalysis(id), listContracts()]);
+  const [record, contracts, review, knowledgeDocuments] = await Promise.all([
+    getQuotationAnalysis(id), listContracts(), getLatestQuotationReviewByAnalysis(id), listKnowledgeDocuments(),
+  ]);
   if (!record) notFound();
   const initial: QuotationExtraction = {
     projectName: record.analysis.projectName, constructionType: record.analysis.constructionType,
@@ -24,5 +27,15 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     plannedStartDate: record.analysis.plannedStartDate, plannedCompletionDate: record.analysis.plannedCompletionDate,
     items: record.items.map((item) => ({ category: item.category, trade: item.trade, itemName: item.itemName, specification: item.specification, unit: item.unit, quantity: item.quantity, unitPrice: item.unitPrice, amount: item.amount, sourceText: item.sourceText })),
   };
-  return <AppShell active="home" contractCount={contracts.length}><Link className="back-link" href="/">← 새 견적서 선택으로</Link><QuotationReview analysisId={id} originalName={record.analysis.originalName} initial={initial} confirmedContractId={record.analysis.contractId} /></AppShell>;
+  const knowledgeReadyCount = knowledgeDocuments.filter((document) => document.status === "READY").length;
+  const knowledgePendingCount = knowledgeDocuments.filter((document) => document.status !== "READY").length;
+  return <AppShell active="home" contractCount={contracts.length}><Link className="back-link" href="/">← 새 견적서 선택으로</Link><QuotationReview
+    analysisId={id}
+    originalName={record.analysis.originalName}
+    initial={initial}
+    confirmedContractId={record.analysis.contractId}
+    review={review}
+    knowledgeReadyCount={knowledgeReadyCount}
+    knowledgePendingCount={knowledgePendingCount}
+  /></AppShell>;
 }

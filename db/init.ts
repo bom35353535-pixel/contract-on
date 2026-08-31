@@ -187,7 +187,7 @@ const CREATE_QUOTATION_REVIEWS = `
   CREATE TABLE IF NOT EXISTS quotation_reviews (
     id TEXT PRIMARY KEY NOT NULL,
     analysis_id TEXT NOT NULL,
-    contract_id TEXT NOT NULL,
+    contract_id TEXT,
     normal_count INTEGER NOT NULL DEFAULT 0,
     check_count INTEGER NOT NULL DEFAULT 0,
     error_count INTEGER NOT NULL DEFAULT 0,
@@ -319,6 +319,7 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_analysis_id ON ai_decision_audit(analysis_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_contract_id ON ai_decision_audit(contract_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_reviews_contract_created ON quotation_reviews(contract_id, created_at)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_reviews_analysis_created ON quotation_reviews(analysis_id, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_review_items_review_status ON quotation_review_items(review_id, status)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_files_contract_stage_time ON contract_document_files(contract_id, document_stage, uploaded_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_contract_document_reviews_contract_stage_time ON contract_document_reviews(contract_id, document_stage, created_at)"),

@@ -1,6 +1,7 @@
 import { getD1 } from "@/db";
 import { ensureDatabase } from "@/db/init";
 import { missingRequiredFields, normalizeQuotationExtraction, quotationColumns } from "@/lib/estimate";
+import { getQuotationAnalysis } from "@/lib/quotations";
 
 export const runtime = "edge";
 
@@ -23,9 +24,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const analysis = await d1.prepare("SELECT * FROM quotation_analyses WHERE id = ?").bind(id).first<Record<string, unknown>>();
   if (!analysis) return responseError("견적서 분석 결과를 찾을 수 없습니다.", 404);
   if (analysis.status === "CONFIRMED") return responseError("이미 계약업무를 시작한 견적서입니다.", 409);
+  const review = await d1.prepare("SELECT id FROM quotation_reviews WHERE analysis_id = ? ORDER BY created_at DESC LIMIT 1").bind(id).first<{ id: string }>();
+  if (!review) return responseError("먼저 견적검토를 실행하고 결과를 확인해 주세요.", 409);
 
   const body = await request.json().catch(() => null);
   const values = normalizeQuotationExtraction(body);
+  const reviewedQuotation = await getQuotationAnalysis(id);
+  const reviewedValues = reviewedQuotation ? normalizeQuotationExtraction({
+    ...reviewedQuotation.analysis,
+    items: reviewedQuotation.items,
+  }) : null;
+  if (!reviewedValues || JSON.stringify(values) !== JSON.stringify(reviewedValues)) {
+    return responseError("검토 후 입력값이 변경되었습니다. 현재 내용으로 견적검토를 다시 실행해 주세요.", 409);
+  }
   const missing = missingRequiredFields(values);
   if (missing.length) return responseError(`계약업무 시작 전에 입력해 주세요: ${missing.join(", ")}`);
   if (values.plannedStartDate && values.plannedCompletionDate && values.plannedStartDate > values.plannedCompletionDate) {
@@ -47,7 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         warranty_end_date, next_task, next_task_date, attention, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, ?, NULL, ?, NULL, NULL, NULL,
         'PURCHASE_REQUEST', 0, NULL, NULL, NULL, '품의 완료', NULL,
-        '견적서 추출정보를 담당자가 확인했습니다. 금액 검산은 Phase 4에서 진행합니다.', ?, ?)
+        '견적서 검토결과를 담당자가 확인하고 현황판 등록을 승인했습니다.', ?, ?)
     `).bind(
       contractId, values.projectName, values.constructionType, values.purpose, values.location,
       values.totalAmount, values.totalAmount, values.companyName, values.quotationDate,
@@ -61,6 +72,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         planned_completion_date = ?, updated_at = ?, confirmed_at = ? WHERE id = ? AND status = 'ANALYZED'
     `).bind(contractId, ...Object.values(columns), now, now, id),
     d1.prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, NULL, 'PURCHASE_REQUEST', '견적정보 확정 및 계약업무 시작', '담당자', ?)").bind(contractId, now),
+    d1.prepare("UPDATE quotation_reviews SET contract_id = ? WHERE analysis_id = ? AND contract_id IS NULL").bind(contractId, id),
+    d1.prepare("UPDATE ai_decision_audit SET contract_id = ? WHERE analysis_id = ? AND contract_id IS NULL").bind(contractId, id),
     d1.prepare("DELETE FROM quotation_items WHERE analysis_id = ?").bind(id),
     d1.prepare(`
       INSERT INTO ai_decision_audit (id, analysis_id, contract_id, action, source_file, extracted_json, ai_judgment, user_corrected_json, final_json, decided_at)

@@ -35,6 +35,7 @@ export async function POST(request: Request) {
   const yearRaw = String(form.get("year") || "").trim();
   const effectiveFrom = String(form.get("effectiveFrom") || "").trim() || null;
   const effectiveTo = String(form.get("effectiveTo") || "").trim() || null;
+  const deferIndexing = String(form.get("deferIndexing") || "") === "true";
   if (!documentName) return jsonError("문서명을 입력해 주세요.");
   if (!KNOWLEDGE_CATEGORIES.includes(category as (typeof KNOWLEDGE_CATEGORIES)[number])) return jsonError("유효한 분류를 선택해 주세요.");
   if (effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) return jsonError("적용 종료일은 시작일보다 빠를 수 없습니다.");
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
   const storageKey = `knowledge/${id}/${encodeURIComponent(file.name)}`;
   const sourceKind = extension === "csv" || extension === "xlsx" ? "TABLE" : "TEXT";
-  const initialStatus = isOpenAIConfigured() ? "INDEXING" : "PENDING_CONFIGURATION";
+  const shouldIndex = isOpenAIConfigured() && !deferIndexing;
+  const initialStatus = shouldIndex ? "INDEXING" : isOpenAIConfigured() ? "PENDING_INDEXING" : "PENDING_CONFIGURATION";
 
   await env.FILES.put(storageKey, await file.arrayBuffer(), {
     httpMetadata: { contentType: file.type || "application/octet-stream" },
@@ -74,11 +76,13 @@ export async function POST(request: Request) {
     updatedAt: now,
   });
 
-  let message = isOpenAIConfigured()
+  let message = shouldIndex
     ? "원본을 저장하고 Vector Store 색인을 시작했습니다."
-    : "원본과 메타데이터를 저장했습니다. API 키 설정 후 색인이 필요합니다.";
+    : deferIndexing
+      ? "토큰을 사용하지 않고 원본과 메타데이터를 저장했습니다. 나중에 재시도로 색인할 수 있습니다."
+      : "원본과 메타데이터를 저장했습니다. API 키 설정 후 색인이 필요합니다.";
 
-  if (isOpenAIConfigured()) {
+  if (shouldIndex) {
     try {
       const indexed = await uploadKnowledgeFile(file, { documentId: id, documentName, category, year, effectiveFrom, effectiveTo });
       const status = await waitForVectorFile(indexed.vectorStoreId, indexed.openaiFileId);

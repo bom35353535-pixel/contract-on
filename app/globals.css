@@ -536,6 +536,31 @@ a { color: inherit; text-decoration: none; }
 .phase6-confirm-bar button { padding: 11px 16px; border: 0; border-radius: 9px; background: var(--navy); color: white; font-size: 10px; font-weight: 850; cursor: pointer; }
 .phase6-confirm-bar button:disabled { opacity: .55; cursor: wait; }
 .commitment-guidance { font-weight: 850; }
+.knowledge-first-home { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 20px 0 12px; padding: 18px 21px; border: 1px solid #d8e4e1; border-radius: 15px; background: linear-gradient(135deg, #f4f9f8, #fff); }
+.knowledge-first-home.needs { border-color: #ead8b2; background: linear-gradient(135deg, #fff9ee, #fff); }
+.knowledge-first-copy { display: flex; align-items: center; gap: 13px; }
+.knowledge-first-copy h2 { margin: 4px 0 0; font-size: 15px; }
+.knowledge-first-copy p { margin: 6px 0 0; color: #6f808a; font-size: 9px; }
+.workflow-step-number { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--green); color: white; font-size: 11px; font-weight: 900; }
+.knowledge-first-home.needs .workflow-step-number { background: #bd8434; }
+.knowledge-first-home > a, .knowledge-first-review > a { flex: 0 0 auto; padding: 10px 13px; border-radius: 8px; background: var(--navy); color: white; font-size: 9px; font-weight: 850; text-decoration: none; }
+.knowledge-first-review { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 12px; padding: 14px 16px; border: 1px solid #d4e4df; border-radius: 12px; background: #f5f9f8; }
+.knowledge-first-review.needs { border-color: #ead8b2; background: #fff9ef; }
+.knowledge-first-review > div { display: flex; align-items: center; gap: 11px; }
+.knowledge-first-review strong, .knowledge-first-review small { display: block; }
+.knowledge-first-review strong { font-size: 10px; }
+.knowledge-first-review small { margin-top: 4px; color: #71828c; font-size: 8px; }
+.defer-indexing-option { display: flex; align-items: center; gap: 10px; margin-top: 13px; padding: 12px 13px; border: 1px solid #dfd6bd; border-radius: 9px; background: #fffaf0; color: #5d6f79; cursor: pointer; }
+.defer-indexing-option input { width: 16px; height: 16px; accent-color: var(--green); }
+.defer-indexing-option strong, .defer-indexing-option small { display: block; }
+.defer-indexing-option strong { font-size: 9px; }
+.defer-indexing-option small { margin-top: 3px; color: #7c898f; font-size: 8px; }
+.pre-confirmation-start { margin-top: 14px; }
+.pre-confirmation-review-head { border-color: #bedbd4; background: linear-gradient(135deg, #eef8f5, #fff); }
+.pre-review-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.pre-review-actions button { padding: 9px 12px; border: 0; border-radius: 8px; background: #e8f2ef; color: #2d7967; font-size: 9px; font-weight: 850; cursor: pointer; }
+.pre-review-actions button:disabled { opacity: .55; cursor: wait; }
+.confirm-bar.waiting-review { border-color: #d9e0e3; background: rgba(248, 249, 250, .96); }
 
 @media (max-width: 1100px) {
   .sidebar { width: 220px; }
@@ -558,6 +583,7 @@ a { color: inherit; text-decoration: none; }
   .result-detail-grid { grid-template-columns: repeat(2, 1fr); }
   .administrative-workspace-head { align-items: flex-start; }
   .phase6-workspace-head { align-items: flex-start; }
+  .knowledge-first-home, .knowledge-first-review { align-items: flex-start; }
 }
 @media (max-width: 820px) {
   .sidebar { position: static; width: 100%; height: auto; padding: 18px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -621,6 +647,8 @@ a { color: inherit; text-decoration: none; }
   .phase6-status-label { display: none; }
   .phase6-check-detail { padding-left: 15px; }
   .phase6-confirm-bar button { width: 100%; }
+  .knowledge-first-home, .knowledge-first-review { flex-direction: column; }
+  .knowledge-first-home > a, .knowledge-first-review > a { width: 100%; text-align: center; }
   .document-card-heading { align-items: flex-start; }
   .document-actions { flex-direction: column; }
   .document-actions button { width: 100%; }
