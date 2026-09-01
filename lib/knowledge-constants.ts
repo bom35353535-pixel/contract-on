@@ -6,3 +6,4 @@ export const KNOWLEDGE_CATEGORIES = [
 export const SUPPORTED_EXTENSIONS = ["pdf", "docx", "xlsx", "xlsm", "csv", "txt"] as const;
 export const NO_EVIDENCE_MESSAGE = "등록된 지식자료에서 확인할 수 없습니다.";
 export const PROTOTYPE_MAX_FILE_SIZE = 15 * 1024 * 1024;
+export const LARGE_KNOWLEDGE_MAX_FILE_SIZE = 200 * 1024 * 1024;

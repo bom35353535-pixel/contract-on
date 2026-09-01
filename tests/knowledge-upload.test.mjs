@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { documentNameFromFileName } from "../lib/file-name.ts";
-import { SUPPORTED_EXTENSIONS } from "../lib/knowledge-constants.ts";
+import { LARGE_KNOWLEDGE_MAX_FILE_SIZE, SUPPORTED_EXTENSIONS } from "../lib/knowledge-constants.ts";
 
 test("knowledge document name defaults to the selected filename", () => {
   assert.equal(documentNameFromFileName("하자기간.pdf"), "하자기간");
@@ -14,16 +14,25 @@ test("knowledge uploads accept the supplied macro-enabled ledgers", () => {
   assert.ok(SUPPORTED_EXTENSIONS.includes("xlsm"));
 });
 
+test("knowledge storage accepts the observed 185 MB request", () => {
+  assert.ok(185_055_987 < LARGE_KNOWLEDGE_MAX_FILE_SIZE);
+});
+
 test("knowledge upload fills the title and appends the saved document", async () => {
-  const [manager, route] = await Promise.all([
+  const [manager, route, largeRoute] = await Promise.all([
     readFile(new URL("../components/KnowledgeManager.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/knowledge/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/knowledge/large/route.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(manager, /setDocumentName\(\(current\) => current\.trim\(\) \|\| documentNameFromFileName\(next\.name\)\)/);
-  assert.match(manager, /next\.size > PROTOTYPE_MAX_FILE_SIZE/);
+  assert.match(manager, /next\.size > LARGE_KNOWLEDGE_MAX_FILE_SIZE/);
   assert.match(manager, /setDocuments\(\(current\) => \[payload\.document!, \.\.\.current\]\)/);
   assert.match(route, /documentNameFromFileName\(file\.name\)/);
   assert.match(route, /contentLength > PROTOTYPE_MAX_FILE_SIZE/);
   assert.match(route, /413/);
+  assert.match(manager, /XMLHttpRequest/);
+  assert.match(manager, /\/api\/knowledge\/large/);
+  assert.match(largeRoute, /env\.FILES\.put\(storageKey, request\.body/);
+  assert.match(largeRoute, /LARGE_FILE_STORED/);
 });

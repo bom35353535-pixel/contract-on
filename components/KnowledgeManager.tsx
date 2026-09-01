@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { documentNameFromFileName } from "@/lib/file-name";
-import { PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
+import { LARGE_KNOWLEDGE_MAX_FILE_SIZE, PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
 
 type KnowledgeDocument = {
   id: string;
@@ -30,6 +30,7 @@ const statusLabel: Record<string, string> = {
   UPLOADING: "업로드 중",
   PENDING_CONFIGURATION: "API 설정 대기",
   PENDING_INDEXING: "색인 대기",
+  LARGE_FILE_STORED: "대용량 원본 저장",
   FAILED: "처리 실패",
 };
 
@@ -40,6 +41,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [documentName, setDocumentName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadMessage, setUploadMessage] = useState("");
   const [question, setQuestion] = useState("");
   const [testing, setTesting] = useState(false);
@@ -47,9 +49,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [sources, setSources] = useState<Source[]>([]);
 
   function chooseFile(next: File | null) {
-    if (next && next.size > PROTOTYPE_MAX_FILE_SIZE) {
+    if (next && next.size > LARGE_KNOWLEDGE_MAX_FILE_SIZE) {
       setFile(null);
-      setUploadMessage(`${next.name}은(는) ${(next.size / 1024 / 1024).toFixed(1)}MB입니다. 지식자료는 파일별 15MB 이하만 등록할 수 있습니다.`);
+      setUploadMessage(`${next.name}은(는) ${(next.size / 1024 / 1024).toFixed(1)}MB입니다. 지식자료 원본은 파일별 200MB 이하만 등록할 수 있습니다.`);
       if (inputRef.current) inputRef.current.value = "";
       return;
     }
@@ -63,13 +65,44 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
     if (!file) return setUploadMessage("등록할 파일을 선택해 주세요.");
     const formElement = event.currentTarget;
     setUploading(true);
+    setUploadProgress(null);
     setUploadMessage("");
     const form = new FormData(formElement);
     form.set("file", file);
     try {
-      const response = await fetch("/api/knowledge", { method: "POST", body: form });
-      const payload = await response.json() as { document?: KnowledgeDocument; error?: string; message?: string };
-      if (!response.ok || !payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
+      let payload: { document?: KnowledgeDocument; error?: string; message?: string };
+      if (file.size > PROTOTYPE_MAX_FILE_SIZE) {
+        const params = new URLSearchParams();
+        for (const key of ["documentName", "category", "year", "effectiveFrom", "effectiveTo"]) {
+          params.set(key, String(form.get(key) || ""));
+        }
+        params.set("fileName", file.name);
+        params.set("sizeBytes", String(file.size));
+        payload = await new Promise((resolve, reject) => {
+          const request = new XMLHttpRequest();
+          request.open("POST", `/api/knowledge/large?${params.toString()}`);
+          request.setRequestHeader("content-type", file.type || "application/octet-stream");
+          request.upload.onprogress = (progress) => {
+            if (progress.lengthComputable) setUploadProgress(Math.round((progress.loaded / progress.total) * 100));
+          };
+          request.onerror = () => reject(new Error("대용량 파일 전송에 실패했습니다."));
+          request.onload = () => {
+            let result: { document?: KnowledgeDocument; error?: string; message?: string } = {};
+            try { result = JSON.parse(request.responseText); } catch { /* handled below */ }
+            if (request.status < 200 || request.status >= 300 || !result.document) {
+              reject(new Error(result.error || "대용량 파일을 저장하지 못했습니다."));
+              return;
+            }
+            resolve(result);
+          };
+          request.send(file);
+        });
+      } else {
+        const response = await fetch("/api/knowledge", { method: "POST", body: form });
+        payload = await response.json() as { document?: KnowledgeDocument; error?: string; message?: string };
+        if (!response.ok || !payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
+      }
+      if (!payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
       setDocuments((current) => [payload.document!, ...current]);
       setFile(null);
       setDocumentName("");
@@ -79,6 +112,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
       setUploadMessage(error instanceof Error ? error.message : "자료를 등록하지 못했습니다.");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   }
 
@@ -160,7 +194,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             }}
           >
             <span className="drop-glyph">{file ? "✓" : "＋"}</span>
-            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>{file ? `${(file.size / 1024 / 1024).toFixed(1)}MB · 등록 가능` : "PDF · DOCX · XLSX · XLSM · CSV · TXT / 파일별 15MB 이하"}</small></span>
+            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>{file ? `${(file.size / 1024 / 1024).toFixed(1)}MB · ${file.size > PROTOTYPE_MAX_FILE_SIZE ? "대용량 원본 저장" : "등록 가능"}` : "PDF · DOCX · XLSX · XLSM · CSV · TXT / 원본 200MB 이하"}</small></span>
           </button>
           <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
 
@@ -171,10 +205,10 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             <label><span>적용 시작일</span><input name="effectiveFrom" type="date" /></label>
             <label><span>적용 종료일</span><input name="effectiveTo" type="date" /></label>
           </div>
-          <label className="defer-indexing-option"><input type="checkbox" name="deferIndexing" value="true" defaultChecked aria-label="지금은 원본만 저장" /><span><strong>지금은 원본만 저장</strong><small>토큰을 사용하지 않고 업로드한 뒤, 나중에 ‘재시도’로 검색 색인을 진행합니다.</small></span></label>
+          <label className="defer-indexing-option"><input type="checkbox" name="deferIndexing" value="true" defaultChecked aria-label="지금은 원본만 저장" /><span><strong>지금은 원본만 저장</strong><small>{file && file.size > PROTOTYPE_MAX_FILE_SIZE ? "대용량 원본은 먼저 보관하고 검색용 분할 처리는 별도로 진행합니다." : "토큰을 사용하지 않고 업로드한 뒤, 나중에 ‘재시도’로 검색 색인을 진행합니다."}</small></span></label>
           <div className="form-footer">
-            <span role="status" aria-live="polite">{uploadMessage || "표 파일은 검색용 텍스트 사본도 함께 생성합니다."}</span>
-            <button className="primary-button" disabled={uploading || !file}>{uploading ? "등록 중…" : "지식자료 등록"}</button>
+            <span role="status" aria-live="polite">{uploading && uploadProgress !== null ? `대용량 원본 전송 중… ${uploadProgress}%` : uploadMessage || "15MB 초과 파일은 원본 저장 후 검색용 분할 처리가 필요합니다."}</span>
+            <button className="primary-button" disabled={uploading || !file}>{uploading ? (uploadProgress !== null ? `${uploadProgress}% 전송 중` : "등록 중…") : "지식자료 등록"}</button>
           </div>
         </form>
 
@@ -212,7 +246,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
                 <span><span className={`index-status status-${document.status.toLowerCase()}`}>{statusLabel[document.status] || document.status}</span>{document.errorMessage && <small className="row-error">{document.errorMessage}</small>}</span>
                 <span className="uploaded-cell">{new Date(document.uploadedAt).toLocaleDateString("ko-KR")}</span>
                 <span className="row-actions">
-                  {document.status !== "READY" && <button type="button" className="retry-button" onClick={() => retry(document.id)}>재시도</button>}
+                  {document.status !== "READY" && document.status !== "LARGE_FILE_STORED" && <button type="button" className="retry-button" onClick={() => retry(document.id)}>재시도</button>}
                   <button type="button" className="delete-button" onClick={() => remove(document.id)} aria-label={`${document.documentName} 삭제`}>삭제</button>
                 </span>
               </div>

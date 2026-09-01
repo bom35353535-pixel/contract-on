@@ -5,6 +5,7 @@ import { ensureDatabase } from "@/db/init";
 import { knowledgeDocuments } from "@/db/schema";
 import { isOpenAIConfigured } from "@/lib/knowledge";
 import { getVectorStoreId, uploadKnowledgeFile, waitForVectorFile } from "@/lib/openai-knowledge";
+import { PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
 
 export const runtime = "edge";
 
@@ -15,6 +16,9 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
   const db = getDb();
   const [document] = await db.select().from(knowledgeDocuments).where(eq(knowledgeDocuments.id, id)).limit(1);
   if (!document) return Response.json({ error: "지식자료를 찾을 수 없습니다." }, { status: 404 });
+  if (document.sizeBytes > PROTOTYPE_MAX_FILE_SIZE) {
+    return Response.json({ error: "대용량 원본은 보관되었지만 AI 검색을 위해서는 검색용 분할 처리가 필요합니다." }, { status: 409 });
+  }
 
   try {
     let openaiFileId = document.openaiFileId;
