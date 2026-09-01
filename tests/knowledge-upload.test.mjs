@@ -31,8 +31,14 @@ test("knowledge upload fills the title and appends the saved document", async ()
   assert.match(route, /documentNameFromFileName\(file\.name\)/);
   assert.match(route, /contentLength > PROTOTYPE_MAX_FILE_SIZE/);
   assert.match(route, /413/);
-  assert.match(manager, /XMLHttpRequest/);
+  assert.match(manager, /chunkSize = 8 \* 1024 \* 1024/);
   assert.match(manager, /\/api\/knowledge\/large/);
-  assert.match(largeRoute, /env\.FILES\.put\(storageKey, request\.body/);
-  assert.match(largeRoute, /LARGE_FILE_STORED/);
+  assert.match(manager, /\/api\/knowledge\/large\/part/);
+  assert.match(manager, /\/api\/knowledge\/large\/complete/);
+  assert.match(largeRoute, /createMultipartUpload/);
+  const partRoute = await readFile(new URL("../app/api/knowledge/large/part/route.ts", import.meta.url), "utf8");
+  const completeRoute = await readFile(new URL("../app/api/knowledge/large/complete/route.ts", import.meta.url), "utf8");
+  assert.match(partRoute, /uploadPart/);
+  assert.match(completeRoute, /upload\.complete/);
+  assert.match(completeRoute, /LARGE_FILE_STORED/);
 });

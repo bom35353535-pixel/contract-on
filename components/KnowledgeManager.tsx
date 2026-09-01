@@ -72,31 +72,47 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
     try {
       let payload: { document?: KnowledgeDocument; error?: string; message?: string };
       if (file.size > PROTOTYPE_MAX_FILE_SIZE) {
-        const params = new URLSearchParams();
+        const metadata: Record<string, string | number> = {
+          fileName: file.name,
+          sizeBytes: file.size,
+          contentType: file.type || "application/octet-stream",
+        };
         for (const key of ["documentName", "category", "year", "effectiveFrom", "effectiveTo"]) {
-          params.set(key, String(form.get(key) || ""));
+          metadata[key] = String(form.get(key) || "");
         }
-        params.set("fileName", file.name);
-        params.set("sizeBytes", String(file.size));
-        payload = await new Promise((resolve, reject) => {
-          const request = new XMLHttpRequest();
-          request.open("POST", `/api/knowledge/large?${params.toString()}`);
-          request.setRequestHeader("content-type", file.type || "application/octet-stream");
-          request.upload.onprogress = (progress) => {
-            if (progress.lengthComputable) setUploadProgress(Math.round((progress.loaded / progress.total) * 100));
-          };
-          request.onerror = () => reject(new Error("대용량 파일 전송에 실패했습니다."));
-          request.onload = () => {
-            let result: { document?: KnowledgeDocument; error?: string; message?: string } = {};
-            try { result = JSON.parse(request.responseText); } catch { /* handled below */ }
-            if (request.status < 200 || request.status >= 300 || !result.document) {
-              reject(new Error(result.error || "대용량 파일을 저장하지 못했습니다."));
-              return;
-            }
-            resolve(result);
-          };
-          request.send(file);
+        const initResponse = await fetch("/api/knowledge/large", {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(metadata),
         });
+        const initialized = await initResponse.json() as { id?: string; uploadId?: string; error?: string };
+        if (!initResponse.ok || !initialized.id || !initialized.uploadId) throw new Error(initialized.error || "대용량 업로드를 시작하지 못했습니다.");
+
+        const uploadedParts: Array<{ partNumber: number; etag: string }> = [];
+        const chunkSize = 8 * 1024 * 1024;
+        try {
+          for (let start = 0, partNumber = 1; start < file.size; start += chunkSize, partNumber += 1) {
+            const end = Math.min(start + chunkSize, file.size);
+            const params = new URLSearchParams({ id: initialized.id, uploadId: initialized.uploadId, fileName: file.name, partNumber: String(partNumber) });
+            const partResponse = await fetch(`/api/knowledge/large/part?${params.toString()}`, {
+              method: "PUT", headers: { "content-type": "application/octet-stream" }, body: file.slice(start, end),
+            });
+            const part = await partResponse.json() as { partNumber?: number; etag?: string; error?: string };
+            if (!partResponse.ok || !part.partNumber || !part.etag) throw new Error(part.error || `${partNumber}번째 파일 조각을 전송하지 못했습니다.`);
+            uploadedParts.push({ partNumber: part.partNumber, etag: part.etag });
+            setUploadProgress(Math.round((end / file.size) * 100));
+          }
+          const completeResponse = await fetch("/api/knowledge/large/complete", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ ...metadata, id: initialized.id, uploadId: initialized.uploadId, parts: uploadedParts }),
+          });
+          payload = await completeResponse.json() as { document?: KnowledgeDocument; error?: string; message?: string };
+          if (!completeResponse.ok || !payload.document) throw new Error(payload.error || "대용량 파일을 최종 저장하지 못했습니다.");
+        } catch (error) {
+          await fetch("/api/knowledge/large/abort", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id: initialized.id, uploadId: initialized.uploadId, fileName: file.name }),
+          }).catch(() => undefined);
+          throw error;
+        }
       } else {
         const response = await fetch("/api/knowledge", { method: "POST", body: form });
         payload = await response.json() as { document?: KnowledgeDocument; error?: string; message?: string };
