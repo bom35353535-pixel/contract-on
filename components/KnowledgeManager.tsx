@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { documentNameFromFileName } from "@/lib/file-name";
+import { PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
 
 type KnowledgeDocument = {
   id: string;
@@ -46,6 +47,12 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [sources, setSources] = useState<Source[]>([]);
 
   function chooseFile(next: File | null) {
+    if (next && next.size > PROTOTYPE_MAX_FILE_SIZE) {
+      setFile(null);
+      setUploadMessage(`${next.name}은(는) ${(next.size / 1024 / 1024).toFixed(1)}MB입니다. 지식자료는 파일별 15MB 이하만 등록할 수 있습니다.`);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     setFile(next);
     if (next) setDocumentName((current) => current.trim() || documentNameFromFileName(next.name));
     setUploadMessage("");
@@ -153,7 +160,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             }}
           >
             <span className="drop-glyph">{file ? "✓" : "＋"}</span>
-            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>PDF · DOCX · XLSX · XLSM · CSV · TXT / 프로토타입 15MB 제한</small></span>
+            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>{file ? `${(file.size / 1024 / 1024).toFixed(1)}MB · 등록 가능` : "PDF · DOCX · XLSX · XLSM · CSV · TXT / 파일별 15MB 이하"}</small></span>
           </button>
           <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
 

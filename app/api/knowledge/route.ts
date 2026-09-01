@@ -20,6 +20,10 @@ function jsonError(error: string, status = 400) {
 
 export async function POST(request: Request) {
   await ensureDatabase();
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > PROTOTYPE_MAX_FILE_SIZE + 64 * 1024) {
+    return jsonError("지식자료는 파일별 15MB 이하만 등록할 수 있습니다. 파일을 나누거나 용량을 줄여 주세요.", 413);
+  }
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return jsonError("등록할 파일을 선택해 주세요.");

@@ -21,6 +21,9 @@ test("knowledge upload fills the title and appends the saved document", async ()
   ]);
 
   assert.match(manager, /setDocumentName\(\(current\) => current\.trim\(\) \|\| documentNameFromFileName\(next\.name\)\)/);
+  assert.match(manager, /next\.size > PROTOTYPE_MAX_FILE_SIZE/);
   assert.match(manager, /setDocuments\(\(current\) => \[payload\.document!, \.\.\.current\]\)/);
   assert.match(route, /documentNameFromFileName\(file\.name\)/);
+  assert.match(route, /contentLength > PROTOTYPE_MAX_FILE_SIZE/);
+  assert.match(route, /413/);
 });
