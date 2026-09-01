@@ -4,12 +4,12 @@ import { getDb } from "@/db";
 import { ensureDatabase } from "@/db/init";
 import { knowledgeDocuments } from "@/db/schema";
 import { isOpenAIConfigured } from "@/lib/knowledge";
-import { getVectorStoreId, uploadKnowledgeFile, waitForVectorFile } from "@/lib/openai-knowledge";
+import { deleteKnowledgeFile, getVectorStoreId, uploadKnowledgeFile, waitForVectorFile } from "@/lib/openai-knowledge";
 import { PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
 
 export const runtime = "edge";
 
-export async function POST(_: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   await ensureDatabase();
   if (!isOpenAIConfigured()) return Response.json({ error: "OpenAI API 키를 먼저 설정해 주세요." }, { status: 409 });
   const { id } = await context.params;
@@ -19,10 +19,22 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
   if (document.sizeBytes > PROTOTYPE_MAX_FILE_SIZE) {
     return Response.json({ error: "대용량 원본은 보관되었지만 AI 검색을 위해서는 검색용 분할 처리가 필요합니다." }, { status: 409 });
   }
+  const body = await request.json().catch(() => ({})) as { force?: boolean };
 
   try {
     let openaiFileId = document.openaiFileId;
     let vectorStoreId = await getVectorStoreId();
+    if (body.force && openaiFileId && vectorStoreId) {
+      await deleteKnowledgeFile(vectorStoreId, openaiFileId);
+      openaiFileId = null;
+      await db.update(knowledgeDocuments).set({
+        status: "UPLOADING",
+        openaiFileId: null,
+        vectorStoreFileId: null,
+        errorMessage: null,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(knowledgeDocuments.id, id));
+    }
     if (!openaiFileId || !vectorStoreId) {
       const stored = await env.FILES.get(document.storageKey);
       if (!stored) return Response.json({ error: "보관된 원본 파일을 찾을 수 없습니다." }, { status: 404 });

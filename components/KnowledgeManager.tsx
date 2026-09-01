@@ -47,6 +47,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [testing, setTesting] = useState(false);
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
+  const [indexingDocumentId, setIndexingDocumentId] = useState<string | null>(null);
 
   function chooseFile(next: File | null) {
     if (next && next.size > LARGE_KNOWLEDGE_MAX_FILE_SIZE) {
@@ -140,11 +141,22 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
     setDocuments((current) => current.filter((document) => document.id !== documentId));
   }
 
-  async function retry(documentId: string) {
-    const response = await fetch(`/api/knowledge/${documentId}/retry`, { method: "POST" });
-    const payload = await response.json() as { document?: KnowledgeDocument; error?: string };
-    if (!response.ok || !payload.document) return window.alert(payload.error || "색인을 다시 시도하지 못했습니다.");
-    setDocuments((current) => current.map((document) => document.id === documentId ? payload.document! : document));
+  async function retry(documentId: string, force = false) {
+    if (force && !window.confirm("기존 검색 색인을 새 표 구조로 교체할까요? OpenAI 사용량이 발생할 수 있습니다.")) return;
+    setIndexingDocumentId(documentId);
+    try {
+      const response = await fetch(`/api/knowledge/${documentId}/retry`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
+      const payload = await response.json() as { document?: KnowledgeDocument; error?: string };
+      if (!response.ok || !payload.document) return window.alert(payload.error || "색인을 다시 시도하지 못했습니다.");
+      setDocuments((current) => current.map((document) => document.id === documentId ? payload.document! : document));
+      if (force) window.alert(payload.document.status === "READY" ? "새 표 구조로 다시 색인했습니다." : "다시 색인을 시작했습니다. 잠시 후 검색 상태를 확인해 주세요.");
+    } finally {
+      setIndexingDocumentId(null);
+    }
   }
 
   async function testKnowledge(event: React.FormEvent) {
@@ -262,7 +274,8 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
                 <span><span className={`index-status status-${document.status.toLowerCase()}`}>{statusLabel[document.status] || document.status}</span>{document.errorMessage && <small className="row-error">{document.errorMessage}</small>}</span>
                 <span className="uploaded-cell">{new Date(document.uploadedAt).toLocaleDateString("ko-KR")}</span>
                 <span className="row-actions">
-                  {document.status !== "READY" && document.status !== "LARGE_FILE_STORED" && <button type="button" className="retry-button" onClick={() => retry(document.id)}>재시도</button>}
+                  {document.status === "READY" && <button type="button" className="retry-button" disabled={indexingDocumentId === document.id} onClick={() => retry(document.id, true)}>{indexingDocumentId === document.id ? "색인 중…" : "다시 색인"}</button>}
+                  {document.status !== "READY" && document.status !== "LARGE_FILE_STORED" && <button type="button" className="retry-button" disabled={indexingDocumentId === document.id} onClick={() => retry(document.id)}>{indexingDocumentId === document.id ? "색인 중…" : "재시도"}</button>}
                   <button type="button" className="delete-button" onClick={() => remove(document.id)} aria-label={`${document.documentName} 삭제`}>삭제</button>
                 </span>
               </div>
