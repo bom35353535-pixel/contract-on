@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { documentNameFromFileName } from "@/lib/file-name";
 
 type KnowledgeDocument = {
   id: string;
@@ -35,6 +36,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState(initialDocuments);
   const [file, setFile] = useState<File | null>(null);
+  const [documentName, setDocumentName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
@@ -45,6 +47,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
 
   function chooseFile(next: File | null) {
     setFile(next);
+    if (next) setDocumentName((current) => current.trim() || documentNameFromFileName(next.name));
     setUploadMessage("");
   }
 
@@ -62,6 +65,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
       if (!response.ok || !payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
       setDocuments((current) => [payload.document!, ...current]);
       setFile(null);
+      setDocumentName("");
       formElement.reset();
       setUploadMessage(payload.message || "지식자료를 등록했습니다.");
     } catch (error) {
@@ -149,12 +153,12 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             }}
           >
             <span className="drop-glyph">{file ? "✓" : "＋"}</span>
-            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>PDF · DOCX · XLSX · CSV · TXT / 프로토타입 15MB 제한</small></span>
+            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>PDF · DOCX · XLSX · XLSM · CSV · TXT / 프로토타입 15MB 제한</small></span>
           </button>
-          <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.csv,.txt" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
+          <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
 
           <div className="metadata-grid">
-            <label><span>문서명</span><input name="documentName" placeholder={file?.name.replace(/\.[^.]+$/, "") || "예: 2026년 시설공사 제비율"} required /></label>
+            <label><span>문서명</span><input name="documentName" value={documentName} onChange={(event) => setDocumentName(event.target.value)} placeholder="파일을 선택하면 자동 입력됩니다" required /></label>
             <label><span>분류</span><select name="category" defaultValue="계약" required>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
             <label><span>기준연도</span><input name="year" type="number" min="2000" max="2100" defaultValue={new Date().getFullYear()} /></label>
             <label><span>적용 시작일</span><input name="effectiveFrom" type="date" /></label>
@@ -162,7 +166,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
           </div>
           <label className="defer-indexing-option"><input type="checkbox" name="deferIndexing" value="true" defaultChecked aria-label="지금은 원본만 저장" /><span><strong>지금은 원본만 저장</strong><small>토큰을 사용하지 않고 업로드한 뒤, 나중에 ‘재시도’로 검색 색인을 진행합니다.</small></span></label>
           <div className="form-footer">
-            <span>{uploadMessage || "표 파일은 검색용 텍스트 사본도 함께 생성합니다."}</span>
+            <span role="status" aria-live="polite">{uploadMessage || "표 파일은 검색용 텍스트 사본도 함께 생성합니다."}</span>
             <button className="primary-button" disabled={uploading || !file}>{uploading ? "등록 중…" : "지식자료 등록"}</button>
           </div>
         </form>

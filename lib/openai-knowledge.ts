@@ -49,7 +49,7 @@ export async function ensureVectorStore() {
 export async function uploadKnowledgeFile(file: File, metadata: { documentId: string; documentName: string; category: string; year: number | null; effectiveFrom: string | null; effectiveTo: string | null }) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   let uploadFile = file;
-  if (extension === "csv" || extension === "xlsx") {
+  if (extension === "csv" || extension === "xlsx" || extension === "xlsm") {
     const normalized = await normalizeTableFile(file, extension);
     const header = [
       `문서명: ${metadata.documentName}`,

@@ -10,6 +10,7 @@ import {
   isOpenAIConfigured,
 } from "@/lib/knowledge";
 import { uploadKnowledgeFile, waitForVectorFile } from "@/lib/openai-knowledge";
+import { documentNameFromFileName } from "@/lib/file-name";
 
 export const runtime = "edge";
 
@@ -25,18 +26,17 @@ export async function POST(request: Request) {
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   if (!SUPPORTED_EXTENSIONS.includes(extension as (typeof SUPPORTED_EXTENSIONS)[number])) {
-    return jsonError("PDF, DOCX, XLSX, CSV, TXT 파일만 등록할 수 있습니다.");
+    return jsonError("PDF, DOCX, XLSX, XLSM, CSV, TXT 파일만 등록할 수 있습니다.");
   }
   if (file.size === 0) return jsonError("빈 파일은 등록할 수 없습니다.");
   if (file.size > PROTOTYPE_MAX_FILE_SIZE) return jsonError("프로토타입 파일 제한은 15MB입니다.");
 
-  const documentName = String(form.get("documentName") || "").trim();
+  const documentName = String(form.get("documentName") || "").trim() || documentNameFromFileName(file.name);
   const category = String(form.get("category") || "").trim();
   const yearRaw = String(form.get("year") || "").trim();
   const effectiveFrom = String(form.get("effectiveFrom") || "").trim() || null;
   const effectiveTo = String(form.get("effectiveTo") || "").trim() || null;
   const deferIndexing = String(form.get("deferIndexing") || "") === "true";
-  if (!documentName) return jsonError("문서명을 입력해 주세요.");
   if (!KNOWLEDGE_CATEGORIES.includes(category as (typeof KNOWLEDGE_CATEGORIES)[number])) return jsonError("유효한 분류를 선택해 주세요.");
   if (effectiveFrom && effectiveTo && effectiveFrom > effectiveTo) return jsonError("적용 종료일은 시작일보다 빠를 수 없습니다.");
   const year = yearRaw ? Number(yearRaw) : null;
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const storageKey = `knowledge/${id}/${encodeURIComponent(file.name)}`;
-  const sourceKind = extension === "csv" || extension === "xlsx" ? "TABLE" : "TEXT";
+  const sourceKind = extension === "csv" || extension === "xlsx" || extension === "xlsm" ? "TABLE" : "TEXT";
   const shouldIndex = isOpenAIConfigured() && !deferIndexing;
   const initialStatus = shouldIndex ? "INDEXING" : isOpenAIConfigured() ? "PENDING_INDEXING" : "PENDING_CONFIGURATION";
 
