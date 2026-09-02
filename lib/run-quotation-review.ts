@@ -25,7 +25,15 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
   const vectorStoreId = readyDocuments.length && isOpenAIConfigured() ? await getVectorStoreId() : null;
   if (vectorStoreId) {
     try {
-      const evidence = await findQuotationReviewCriteria(targets, vectorStoreId);
+      const evidence = await findQuotationReviewCriteria(targets, vectorStoreId, {
+        constructionType: quotation.analysis.constructionType,
+        totalAmount: quotation.analysis.totalAmount,
+        supplyAmount: quotation.analysis.supplyAmount,
+        materialCost: quotation.analysis.materialCost,
+        directLaborCost: quotation.analysis.directLaborCost,
+        plannedStartDate: quotation.analysis.plannedStartDate,
+        plannedCompletionDate: quotation.analysis.plannedCompletionDate,
+      });
       rawCandidates = evidence.candidates;
       responseId = evidence.responseId;
       evidenceItems = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, readyDocuments, quotation.analysis);

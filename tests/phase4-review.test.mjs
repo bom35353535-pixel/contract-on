@@ -57,3 +57,22 @@ test("Phase 4 computes a registered rate comparison in code", async () => {
   assert.equal(result[0].status, "NORMAL");
   assert.equal(result[0].calculation, "100000 × 10% = 10000");
 });
+
+test("Phase 4 separates material and labor targets before knowledge search", async () => {
+  const { buildEvidenceTargets } = await import(moduleUrl.href);
+  const rows = [
+    { id: 1, category: "1.설치공사", trade: "재료비", itemName: "각파이프", specification: "50*50", unit: "본", quantity: 4, unitPrice: 35_232, amount: 140_928 },
+    { id: 2, category: "1.설치공사", trade: "노무비", itemName: "용접공", specification: null, unit: "인", quantity: 2, unitPrice: 282_536, amount: 565_072 },
+  ];
+  const targets = buildEvidenceTargets(amounts, rows);
+  assert.equal(targets.find((target) => target.targetKey === "material:1")?.section, "MATERIAL");
+  assert.equal(targets.find((target) => target.targetKey === "labor:2")?.section, "LABOR");
+  assert.equal(targets.some((target) => target.targetKey === "labor:1"), false);
+});
+
+test("Phase 4 knowledge search separates statutory, labor, and material requests", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8"));
+  assert.match(source, /\["STATUTORY", "LABOR", "MATERIAL"\]/);
+  assert.match(source, /우선 검색어/);
+  assert.match(source, /공사 및 견적 조건/);
+});

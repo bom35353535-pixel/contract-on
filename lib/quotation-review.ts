@@ -115,17 +115,8 @@ export function buildEvidenceTargets(analysis: AnalysisAmounts, rows: QuotationR
   const seen = new Set<string>();
   for (const row of rows) {
     const combined = `${row.category || ""} ${row.trade || ""} ${row.itemName || ""}`.trim();
+    const classification = `${row.category || ""} ${row.trade || ""}`;
     const quoted = row.unitPrice ?? row.amount;
-    if ((row.category?.includes("노무") || row.trade) && quoted !== null) {
-      const key = `labor:${row.id}`; seen.add(key);
-      targets.push({ section: "LABOR", targetKey: key, label: row.trade || row.itemName || "노무비 항목", quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: combined });
-      continue;
-    }
-    if (row.category?.includes("재료") && quoted !== null) {
-      const key = `material:${row.id}`; seen.add(key);
-      targets.push({ section: "MATERIAL", targetKey: key, label: `${row.itemName || "자재"}${row.specification ? ` ${row.specification}` : ""}`, quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: combined });
-      continue;
-    }
     if (statutoryCues.some((cue) => combined.includes(cue))) {
       const cue = statutoryCues.find((value) => combined.includes(value)) || row.itemName || "제비율";
       const key = `rate:${cue}`;
@@ -133,6 +124,17 @@ export function buildEvidenceTargets(analysis: AnalysisAmounts, rows: QuotationR
         seen.add(key);
         targets.push({ section: "STATUTORY", targetKey: key, label: cue, quotedValue: row.amount, comparisonKind: "RATE", context: combined });
       }
+      continue;
+    }
+    if ((classification.includes("노무") || classification.includes("직종")) && quoted !== null) {
+      const key = `labor:${row.id}`; seen.add(key);
+      targets.push({ section: "LABOR", targetKey: key, label: row.itemName || row.trade || "노무비 항목", quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: combined });
+      continue;
+    }
+    if ((classification.includes("재료") || classification.includes("자재")) && quoted !== null) {
+      const key = `material:${row.id}`; seen.add(key);
+      targets.push({ section: "MATERIAL", targetKey: key, label: `${row.itemName || "자재"}${row.specification ? ` ${row.specification}` : ""}`, quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: combined });
+      continue;
     }
   }
 
