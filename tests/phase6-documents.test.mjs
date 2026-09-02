@@ -50,3 +50,17 @@ test("Phase 6 exposes origin-action and start-day guidance in the contract UI", 
   assert.match(workspace, /확인필요/);
   assert.match(contracts, /source !== "phase6-documents"/);
 });
+
+test("submitted contractor files are classified locally without OpenAI file uploads", async () => {
+  const classifier = await import(new URL("../lib/submitted-document-classifier.ts", import.meta.url).href);
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+
+  assert.equal(classifier.classifySubmittedDocumentName("2026_사업자 등록증_사본.pdf", "NARA_CONTRACT").detectedType, "사업자등록증");
+  assert.equal(classifier.classifySubmittedDocumentName("scan001.pdf", "NARA_CONTRACT").detectionStatus, "UNCERTAIN");
+  assert.equal(classifier.classifySubmittedDocumentName("scan001.pdf", "NARA_CONTRACT", "통장사본").source, "USER_CONFIRMED");
+  assert.doesNotMatch(route, /classifyContractDocuments/);
+  assert.match(route, /openai_file_id[\s\S]*?null/);
+  assert.match(workspace, /업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다/);
+  assert.match(workspace, /submittedTypes/);
+});

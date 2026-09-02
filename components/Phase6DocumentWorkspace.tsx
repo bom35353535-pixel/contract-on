@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ContractDocumentFileRecord, ContractDocumentReviewItemRecord, ContractDocumentReviewRecord } from "@/db/schema";
 import type { DocumentStage } from "@/lib/contract-document-review";
+import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
 
 type Props = {
   contractId: string;
@@ -26,6 +27,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File[]>([]);
+  const [submittedTypes, setSubmittedTypes] = useState<string[]>([]);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -34,20 +36,28 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const isCompletion = documentStage === "COMPLETION";
   const title = isContract ? "나라장터 계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
   const completeLabel = isContract ? "나라장터 계약 완료" : isCompletion ? "준공서류 확인 완료" : "착공 확인 완료";
+  const typeOptions = submittedDocumentTypeOptions(documentStage);
+
+  function selectFiles(files: File[]) {
+    setSelected(files);
+    setSubmittedTypes(files.map((file) => classifySubmittedDocumentName(file.name, documentStage).detectedType || ""));
+  }
 
   async function analyze() {
     if (!selected.length) { setError("분석할 서류를 한 개 이상 선택해 주세요."); return; }
     setBusy("analyze"); setError(""); setMessage("");
     const form = new FormData();
     form.set("documentStage", documentStage);
+    form.set("submittedTypes", JSON.stringify(submittedTypes));
     selected.forEach((file) => form.append("files", file));
     try {
       const response = await fetch(`/api/contracts/${contractId}/phase6-documents`, { method: "POST", body: form });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "서류를 분석하지 못했습니다.");
       setSelected([]);
+      setSubmittedTypes([]);
       if (inputRef.current) inputRef.current.value = "";
-      setMessage("서류 판독과 등록자료 기준 비교를 완료했습니다.");
+      setMessage("외부 생성형 AI 전송 없이 서류명 확인과 등록자료 기준 비교를 완료했습니다.");
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "서류를 분석하지 못했습니다.");
@@ -80,7 +90,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   return <>
     <section className="phase6-workspace-head">
-      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>여러 서류를 한 번에 올리면 AI가 문서 종류를 판독하고, 등록된 지식자료의 제출 기준과 비교합니다.</p></div>
+      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>파일명과 담당자 선택으로 문서 종류를 확인하고, 등록된 지식자료의 제출 기준과 비교합니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
 
@@ -93,16 +103,17 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
+    <div className="private-document-notice" role="note"><strong>🔒 업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다.</strong><span>현재 프로토타입에서는 원본 보관을 위해 외부 클라우드 저장소(Cloudflare R2)를 사용합니다.</span></div>
 
     <section className={`phase6-upload-card ${!editable ? "locked" : ""}`}>
       <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">복수 업로드</span><h3>{title} 분석</h3></div></div><span className={`document-status ${editable ? "current" : "confirmed"}`}>{editable ? "업로드 가능" : "단계 완료"}</span></div>
       {editable ? <>
         <label className="phase6-file-picker">
-          <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" onChange={(event) => setSelected(Array.from(event.target.files || []))} />
+          <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" onChange={(event) => selectFiles(Array.from(event.target.files || []))} />
           <span>PDF·문서·표 파일 선택</span><small>최대 10개 · 파일당 20MB · 전체 50MB</small>
         </label>
-        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => <li key={`${file.name}-${index}`}><span>{file.name}</span><small>{(file.size / 1024 / 1024).toFixed(2)}MB</small></li>)}</ul>}
-        <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 판독 중…" : "선택한 서류 분석"}</button>
+        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB</small></span><label><span className="sr-only">{file.name} 문서 종류</span><select value={submittedTypes[index] || ""} onChange={(event) => setSubmittedTypes((current) => current.map((value, typeIndex) => typeIndex === index ? event.target.value : value))}><option value="">문서 종류 확인 필요</option>{typeOptions.map((type) => <option key={type} value={type}>{type}</option>)}</select></label></li>)}</ul>}
+        <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : "선택한 서류 확인"}</button>
       </> : <p className="phase6-readonly-note">이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다.</p>}
       {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 서류 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{file.detectedType || "문서 종류 확인 필요"}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "판독완료" : "확인필요"}</span></li>)}</ul></details>}
     </section>
@@ -127,6 +138,6 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       </>}
     </section>
 
-    {editable && <section className="phase6-confirm-bar"><div><strong>분석 결과 확인 후 실제 행정처리를 완료하셨나요?</strong><small>AI 판독은 보조자료이며 최종 단계변경은 담당자가 확인합니다.</small></div><button type="button" disabled={!!busy || !review} onClick={complete}>{busy === "complete" ? "처리 중…" : completeLabel}</button></section>}
+    {editable && <section className="phase6-confirm-bar"><div><strong>확인 결과 검토 후 실제 행정처리를 완료하셨나요?</strong><small>자동분류는 보조자료이며 최종 단계변경은 담당자가 확인합니다.</small></div><button type="button" disabled={!!busy || !review} onClick={complete}>{busy === "complete" ? "처리 중…" : completeLabel}</button></section>}
   </>;
 }

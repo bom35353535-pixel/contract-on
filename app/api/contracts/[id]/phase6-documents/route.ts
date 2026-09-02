@@ -12,10 +12,9 @@ import {
   type DocumentStage,
   type RequiredDocumentCriterion,
 } from "@/lib/contract-document-review";
-import { isOpenAIConfigured } from "@/lib/knowledge";
-import { classifyContractDocuments } from "@/lib/openai-contract-documents";
 import { findRequiredDocumentCriteria, getVectorStoreId } from "@/lib/openai-knowledge";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
+import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
 
 export const runtime = "edge";
 
@@ -53,7 +52,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (files.some((file) => !ALLOWED_EXTENSIONS.includes((file.name.split(".").pop()?.toLowerCase() || "") as (typeof ALLOWED_EXTENSIONS)[number]))) {
     return errorResponse("PDF, DOCX, XLSX, XLS, CSV, TXT 서류만 분석할 수 있습니다.");
   }
-  if (!isOpenAIConfigured()) return errorResponse("문서 판독 기능이 설정되지 않았습니다.", 503);
+  const submittedTypesRaw = String(form.get("submittedTypes") || "[]");
+  let submittedTypes: unknown[] = [];
+  try {
+    const parsed = JSON.parse(submittedTypesRaw);
+    if (Array.isArray(parsed)) submittedTypes = parsed;
+  } catch {
+    return errorResponse("선택한 문서 종류를 확인해 주세요.");
+  }
+  const allowedTypes = new Set(submittedDocumentTypeOptions(stage));
+  if (submittedTypes.some((value) => value !== null && value !== "" && (typeof value !== "string" || !allowedTypes.has(value)))) {
+    return errorResponse("선택한 문서 종류를 확인해 주세요.");
+  }
 
   const stored: Array<{ id: string; storageKey: string; file: File }> = [];
   let metadataSaved = false;
@@ -68,7 +78,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       stored.push({ id, storageKey, file });
     }
 
-    const classification = await classifyContractDocuments(files);
+    const classification = {
+      responseId: null,
+      documents: files.map((file, index) => ({
+        originalName: file.name,
+        openaiFileId: null,
+        ...classifySubmittedDocumentName(file.name, stage, typeof submittedTypes[index] === "string" ? submittedTypes[index] as string : null),
+      })),
+    };
     const now = new Date().toISOString();
     const d1 = getD1();
     const inserts = stored.map((entry, index) => {
@@ -80,7 +97,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         entry.id, contractId, stage, entry.file.name, entry.file.type || "application/octet-stream", entry.file.size, entry.storageKey,
-        result?.openaiFileId || null, result?.detectedType || null, result?.detectionStatus || "UNCERTAIN", result?.summary || null, now,
+        null, result?.detectedType || null, result?.detectionStatus || "UNCERTAIN", result?.summary || null, now,
       );
     });
     await d1.batch(inserts);
@@ -154,7 +171,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     `).bind(
       crypto.randomUUID(), contractId, stage === "COMPLETION" ? "PHASE7_COMPLETION_DOCUMENT_REVIEW" : "PHASE6_DOCUMENT_REVIEW",
       files.map((file) => file.name).join(", "), JSON.stringify(classification.documents),
-      JSON.stringify(rawCandidates), JSON.stringify({ counts, items }), now,
+      JSON.stringify({ method: "LOCAL_FILENAME_RULES", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
     ).run();
 
     return Response.json({ reviewId, counts, warning }, { status: 201 });
