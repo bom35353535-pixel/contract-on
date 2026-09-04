@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { QuotationReview } from "@/components/QuotationReview";
@@ -28,6 +29,19 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
   };
   const knowledgeReadyCount = knowledgeDocuments.filter((document) => document.status === "READY").length;
   const knowledgePendingCount = knowledgeDocuments.filter((document) => document.status !== "READY").length;
+  const rateReferenceDocument = knowledgeDocuments.find((document) => {
+    const name = `${document.documentName} ${document.originalName}`;
+    return name.includes("건축공사") && name.includes("간접공사비") && document.originalName.toLowerCase().endsWith(".md");
+  }) ?? null;
+  let rateReferenceText: string | null = null;
+  if (rateReferenceDocument) {
+    try {
+      const stored = await env.FILES.get(rateReferenceDocument.storageKey);
+      rateReferenceText = stored ? await stored.text() : null;
+    } catch {
+      rateReferenceText = null;
+    }
+  }
   return <AppShell active="home" contractCount={contracts.length}><a className="back-link" href="/">← 새 견적서 선택으로</a><QuotationReview
     analysisId={id}
     originalName={record.analysis.originalName}
@@ -36,5 +50,7 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     review={review}
     knowledgeReadyCount={knowledgeReadyCount}
     knowledgePendingCount={knowledgePendingCount}
+    rateReferenceDocumentName={rateReferenceDocument?.documentName ?? null}
+    rateReferenceText={rateReferenceText}
   /></AppShell>;
 }

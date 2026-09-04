@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { QuotationReviewItemRecord, QuotationReviewRecord } from "@/db/schema";
 import type { QuotationExtraction } from "@/lib/estimate";
+import { CurrentRateReference } from "./CurrentRateReference";
 import { PreConfirmationReviewResults } from "./PreConfirmationReviewResults";
+import { SupplierSanctionCheck } from "./SupplierSanctionCheck";
 
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
 type Props = {
@@ -14,6 +16,8 @@ type Props = {
   review: Review;
   knowledgeReadyCount: number;
   knowledgePendingCount: number;
+  rateReferenceDocumentName: string | null;
+  rateReferenceText: string | null;
 };
 
 const mainFields = [
@@ -36,7 +40,7 @@ function parseMoney(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
 }
 
-export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount }: Props) {
+export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText }: Props) {
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -116,25 +120,33 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <a href="/knowledge">지식관리에서 먼저 업로드</a>
       </section>
 
-      <section className="review-card">
-        <div className="review-heading"><div><span className="section-kicker">기본정보</span><h2>계약 기본정보 확인</h2></div><span className="human-check-badge">담당자 확인 필수</span></div>
-        <div className="review-form-grid">
-          {mainFields.map(([field, label, required]) => (
-            <label className={required && !data[field] ? "field-missing" : ""} key={field}>
-              <span>{label}{required && <em>필수</em>}</span>
-              {field.includes("Date") ? <input type="date" value={String(data[field] ?? "")} onChange={(event) => updateText(field, event.target.value)} /> : field === "purpose" ? <textarea rows={2} value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} /> : <input value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} />}
-            </label>
-          ))}
-        </div>
-        <p className="rate-condition-note"><strong>제비율 판정 안내</strong> 간접노무비와 기타경비율은 공사금액과 공사기간에 따라 달라집니다. 착공·준공 예정일을 입력하면 해당 기간 구간까지 비교할 수 있습니다.</p>
-      </section>
+      <div className="review-reference-grid">
+        <div className="review-reference-main">
+          <section className="review-card">
+            <div className="review-heading"><div><span className="section-kicker">기본정보</span><h2>계약 기본정보 확인</h2></div><span className="human-check-badge">담당자 확인 필수</span></div>
+            <div className="review-form-grid">
+              {mainFields.map(([field, label, required]) => (
+                <label className={required && !data[field] ? "field-missing" : ""} key={field}>
+                  <span>{label}{required && <em>필수</em>}</span>
+                  {field.includes("Date") ? <input type="date" value={String(data[field] ?? "")} onChange={(event) => updateText(field, event.target.value)} /> : field === "purpose" ? <textarea rows={2} value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} /> : <input value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} />}
+                </label>
+              ))}
+            </div>
+            <p className="rate-condition-note"><strong>제비율 판정 안내</strong> 간접노무비와 기타경비율은 직접공사비와 공사기간, 일반관리비와 이윤은 추정가격 구간에 따라 달라집니다.</p>
+          </section>
 
-      <section className="review-card">
-        <div className="review-heading"><div><span className="section-kicker">금액 구성</span><h2>추출 금액 확인</h2></div><span className="phase4-badge">검토 전 금액 확인</span></div>
-        <div className="money-grid">
-          {moneyFields.map(([field, label, required]) => <label className={required && !data[field] ? "field-missing" : ""} key={field}><span>{label}{required && <em>필수</em>}</span><div><input inputMode="numeric" value={money(data[field] as number | null)} placeholder="확인 필요" onChange={(event) => updateMoney(field, event.target.value)} /><small>원</small></div></label>)}
+          <section className="review-card">
+            <div className="review-heading"><div><span className="section-kicker">금액 구성</span><h2>추출 금액 확인</h2></div><span className="phase4-badge">검토 전 금액 확인</span></div>
+            <div className="money-grid">
+              {moneyFields.map(([field, label, required]) => <label className={required && !data[field] ? "field-missing" : ""} key={field}><span>{label}{required && <em>필수</em>}</span><div><input inputMode="numeric" value={money(data[field] as number | null)} placeholder="확인 필요" onChange={(event) => updateMoney(field, event.target.value)} /><small>원</small></div></label>)}
+            </div>
+          </section>
         </div>
-      </section>
+        <aside className="review-reference-aside">
+          <CurrentRateReference data={data} documentName={rateReferenceDocumentName} referenceText={rateReferenceText} />
+          <SupplierSanctionCheck companyName={data.companyName} />
+        </aside>
+      </div>
 
       <section className="review-card item-card">
         <div className="review-heading"><div><span className="section-kicker">세부내역</span><h2>공종·직종·자재 항목</h2></div><span className="item-count">{data.items.length}개 항목</span></div>
