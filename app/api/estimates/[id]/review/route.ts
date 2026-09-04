@@ -14,6 +14,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (current.analysis.status === "CONFIRMED") return Response.json({ error: "이미 현황판에 등록된 견적서입니다." }, { status: 409 });
 
   const values = normalizeQuotationExtraction(await request.json().catch(() => null));
+  const missingRequired = [
+    values.projectName, values.constructionType, values.companyName, values.location, values.purpose,
+    values.totalAmount, values.plannedStartDate, values.plannedCompletionDate,
+  ].filter((value) => value === null || value === "" || value === 0).length;
+  if (missingRequired) return Response.json({ error: `필수항목 ${missingRequired}개를 모두 입력해야 견적검토를 실행할 수 있습니다.` }, { status: 422 });
+  if (values.plannedStartDate! > values.plannedCompletionDate!) {
+    return Response.json({ error: "준공예정일은 착공예정일보다 빠를 수 없습니다." }, { status: 422 });
+  }
   const columns = quotationColumns(values);
   const now = new Date().toISOString();
   const d1 = getD1();

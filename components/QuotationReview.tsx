@@ -18,8 +18,8 @@ type Props = {
 
 const mainFields = [
   ["projectName", "공사명", true], ["constructionType", "공사종류", true], ["companyName", "업체명", true],
-  ["location", "공사장소", true], ["purpose", "공사목적", true], ["quotationDate", "견적일자", false],
-  ["plannedStartDate", "착공예정일", false], ["plannedCompletionDate", "준공예정일", false],
+  ["location", "공사장소", true], ["purpose", "공사목적", true],
+  ["plannedStartDate", "착공예정일", true], ["plannedCompletionDate", "준공예정일", true],
 ] as const;
 
 const moneyFields = [
@@ -65,6 +65,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
   async function confirm() {
     if (confirmedContractId || busy) return;
+    if (emptyCount) { setError(`필수항목 ${emptyCount}개를 모두 입력한 뒤 다시 검토해 주세요.`); return; }
     if (!review || !reviewFresh) { setError("현재 입력값으로 견적검토를 다시 실행하고 결과를 확인해 주세요."); return; }
     if (!window.confirm("이 견적으로 계속 진행하시겠습니까?\n확인하면 계약 건이 생성되고 공사관리 현황판에 표시됩니다.")) return;
     setBusy("confirm"); setError("");
@@ -81,6 +82,10 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
   async function runReview() {
     if (busy) return;
+    if (emptyCount) { setError(`필수항목 ${emptyCount}개를 모두 입력해야 견적검토를 실행할 수 있습니다.`); return; }
+    if (data.plannedStartDate && data.plannedCompletionDate && data.plannedStartDate > data.plannedCompletionDate) {
+      setError("준공예정일은 착공예정일보다 빠를 수 없습니다."); return;
+    }
     setBusy("review"); setError("");
     try {
       const response = await fetch(`/api/estimates/${analysisId}/review`, {
@@ -136,9 +141,9 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         {data.items.length ? <div className="quotation-table-wrap"><table className="quotation-table"><thead><tr><th>구분</th><th>공종/직종</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>{data.items.map((item, index) => <tr key={`${index}-${item.sourceText ?? "item"}`}><td><input value={item.category ?? ""} onChange={(event) => updateItem(index, "category", event.target.value)} /></td><td><input value={item.trade ?? ""} onChange={(event) => updateItem(index, "trade", event.target.value)} /></td><td><input value={item.itemName ?? ""} onChange={(event) => updateItem(index, "itemName", event.target.value)} /></td><td><input value={item.specification ?? ""} onChange={(event) => updateItem(index, "specification", event.target.value)} /></td><td><input value={item.unit ?? ""} onChange={(event) => updateItem(index, "unit", event.target.value)} /></td><td><input inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => updateItem(index, "quantity", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.unitPrice)} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.amount)} onChange={(event) => updateItem(index, "amount", event.target.value)} /></td></tr>)}</tbody></table></div> : <div className="empty-items">세부내역을 읽지 못했습니다. 기본정보를 확인한 뒤 계약업무를 시작할 수 있습니다.</div>}
       </section>
 
-      {!review ? <section className="review-start-card pre-confirmation-start"><span className="review-start-icon">2</span><h2>현황판 등록 전에 견적검토를 실행하세요.</h2><p>수량×단가와 합계는 코드로 검산하고, 노임·자재·제비율은 등록된 지식자료에서만 근거를 찾습니다.</p><button className="run-review-action" type="button" disabled={!!busy} onClick={runReview}>{busy === "review" ? "검산·근거 확인 중…" : "견적검토 결과 만들기"}</button></section> : <><PreConfirmationReviewResults result={review} /><div className="pre-review-actions"><button type="button" disabled={!!busy} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : reviewFresh ? "수정한 내용으로 다시 검토" : "입력값이 바뀌었습니다 · 다시 검토"}</button></div></>}
+      {!review ? <section className="review-start-card pre-confirmation-start"><span className="review-start-icon">2</span><h2>현황판 등록 전에 견적검토를 실행하세요.</h2><p>수량×단가와 합계는 코드로 검산하고, 노임·자재·제비율은 등록된 지식자료에서만 근거를 찾습니다.</p><button className="run-review-action" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "검산·근거 확인 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : "견적검토 결과 만들기"}</button></section> : <><PreConfirmationReviewResults result={review} /><div className="pre-review-actions"><button type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : reviewFresh ? "수정한 내용으로 다시 검토" : "입력값이 바뀌었습니다 · 다시 검토"}</button></div></>}
 
-      <section className={`confirm-bar ${review && reviewFresh ? "ready-to-confirm" : "waiting-review"}`}><div><strong>{review && reviewFresh ? "검토결과를 확인했습니다. 이 견적으로 계속 진행하시겠습니까?" : review ? "입력값이 바뀌었습니다. 현재 내용으로 다시 검토해 주세요." : "먼저 위에서 견적검토 결과를 확인해 주세요."}</strong><small>아직 공사관리 현황판에는 반영되지 않았습니다. 사용자 승인 후에만 계약 건이 생성됩니다.</small>{error && <p>{error}</p>}</div><button type="button" disabled={!!busy || !review || !reviewFresh} onClick={confirm}>{busy === "confirm" ? "현황판 등록 중…" : "예, 이 견적으로 현황판 등록"}</button></section>
+      <section className={`confirm-bar ${review && reviewFresh && !emptyCount ? "ready-to-confirm" : "waiting-review"}`}><div><strong>{emptyCount ? `필수항목 ${emptyCount}개를 입력한 뒤 견적검토를 다시 실행해 주세요.` : review && reviewFresh ? "검토결과를 확인했습니다. 이 견적으로 계속 진행하시겠습니까?" : review ? "입력값이 바뀌었습니다. 현재 내용으로 다시 검토해 주세요." : "먼저 위에서 견적검토 결과를 확인해 주세요."}</strong><small>아직 공사관리 현황판에는 반영되지 않았습니다. 사용자 승인 후에만 계약 건이 생성됩니다.</small>{error && <p>{error}</p>}</div><button type="button" disabled={!!busy || !review || !reviewFresh || emptyCount > 0} onClick={confirm}>{busy === "confirm" ? "현황판 등록 중…" : "예, 이 견적으로 현황판 등록"}</button></section>
     </>
   );
 }

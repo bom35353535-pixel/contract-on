@@ -8,7 +8,7 @@ test("Quotation review is required before dashboard registration", async () => {
   assert.match(review, /\/api\/estimates\/\$\{analysisId\}\/review/);
   assert.match(review, /\/api\/estimates\/\$\{analysisId\}\/confirm/);
   assert.ok(review.indexOf("<PreConfirmationReviewResults") < review.indexOf("confirm-bar"));
-  assert.match(review, /disabled=\{!!busy \|\| !review \|\| !reviewFresh\}/);
+  assert.match(review, /disabled=\{!!busy \|\| !review \|\| !reviewFresh \|\| emptyCount > 0\}/);
   assert.match(review, /setReviewFresh\(false\)/);
   assert.match(review, /검토결과를 확인했습니다\. 이 견적으로 계속 진행하시겠습니까\?/);
   assert.ok(confirmRoute.indexOf("SELECT id FROM quotation_reviews") < confirmRoute.indexOf("INSERT INTO contracts"));

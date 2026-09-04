@@ -128,3 +128,17 @@ test("Phase 4 knowledge search separates statutory, labor, and material requests
   assert.match(source, /우선 검색어/);
   assert.match(source, /공사 및 견적 조건/);
 });
+
+test("Phase 4 requires construction dates before review and hides quotation date input", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const [component, route] = await Promise.all([
+    readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/estimates/[id]/review/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(component, /\["quotationDate", "견적일자"/);
+  assert.match(component, /\["plannedStartDate", "착공예정일", true\]/);
+  assert.match(component, /\["plannedCompletionDate", "준공예정일", true\]/);
+  assert.match(component, /disabled=\{!!busy \|\| emptyCount > 0\}/);
+  assert.match(route, /status: 422/);
+  assert.match(route, /준공예정일은 착공예정일보다 빠를 수 없습니다/);
+});
