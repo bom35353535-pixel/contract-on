@@ -121,6 +121,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
             </label>
           ))}
         </div>
+        <p className="rate-condition-note"><strong>제비율 판정 안내</strong> 간접노무비와 기타경비율은 공사금액과 공사기간에 따라 달라집니다. 착공·준공 예정일을 입력하면 해당 기간 구간까지 비교할 수 있습니다.</p>
       </section>
 
       <section className="review-card">

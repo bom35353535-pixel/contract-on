@@ -58,6 +58,44 @@ test("Phase 4 computes a registered rate comparison in code", async () => {
   assert.equal(result[0].calculation, "100000 × 10% = 10000");
 });
 
+test("Phase 4 computes the profit formula and accepts a quote below its ceiling", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const target = { section: "STATUTORY", targetKey: "rate:이윤", label: "이윤", quotedValue: 5_000, comparisonKind: "RATE", context: "이윤" };
+  const candidate = { targetKey: "rate:이윤", expectedValue: null, ratePercent: 15, baseKey: "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD", matchStatus: "EXACT", sourceFileId: "file-rates", sourceFilename: "제비율.md", sourceLocation: "일반관리비 및 이윤", sourceExcerpt: "5억 미만 | 8.0% | 8.0% | 15.0%", note: null };
+  const documents = [{ id: "doc-rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: "file-rates", year: 2026 }];
+  const result = applyEvidenceCandidates([target], [candidate], [{ fileId: "file-rates", filename: "제비율.md", text: "| 5억 미만 | 8.0% | 8.0% | 15.0% |" }], documents, { ...amounts, overhead: 5_000 });
+  assert.equal(result[0].expectedValue, 6_750);
+  assert.equal(result[0].status, "NORMAL");
+  assert.match(result[0].detail, /허용 상한 이내/);
+});
+
+test("Phase 4 verifies the cited rate against any retrieved chunk from that file", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const target = { section: "STATUTORY", targetKey: "rate:간접노무비", label: "간접노무비", quotedValue: 5_250, comparisonKind: "RATE", context: "간접노무비" };
+  const candidate = { targetKey: "rate:간접노무비", expectedValue: null, ratePercent: 17.5, baseKey: "DIRECT_LABOR_COST", matchStatus: "EXACT", sourceFileId: "file-rates", sourceFilename: "제비율.md", sourceLocation: "요율표", sourceExcerpt: "10억 미만 | 6개월 이하 | 17.5%", note: null };
+  const documents = [{ id: "doc-rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: "file-rates", year: 2026 }];
+  const results = [
+    { fileId: "file-rates", filename: "제비율.md", text: "간접노무비: 직접노무비 × 간접노무비율" },
+    { fileId: "file-rates", filename: "제비율.md", text: "| 10억 미만 | 6개월 이하 | 17.5% | 5.0% |" },
+  ];
+  const reviewed = applyEvidenceCandidates([target], [candidate], results, documents, amounts);
+  assert.equal(reviewed[0].expectedValue, 5_250);
+  assert.equal(reviewed[0].status, "NORMAL");
+});
+
+test("Phase 4 reports missing duration as a found-but-unresolved basis", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const target = { section: "STATUTORY", targetKey: "rate:기타경비", label: "기타경비", quotedValue: 5_000, comparisonKind: "RATE", context: "기타경비" };
+  const candidate = { targetKey: "rate:기타경비", expectedValue: null, ratePercent: null, baseKey: "MATERIAL_PLUS_LABOR", matchStatus: "UNCERTAIN", sourceFileId: "file-rates", sourceFilename: "제비율.md", sourceLocation: "요율표", sourceExcerpt: "직접공사비 | 공사기간 | 간접노무비율 | 기타경비율", note: "공사기간이 없어 요율 구간을 확정할 수 없습니다." };
+  const documents = [{ id: "doc-rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: "file-rates", year: 2026 }];
+  const results = [{ fileId: "file-rates", filename: "제비율.md", text: "| 직접공사비 | 공사기간 | 간접노무비율 | 기타경비율 |" }];
+  const reviewed = applyEvidenceCandidates([target], [candidate], results, documents, amounts);
+  assert.equal(reviewed[0].status, "CHECK");
+  assert.equal(reviewed[0].expectedValue, null);
+  assert.equal(reviewed[0].evidenceDocumentId, "doc-rates");
+  assert.match(reviewed[0].detail, /공사기간/);
+});
+
 test("Phase 4 separates material and labor targets before knowledge search", async () => {
   const { buildEvidenceTargets } = await import(moduleUrl.href);
   const rows = [

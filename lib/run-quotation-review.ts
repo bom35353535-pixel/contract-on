@@ -37,8 +37,17 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
         supplyAmount: quotation.analysis.supplyAmount,
         materialCost: quotation.analysis.materialCost,
         directLaborCost: quotation.analysis.directLaborCost,
+        indirectLaborCost: quotation.analysis.indirectLaborCost,
+        expenses: quotation.analysis.expenses,
+        overhead: quotation.analysis.overhead,
+        profit: quotation.analysis.profit,
         plannedStartDate: quotation.analysis.plannedStartDate,
         plannedCompletionDate: quotation.analysis.plannedCompletionDate,
+        constructionDays: (() => {
+          const start = quotation.analysis.plannedStartDate ? Date.parse(quotation.analysis.plannedStartDate) : NaN;
+          const end = quotation.analysis.plannedCompletionDate ? Date.parse(quotation.analysis.plannedCompletionDate) : NaN;
+          return Number.isFinite(start) && Number.isFinite(end) && end >= start ? Math.floor((end - start) / 86_400_000) + 1 : null;
+        })(),
       });
       rawCandidates = evidence.candidates;
       responseId = evidence.responseId;

@@ -33,7 +33,7 @@ export type EvidenceCandidate = {
   targetKey: string;
   expectedValue: number | null;
   ratePercent: number | null;
-  baseKey: "SUPPLY_AMOUNT" | "MATERIAL_COST" | "DIRECT_LABOR_COST" | "LABOR_COST" | "MATERIAL_PLUS_DIRECT_LABOR" | "UNKNOWN";
+  baseKey: "SUPPLY_AMOUNT" | "MATERIAL_COST" | "DIRECT_LABOR_COST" | "LABOR_COST" | "MATERIAL_PLUS_DIRECT_LABOR" | "MATERIAL_PLUS_LABOR" | "MATERIAL_PLUS_LABOR_PLUS_EXPENSES" | "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD" | "UNKNOWN";
   matchStatus: "EXACT" | "UNCERTAIN";
   sourceFileId: string | null;
   sourceFilename: string | null;
@@ -162,12 +162,32 @@ function baseAmount(baseKey: EvidenceCandidate["baseKey"], analysis: AnalysisAmo
     if (analysis.materialCost === null || analysis.directLaborCost === null) return null;
     return analysis.materialCost + analysis.directLaborCost;
   }
+  if (baseKey === "MATERIAL_PLUS_LABOR") {
+    if (analysis.materialCost === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
+    return analysis.materialCost + (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0);
+  }
+  if (baseKey === "MATERIAL_PLUS_LABOR_PLUS_EXPENSES") {
+    if (analysis.materialCost === null || analysis.expenses === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
+    return analysis.materialCost + (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + analysis.expenses;
+  }
+  if (baseKey === "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD") {
+    if (analysis.expenses === null || analysis.overhead === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
+    return (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + analysis.expenses + analysis.overhead;
+  }
   return null;
 }
 
 function numberAppears(text: string, value: number) {
   const values = [...text.matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((match) => Number(match[0].replace(/,/g, ""))).filter(Number.isFinite);
   return values.some((candidate) => Math.abs(candidate - value) < 0.0001);
+}
+
+function excerptAppears(text: string, excerpt: string | null) {
+  if (!excerpt) return false;
+  const normalize = (value: string) => value.normalize("NFKC").replace(/\s+/g, " ").trim();
+  const haystack = normalize(text);
+  const needle = normalize(excerpt);
+  return needle.length >= 8 && (haystack.includes(needle) || needle.includes(haystack));
 }
 
 function normalizedEvidenceLabel(value: string) {
@@ -218,16 +238,41 @@ export function applyEvidenceCandidates(
 ) {
   const targetKeys = new Set(targets.map((target) => target.targetKey));
   const documentsByFile = new Map(documents.filter((document) => document.openaiFileId).map((document) => [document.openaiFileId!, document]));
-  const verified = new Map<string, { candidate: EvidenceCandidate; result: EvidenceSearchResult; document: ReadyEvidenceDocument }>();
+  type VerifiedEvidence = { candidate: EvidenceCandidate; result: EvidenceSearchResult; document: ReadyEvidenceDocument };
+  const verifiedLists = new Map<string, VerifiedEvidence[]>();
   for (const candidate of candidates) {
     if (!targetKeys.has(candidate.targetKey)) continue;
-    const result = searchResults.find((item) => (candidate.sourceFileId && item.fileId === candidate.sourceFileId) || (candidate.sourceFilename && item.filename === candidate.sourceFilename));
+    const matchingResults = searchResults.filter((item) => (candidate.sourceFileId && item.fileId === candidate.sourceFileId) || (candidate.sourceFilename && item.filename === candidate.sourceFilename));
+    const evidenceNumber = candidate.expectedValue ?? candidate.ratePercent;
+    const result = matchingResults.find((item) => evidenceNumber === null ? excerptAppears(item.text, candidate.sourceExcerpt) : numberAppears(item.text, evidenceNumber));
     if (!result) continue;
     const document = documentsByFile.get(result.fileId);
     if (!document) continue;
-    const evidenceNumber = candidate.expectedValue ?? candidate.ratePercent;
-    if (evidenceNumber === null || !numberAppears(result.text, evidenceNumber)) continue;
-    verified.set(candidate.targetKey, { candidate, result, document });
+    const list = verifiedLists.get(candidate.targetKey) || [];
+    list.push({ candidate, result, document });
+    verifiedLists.set(candidate.targetKey, list);
+  }
+
+  const verified = new Map<string, VerifiedEvidence>();
+  for (const [targetKey, evidenceList] of verifiedLists) {
+    const exact = evidenceList.filter(({ candidate }) => candidate.matchStatus === "EXACT");
+    const preferred = exact.length ? exact : evidenceList;
+    const distinctNumbers = new Set(preferred.map(({ candidate }) => candidate.expectedValue ?? candidate.ratePercent).filter((value) => value !== null));
+    if (distinctNumbers.size <= 1) {
+      verified.set(targetKey, preferred[0]);
+      continue;
+    }
+    const first = preferred[0];
+    verified.set(targetKey, {
+      ...first,
+      candidate: {
+        ...first.candidate,
+        expectedValue: null,
+        ratePercent: null,
+        matchStatus: "UNCERTAIN",
+        note: "등록자료에서 금액·기간 조건별 요율을 여러 개 찾았습니다. 공사기간과 해당 공사규모 기준금액을 입력하면 적용 요율을 확정할 수 있습니다.",
+      },
+    });
   }
 
   // A response may return one row for repeated labor items, or omit a target key
@@ -260,13 +305,14 @@ export function applyEvidenceCandidates(
     const base = candidate.ratePercent === null ? null : baseAmount(candidate.baseKey, analysis);
     const expected = candidate.expectedValue ?? (base === null || candidate.ratePercent === null ? null : Math.round(base * candidate.ratePercent / 100));
     const values = differenceValues(target.quotedValue, expected);
+    const isCeiling = target.section === "STATUTORY" && (target.label.includes("일반관리비") || target.label.includes("이윤"));
     let status: ReviewStatus = "CHECK";
-    if (target.quotedValue !== null && expected !== null && target.quotedValue === expected && candidate.matchStatus === "EXACT") status = "NORMAL";
+    if (target.quotedValue !== null && expected !== null && candidate.matchStatus === "EXACT" && (isCeiling ? target.quotedValue <= expected : target.quotedValue === expected)) status = "NORMAL";
     const calculation = candidate.ratePercent !== null && base !== null ? `${base} × ${candidate.ratePercent}% = ${expected}` : null;
     return {
       section: target.section, targetKey: target.targetKey, label: target.label, status,
       quotedValue: target.quotedValue, expectedValue: expected, ...values, calculation,
-      detail: expected === null ? "근거자료는 찾았지만 적용 기준금액을 확정할 수 없어 담당자 확인이 필요합니다." : status === "NORMAL" ? "견적값이 등록 근거자료의 기준값과 일치합니다." : candidate.note || "견적값과 등록 근거자료의 기준값이 달라 담당자 확인이 필요합니다.",
+      detail: expected === null ? candidate.note || "등록 기준은 찾았지만 적용 조건이 부족하여 요율을 확정할 수 없습니다." : status === "NORMAL" ? (isCeiling ? "견적값이 등록 근거자료의 허용 상한 이내입니다." : "견적값이 등록 근거자료의 기준값과 일치합니다.") : candidate.note || (isCeiling ? "견적값이 등록 근거자료의 허용 상한을 초과합니다." : "견적값과 등록 근거자료의 기준값이 달라 담당자 확인이 필요합니다."),
       evidenceDocumentId: document.id, evidenceDocumentName: document.documentName, evidenceYear: document.year,
       evidenceLocation: candidate.sourceLocation, evidenceExcerpt: candidate.sourceExcerpt || result.text.slice(0, 300),
     };
