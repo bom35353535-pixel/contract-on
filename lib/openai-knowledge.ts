@@ -85,12 +85,12 @@ export async function uploadKnowledgeFile(file: File, metadata: { documentId: st
 }
 
 export async function waitForVectorFile(vectorStoreId: string, openaiFileId: string) {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
     const file = await openai(`/vector_stores/${vectorStoreId}/files/${openaiFileId}`);
     const status = String(file.status || "");
     if (status === "completed") return "READY";
     if (status === "failed" || status === "cancelled") throw new Error("Vector Store 파일 색인에 실패했습니다.");
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   return "INDEXING";
 }

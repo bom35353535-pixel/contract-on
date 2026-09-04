@@ -15,7 +15,9 @@ test("Phase 1 주요 화면과 메뉴가 구성되어 있다", async () => {
   assert.match(home, /UploadPanel/);
   assert.match(contracts, /계약 현황/);
   assert.match(detail, /StageTimeline/);
-  assert.match(shell, /지식관리/);
+  assert.match(shell, /행정 지식/);
+  assert.match(shell, /견적 검토/);
+  assert.match(shell, /계약·공사 관리/);
 });
 
 test("계약 DB와 허용된 단계변경이 코드로 관리된다", async () => {

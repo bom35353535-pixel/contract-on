@@ -170,6 +170,49 @@ function numberAppears(text: string, value: number) {
   return values.some((candidate) => Math.abs(candidate - value) < 0.0001);
 }
 
+function normalizedEvidenceLabel(value: string) {
+  return value.normalize("NFKC").replace(/[`*_\s·ㆍ.,:;()\[\]{}<>\-/]/g, "").toLowerCase();
+}
+
+function laborEvidenceFromRegisteredTable(
+  target: ReviewTarget,
+  searchResults: EvidenceSearchResult[],
+  documentsByFile: Map<string, ReadyEvidenceDocument>,
+) {
+  if (target.section !== "LABOR") return null;
+  const wanted = normalizedEvidenceLabel(target.label);
+  for (const result of searchResults) {
+    const document = documentsByFile.get(result.fileId);
+    if (!document) continue;
+    for (const line of result.text.split(/\r?\n/)) {
+      if (!line.includes("|")) continue;
+      const cells = line.split("|").map((cell) => cell.trim()).filter(Boolean);
+      const labelIndex = cells.findIndex((cell) => normalizedEvidenceLabel(cell) === wanted);
+      if (labelIndex < 0) continue;
+      for (const cell of cells.slice(labelIndex + 1)) {
+        const match = cell.match(/^\s*(\d[\d,]*(?:\.\d+)?)\s*(?:원)?\s*$/);
+        if (!match) continue;
+        const expectedValue = Number(match[1].replace(/,/g, ""));
+        if (!Number.isFinite(expectedValue) || expectedValue < 1_000) continue;
+        const candidate: EvidenceCandidate = {
+          targetKey: target.targetKey,
+          expectedValue,
+          ratePercent: null,
+          baseKey: "UNKNOWN",
+          matchStatus: "EXACT",
+          sourceFileId: result.fileId,
+          sourceFilename: result.filename,
+          sourceLocation: "직종별 노임단가 표",
+          sourceExcerpt: line.trim(),
+          note: null,
+        };
+        return { candidate, result, document };
+      }
+    }
+  }
+  return null;
+}
+
 export function applyEvidenceCandidates(
   targets: ReviewTarget[], candidates: EvidenceCandidate[], searchResults: EvidenceSearchResult[], documents: ReadyEvidenceDocument[], analysis: AnalysisAmounts,
 ) {
@@ -185,6 +228,24 @@ export function applyEvidenceCandidates(
     const evidenceNumber = candidate.expectedValue ?? candidate.ratePercent;
     if (evidenceNumber === null || !numberAppears(result.text, evidenceNumber)) continue;
     verified.set(candidate.targetKey, { candidate, result, document });
+  }
+
+  // A response may return one row for repeated labor items, or omit a target key
+  // even though the exact markdown table row was retrieved. Reuse a verified row
+  // for the same job title, then fall back to deterministic exact-cell parsing.
+  for (const target of targets) {
+    if (target.section !== "LABOR" || verified.has(target.targetKey)) continue;
+    const matchingTarget = targets.find((candidateTarget) =>
+      candidateTarget.section === "LABOR"
+      && candidateTarget.targetKey !== target.targetKey
+      && normalizedEvidenceLabel(candidateTarget.label) === normalizedEvidenceLabel(target.label)
+      && verified.has(candidateTarget.targetKey));
+    if (matchingTarget) {
+      verified.set(target.targetKey, verified.get(matchingTarget.targetKey)!);
+      continue;
+    }
+    const tableEvidence = laborEvidenceFromRegisteredTable(target, searchResults, documentsByFile);
+    if (tableEvidence) verified.set(target.targetKey, tableEvidence);
   }
 
   return targets.map<ReviewItem>((target) => {

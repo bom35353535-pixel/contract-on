@@ -70,6 +70,20 @@ test("Phase 4 separates material and labor targets before knowledge search", asy
   assert.equal(targets.some((target) => target.targetKey === "labor:1"), false);
 });
 
+test("Phase 4 applies one registered labor table row to repeated job titles", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const targets = [
+    { section: "LABOR", targetKey: "labor:1", label: "보통인부", quotedValue: 172_068, comparisonKind: "UNIT_PRICE", context: "노무비 보통인부" },
+    { section: "LABOR", targetKey: "labor:2", label: "보통인부", quotedValue: 172_068, comparisonKind: "UNIT_PRICE", context: "노무비 보통인부" },
+  ];
+  const documents = [{ id: "doc-labor", documentName: "2026년 상반기 노임단가", originalName: "노임단가.md", openaiFileId: "file-labor", year: 2026 }];
+  const results = [{ fileId: "file-labor", filename: "노임단가.md", text: "| 번호 | 직종명 | 구분 | 2026.1.1 |\n| 1001 | 보통인부 | - | 172,068 |" }];
+  const reviewed = applyEvidenceCandidates(targets, [], results, documents, amounts);
+  assert.deepEqual(reviewed.map((item) => item.status), ["NORMAL", "NORMAL"]);
+  assert.deepEqual(reviewed.map((item) => item.expectedValue), [172_068, 172_068]);
+  assert.ok(reviewed.every((item) => item.evidenceDocumentId === "doc-labor"));
+});
+
 test("Phase 4 knowledge search separates statutory, labor, and material requests", async () => {
   const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8"));
   assert.match(source, /\["STATUTORY", "LABOR", "MATERIAL"\]/);
