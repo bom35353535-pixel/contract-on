@@ -120,11 +120,13 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
         if (!response.ok || !payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
       }
       if (!payload.document) throw new Error(payload.error || "자료를 등록하지 못했습니다.");
+      const completionMessage = payload.message || "지식자료 등록이 완료되었습니다.";
       setDocuments((current) => [payload.document!, ...current]);
       setFile(null);
       setDocumentName("");
       formElement.reset();
-      setUploadMessage(payload.message || "지식자료를 등록했습니다.");
+      setUploadMessage(completionMessage);
+      window.alert(completionMessage);
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "자료를 등록하지 못했습니다.");
     } finally {
