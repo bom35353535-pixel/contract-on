@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   if (!SUPPORTED_EXTENSIONS.includes(extension as (typeof SUPPORTED_EXTENSIONS)[number])) {
-    return jsonError("PDF, DOCX, XLSX, XLSM, CSV, TXT 파일만 등록할 수 있습니다.");
+    return jsonError("PDF, DOCX, XLSX, XLSM, CSV, TXT, MD 파일만 등록할 수 있습니다.");
   }
   if (file.size === 0) return jsonError("빈 파일은 등록할 수 없습니다.");
   if (file.size > PROTOTYPE_MAX_FILE_SIZE) return jsonError("프로토타입 파일 제한은 15MB입니다.");

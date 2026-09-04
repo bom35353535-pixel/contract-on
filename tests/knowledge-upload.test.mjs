@@ -14,6 +14,19 @@ test("knowledge uploads accept the supplied macro-enabled ledgers", () => {
   assert.ok(SUPPORTED_EXTENSIONS.includes("xlsm"));
 });
 
+test("knowledge uploads accept Markdown sources", async () => {
+  assert.ok(SUPPORTED_EXTENSIONS.includes("md"));
+
+  const [manager, route] = await Promise.all([
+    readFile(new URL("../components/KnowledgeManager.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/knowledge/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(manager, /accept="[^"]*\.md[^"]*"/);
+  assert.match(manager, /CSV · TXT · MD/);
+  assert.match(route, /CSV, TXT, MD 파일만 등록/);
+});
+
 test("knowledge storage accepts the observed 185 MB request", () => {
   assert.ok(185_055_987 < LARGE_KNOWLEDGE_MAX_FILE_SIZE);
 });

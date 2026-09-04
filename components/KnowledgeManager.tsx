@@ -222,9 +222,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
             }}
           >
             <span className="drop-glyph">{file ? "✓" : "＋"}</span>
-            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>{file ? `${(file.size / 1024 / 1024).toFixed(1)}MB · ${file.size > PROTOTYPE_MAX_FILE_SIZE ? "대용량 원본 저장" : "등록 가능"}` : "PDF · DOCX · XLSX · XLSM · CSV · TXT / 원본 200MB 이하"}</small></span>
+            <span><strong>{file ? file.name : "파일을 끌어놓거나 선택하세요"}</strong><small>{file ? `${(file.size / 1024 / 1024).toFixed(1)}MB · ${file.size > PROTOTYPE_MAX_FILE_SIZE ? "대용량 원본 저장" : "등록 가능"}` : "PDF · DOCX · XLSX · XLSM · CSV · TXT · MD / 원본 200MB 이하"}</small></span>
           </button>
-          <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
+          <input ref={inputRef} type="file" name="file" accept=".pdf,.docx,.xlsx,.xlsm,.csv,.txt,.md" hidden onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
 
           <div className="metadata-grid">
             <label><span>문서명</span><input name="documentName" value={documentName} onChange={(event) => setDocumentName(event.target.value)} placeholder="파일을 선택하면 자동 입력됩니다" required /></label>
