@@ -48,6 +48,11 @@ function won(value: number | null) {
   return value === null ? "[확인 필요]" : `${new Intl.NumberFormat("ko-KR").format(Math.round(value))}원`;
 }
 
+function differenceWon(value: number | null) {
+  if (value === null) return "-";
+  return `${value > 0 ? "+" : ""}${new Intl.NumberFormat("ko-KR").format(Math.round(value))}원`;
+}
+
 export function CurrentRateReference({ data, documentName, referenceText }: Props) {
   const tableRows = (referenceText || "").split(/\r?\n/).map(cells).filter((row) => row.length >= 3);
   const amount = data.totalAmount;
@@ -69,10 +74,10 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const managementBase = data.materialCost === null || labor === null || data.expenses === null ? null : data.materialCost + labor + data.expenses;
   const profitBase = labor === null || data.expenses === null || data.overhead === null ? null : labor + data.expenses + data.overhead;
   const referenceRows = [
-    { label: "간접노무비", rate: indirectRate, formula: "직접노무비 × 요율", base: data.directLaborCost, quote: data.indirectLaborCost, ceiling: false },
-    { label: "기타경비", rate: otherRate, formula: "(재료비 + 노무비) × 요율", base: otherBase, quote: data.expenses, ceiling: false },
-    { label: "일반관리비", rate: managementRate, formula: "(재료비 + 노무비 + 경비) × 요율", base: managementBase, quote: data.overhead, ceiling: true },
-    { label: "이윤", rate: profitRate, formula: "(노무비 + 경비 + 일반관리비) × 요율", base: profitBase, quote: data.profit, ceiling: true },
+    { label: "간접노무비", rate: indirectRate, formula: "직접노무비 × 요율", base: data.directLaborCost, quote: data.indirectLaborCost },
+    { label: "기타경비", rate: otherRate, formula: "(재료비 + 노무비) × 요율", base: otherBase, quote: data.expenses },
+    { label: "일반관리비", rate: managementRate, formula: "(재료비 + 노무비 + 경비) × 요율", base: managementBase, quote: data.overhead },
+    { label: "이윤", rate: profitRate, formula: "(노무비 + 경비 + 일반관리비) × 요율", base: profitBase, quote: data.profit },
   ];
   const fixedNames = ["건강보험료", "노인장기요양보험료", "연금보험료", "고용보험료", "산재보험료"];
   const fixedRows = fixedNames.map((name) => {
@@ -83,6 +88,15 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
     || referenceText?.match(/적용시기:\s*`?(\d{4}-\d{2}-\d{2})/)?.[1]
     || referenceText?.match(/기준일[^\d]*(\d{4}-\d{2}-\d{2})/)?.[1]
     || "[확인 필요]";
+  const evaluatedRows = referenceRows.map((row) => {
+    const limit = row.rate === null || row.base === null ? null : Math.round(row.base * row.rate / 100);
+    const difference = limit === null || row.quote === null ? null : row.quote - limit;
+    const status = limit === null || row.quote === null ? "확인 필요" : row.quote <= limit ? "적합" : "상한 초과";
+    return { ...row, limit, difference, status };
+  });
+  const normalCount = evaluatedRows.filter((row) => row.status === "적합").length;
+  const excessCount = evaluatedRows.filter((row) => row.status === "상한 초과").length;
+  const pendingCount = evaluatedRows.filter((row) => row.status === "확인 필요").length;
 
   return <section className="rate-reference-card">
     <div className="rate-reference-heading"><div><span>등록 지식자료 기준</span><h2>현재 적용 제비율표</h2></div><strong>{effectiveDate}</strong></div>
@@ -94,17 +108,12 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
     {!referenceText && <p className="rate-reference-warning">등록된 건축공사 간접공사비 MD 원문을 읽지 못했습니다. 지식관리에서 해당 MD 파일 등록상태를 확인해 주세요.</p>}
     {!isBuilding && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
     {referenceText && <p className="rate-reference-scope">현재 화면은 견적 총액을 직접공사비·추정가격에 대입한 참고 계산입니다. 두 기준금액이 다르면 담당자가 실제 값을 별도로 확인해야 합니다.</p>}
-    <div className="rate-reference-list">
-      {referenceRows.map((row) => {
-        const calculated = row.rate === null || row.base === null ? null : Math.round(row.base * row.rate / 100);
-        const status = calculated === null || row.quote === null ? "판정 대기" : row.ceiling ? (row.quote <= calculated ? "상한 이내" : "상한 초과") : (row.quote === calculated ? "일치" : "차이 확인");
-        return <article key={row.label}>
-          <div><strong>{row.label}</strong><b>{row.rate === null ? "[조건 입력 필요]" : `${row.rate}%`}</b></div>
-          <p>{row.formula}</p>
-          <small>기준 계산액 {won(calculated)} · 견적 {won(row.quote)} <em className={status === "상한 초과" || status === "차이 확인" ? "needs" : ""}>{status}</em></small>
-        </article>;
-      })}
+    <div className="rate-audit-summary" aria-label="제비율 대차대조 요약">
+      <article className="normal"><span>적합</span><strong>{normalCount}건</strong></article>
+      <article className="excess"><span>상한 초과</span><strong>{excessCount}건</strong></article>
+      <article className="pending"><span>확인 필요</span><strong>{pendingCount}건</strong></article>
     </div>
+    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준 상한</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" ? "excess" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `상한 ${row.rate}%`}</strong><small>{row.formula}</small></td></tr>)}</tbody></table></div>
     {fixedRows.length > 0 && <details className="fixed-rate-details"><summary>사회보험·고정요율 보기</summary>{fixedRows.map((row) => <div key={row.label}><strong>{row.label}</strong><span>{row.formula}</span><small>{row.condition}</small></div>)}</details>}
     <footer><strong>{documentName || "간접공사비 기준자료 [확인 필요]"}</strong><span>이 표는 담당자가 AI 검토결과와 직접 대조하기 위한 참고화면입니다.</span></footer>
   </section>;

@@ -69,6 +69,23 @@ test("Phase 4 computes the profit formula and accepts a quote below its ceiling"
   assert.match(result[0].detail, /허용 상한 이내/);
 });
 
+test("Phase 4 accepts indirect labor and other expenses below their registered ceilings", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const targets = [
+    { section: "STATUTORY", targetKey: "rate:간접노무비", label: "간접노무비", quotedValue: 4_000, comparisonKind: "RATE", context: "간접노무비" },
+    { section: "STATUTORY", targetKey: "rate:기타경비", label: "기타경비", quotedValue: 4_000, comparisonKind: "RATE", context: "기타경비" },
+  ];
+  const candidates = [
+    { targetKey: "rate:간접노무비", expectedValue: null, ratePercent: 17.5, baseKey: "DIRECT_LABOR_COST", matchStatus: "EXACT", sourceFileId: "file-rates", sourceFilename: "제비율.md", sourceLocation: "요율표", sourceExcerpt: "17.5%", note: null },
+    { targetKey: "rate:기타경비", expectedValue: null, ratePercent: 5, baseKey: "MATERIAL_PLUS_LABOR", matchStatus: "EXACT", sourceFileId: "file-rates", sourceFilename: "제비율.md", sourceLocation: "요율표", sourceExcerpt: "5.0%", note: null },
+  ];
+  const documents = [{ id: "doc-rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: "file-rates", year: 2026 }];
+  const results = [{ fileId: "file-rates", filename: "제비율.md", text: "| 10억 미만 | 6개월 이하 | 17.5% | 5.0% |" }];
+  const reviewed = applyEvidenceCandidates(targets, candidates, results, documents, amounts);
+  assert.deepEqual(reviewed.map((item) => item.status), ["NORMAL", "NORMAL"]);
+  assert.ok(reviewed.every((item) => item.detail.includes("허용 상한 이내")));
+});
+
 test("Phase 4 verifies the cited rate against any retrieved chunk from that file", async () => {
   const { applyEvidenceCandidates } = await import(moduleUrl.href);
   const target = { section: "STATUTORY", targetKey: "rate:간접노무비", label: "간접노무비", quotedValue: 5_250, comparisonKind: "RATE", context: "간접노무비" };

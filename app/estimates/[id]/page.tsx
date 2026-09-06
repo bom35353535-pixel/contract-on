@@ -18,6 +18,7 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
   const initial: QuotationExtraction = {
     projectName: record.analysis.projectName, constructionType: record.analysis.constructionType,
     purpose: record.analysis.purpose, location: record.analysis.location, companyName: record.analysis.companyName,
+    businessRegistrationNumber: record.analysis.businessRegistrationNumber,
     quotationDate: record.analysis.quotationDate, totalAmount: record.analysis.totalAmount,
     supplyAmount: record.analysis.supplyAmount, vatAmount: record.analysis.vatAmount,
     materialCost: record.analysis.materialCost, directLaborCost: record.analysis.directLaborCost,

@@ -126,6 +126,7 @@ const CREATE_QUOTATION_ANALYSES = `
     purpose TEXT,
     location TEXT,
     company_name TEXT,
+    business_registration_number TEXT,
     quotation_date TEXT,
     total_amount INTEGER,
     supply_amount INTEGER,

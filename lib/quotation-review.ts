@@ -305,7 +305,7 @@ export function applyEvidenceCandidates(
     const base = candidate.ratePercent === null ? null : baseAmount(candidate.baseKey, analysis);
     const expected = candidate.expectedValue ?? (base === null || candidate.ratePercent === null ? null : Math.round(base * candidate.ratePercent / 100));
     const values = differenceValues(target.quotedValue, expected);
-    const isCeiling = target.section === "STATUTORY" && (target.label.includes("일반관리비") || target.label.includes("이윤"));
+    const isCeiling = target.section === "STATUTORY" && ["간접노무비", "기타경비", "일반관리비", "이윤"].some((label) => target.label.includes(label));
     let status: ReviewStatus = "CHECK";
     if (target.quotedValue !== null && expected !== null && candidate.matchStatus === "EXACT" && (isCeiling ? target.quotedValue <= expected : target.quotedValue === expected)) status = "NORMAL";
     const calculation = candidate.ratePercent !== null && base !== null ? `${base} × ${candidate.ratePercent}% = ${expected}` : null;

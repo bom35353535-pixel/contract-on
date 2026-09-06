@@ -28,4 +28,7 @@ test("supplier sanction lookup validates an exact business number and explains c
   assert.match(route, /status: 503/);
   assert.match(component, /0건은 과거 제재 이력이 없다는 뜻이 아니며/);
   assert.match(component, /조달청 나라장터 부정당제재업체정보/);
+  assert.match(component, /businessRegistrationNumber/);
+  assert.match(component, /useEffect/);
+  assert.doesNotMatch(component, /사업자등록번호 숫자 10자리를 입력해 주세요/);
 });

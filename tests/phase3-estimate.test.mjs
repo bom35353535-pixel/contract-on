@@ -8,11 +8,13 @@ test("Phase 3 source keeps unknown values null and sanitizes exact amounts", asy
   const result = source.normalizeQuotationExtraction({
     projectName: "  본관 도장공사  ",
     companyName: "",
+    businessRegistrationNumber: "123-45-67890",
     totalAmount: "12,345,000원",
     items: [{ itemName: "수성페인트", quantity: "10", unitPrice: "20,000", amount: "200,000" }],
   });
   assert.equal(result.projectName, "본관 도장공사");
   assert.equal(result.companyName, null);
+  assert.equal(result.businessRegistrationNumber, "123-45-67890");
   assert.equal(result.totalAmount, 12_345_000);
   assert.equal(result.items[0].quantity, 10);
   assert.equal(result.items[0].amount, 200_000);

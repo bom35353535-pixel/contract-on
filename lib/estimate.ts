@@ -19,6 +19,7 @@ export type QuotationExtraction = {
   purpose: string | null;
   location: string | null;
   companyName: string | null;
+  businessRegistrationNumber: string | null;
   quotationDate: string | null;
   totalAmount: number | null;
   supplyAmount: number | null;
@@ -37,14 +38,14 @@ export type QuotationExtraction = {
 };
 
 const fieldNames = [
-  "projectName", "constructionType", "purpose", "location", "companyName", "quotationDate",
+  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "quotationDate",
   "totalAmount", "supplyAmount", "vatAmount", "materialCost", "directLaborCost",
   "indirectLaborCost", "expenses", "statutoryExpenses", "overhead", "profit",
   "safetyHealthCost", "plannedStartDate", "plannedCompletionDate",
 ] as const;
 
 const textFields = new Set([
-  "projectName", "constructionType", "purpose", "location", "companyName", "quotationDate",
+  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "quotationDate",
   "plannedStartDate", "plannedCompletionDate",
 ]);
 
@@ -108,6 +109,7 @@ export function quotationColumns(value: QuotationExtraction) {
     purpose: value.purpose,
     location: value.location,
     companyName: value.companyName,
+    businessRegistrationNumber: value.businessRegistrationNumber,
     quotationDate: value.quotationDate,
     totalAmount: value.totalAmount,
     supplyAmount: value.supplyAmount,

@@ -145,6 +145,7 @@ export const quotationAnalyses = sqliteTable(
     purpose: text("purpose"),
     location: text("location"),
     companyName: text("company_name"),
+    businessRegistrationNumber: text("business_registration_number"),
     quotationDate: text("quotation_date"),
     totalAmount: integer("total_amount"),
     supplyAmount: integer("supply_amount"),

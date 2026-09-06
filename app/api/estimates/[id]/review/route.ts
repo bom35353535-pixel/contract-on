@@ -28,7 +28,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   await d1.batch([
     d1.prepare(`
       UPDATE quotation_analyses SET project_name = ?, construction_type = ?, purpose = ?, location = ?, company_name = ?,
-        quotation_date = ?, total_amount = ?, supply_amount = ?, vat_amount = ?, material_cost = ?, direct_labor_cost = ?,
+        business_registration_number = ?, quotation_date = ?, total_amount = ?, supply_amount = ?, vat_amount = ?, material_cost = ?, direct_labor_cost = ?,
         indirect_labor_cost = ?, expenses = ?, statutory_expenses = ?, overhead = ?, profit = ?, safety_health_cost = ?,
         planned_start_date = ?, planned_completion_date = ?, updated_at = ? WHERE id = ? AND status = 'ANALYZED'
     `).bind(...Object.values(columns), now, id),

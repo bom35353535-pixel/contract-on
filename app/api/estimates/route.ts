@@ -37,12 +37,12 @@ export async function POST(request: Request) {
     await d1.prepare(`
       INSERT INTO quotation_analyses (
         id, contract_id, original_name, content_type, size_bytes, storage_key, status,
-        project_name, construction_type, purpose, location, company_name, quotation_date,
+        project_name, construction_type, purpose, location, company_name, business_registration_number, quotation_date,
         total_amount, supply_amount, vat_amount, material_cost, direct_labor_cost,
         indirect_labor_cost, expenses, statutory_expenses, overhead, profit, safety_health_cost,
         planned_start_date, planned_completion_date, extraction_json, response_id,
         created_at, updated_at, confirmed_at
-      ) VALUES (?, NULL, ?, ?, ?, ?, 'ANALYZED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+      ) VALUES (?, NULL, ?, ?, ?, ?, 'ANALYZED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
     `).bind(
       id, file.name, file.type || "application/octet-stream", file.size, storageKey,
       ...Object.values(quotationColumns(values)), JSON.stringify(values), extracted.responseId, now, now,
