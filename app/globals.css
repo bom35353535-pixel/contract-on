@@ -346,13 +346,14 @@ a { color: inherit; text-decoration: none; }
 .rate-reference-list article small { display: block; margin-top: 7px; color: #687871; font-size: 11px; line-height: 1.5; }
 .rate-reference-list article em { float: right; padding: 3px 6px; border-radius: 5px; background: #e2f1ec; color: #287660; font-style: normal; font-weight: 850; }
 .rate-reference-list article em.needs { background: #fff0d7; color: #94631f; }
-.rate-audit-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px; }
+.rate-audit-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px; }
 .rate-audit-summary article { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid #dfe7e4; border-top: 3px solid #83918b; border-radius: 9px; background: #fafcfb; }
 .rate-audit-summary span { color: #6e7c77; font-size: 10px; font-weight: 800; }
 .rate-audit-summary strong { color: #314b41; font-size: 17px; }
 .rate-audit-summary article.normal { border-top-color: #20a77a; }
 .rate-audit-summary article.excess { border-top-color: #d56b54; }
 .rate-audit-summary article.pending { border-top-color: #d39a3b; }
+.rate-audit-summary article.not-applicable { border-top-color: #83918b; }
 .rate-audit-table-wrap { margin: 0 14px 14px; overflow-x: auto; border: 1px solid #dfe7e4; border-radius: 10px; }
 .rate-audit-table { width: 100%; min-width: 720px; border-collapse: collapse; }
 .rate-audit-table th { padding: 10px 9px; background: #f2f6f4; color: #687871; text-align: left; font-size: 10px; white-space: nowrap; }
@@ -366,6 +367,7 @@ a { color: inherit; text-decoration: none; }
 .rate-audit-status.normal { background: #daf3e9; color: #16825f; }
 .rate-audit-status.excess { background: #f9e5e1; color: #b34f45; }
 .rate-audit-status.pending { background: #fff0d8; color: #95631f; }
+.rate-audit-status.not-applicable { background: #edf1ef; color: #66736e; }
 .fixed-rate-details { margin: 0 14px 14px; border: 1px solid #dfe8e4; border-radius: 10px; }
 .fixed-rate-details summary { padding: 11px 12px; color: #46645a; font-size: 12px; font-weight: 850; cursor: pointer; }
 .fixed-rate-details > div { display: grid; grid-template-columns: 112px 1fr; gap: 5px 10px; padding: 10px 12px; border-top: 1px solid #e7eeeb; }

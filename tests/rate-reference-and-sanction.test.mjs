@@ -25,7 +25,15 @@ test("current-rate reference displays registered formulas and separates rate con
   assert.doesNotMatch(component, /label: "기타경비"[^\n]*quote: data\.expenses/);
   assert.match(component, /공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다/);
   assert.match(component, /견적서 공종표의 ‘건축공사’를 근거로 등록된 건축공사 기준을 적용했습니다/);
-  assert.match(component, /견적서 비목별 금액 재추출 필요/);
+  assert.doesNotMatch(component, /견적서 비목별 금액 재추출 필요/);
+});
+
+test("zero or blank quotation cost rows are not applicable", async () => {
+  const component = await read("components/CurrentRateReference.tsx");
+  assert.match(component, /row\.quote === null \|\| row\.quote === 0/);
+  assert.match(component, /notApplicable\s*\? "해당 없음"/);
+  assert.match(component, /row\.notApplicable \? "해당 없음" : won\(row\.quote\)/);
+  assert.match(component, /견적서 금액 0원·공란/);
 });
 
 test("quotation extraction keeps statutory cost summary rows separate", async () => {

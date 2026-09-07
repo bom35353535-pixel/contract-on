@@ -147,18 +147,22 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
     || referenceText?.match(/기준일[^\d]*(\d{4}-\d{2}-\d{2})/)?.[1]
     || "[확인 필요]";
   const evaluatedRows = referenceRows.map((row) => {
+    const notApplicable = row.quote === null || row.quote === 0;
     const limit = row.rate === null || row.base === null ? null : Math.round(row.base * row.rate / 100);
-    const difference = limit === null || row.quote === null ? null : row.quote - limit;
-    const status = limit === null || row.quote === null || row.quoteConfirmed === false
-      ? "확인 필요"
+    const difference = notApplicable || limit === null ? null : row.quote - limit;
+    const status = notApplicable
+      ? "해당 없음"
+      : limit === null || row.quoteConfirmed === false
+        ? "확인 필요"
       : row.comparison === "CEILING"
         ? row.quote <= limit ? "적합" : "상한 초과"
         : row.quote === limit ? "적합" : "차이 확인";
-    return { ...row, limit, difference, status };
+    return { ...row, limit, difference, status, notApplicable };
   });
   const normalCount = evaluatedRows.filter((row) => row.status === "적합").length;
   const excessCount = evaluatedRows.filter((row) => row.status === "상한 초과" || row.status === "차이 확인").length;
   const pendingCount = evaluatedRows.filter((row) => row.status === "확인 필요").length;
+  const notApplicableCount = evaluatedRows.filter((row) => row.status === "해당 없음").length;
 
   return <section className="rate-reference-card">
     <div className="rate-reference-heading"><div><span>등록 지식자료 기준</span><h2>현재 적용 제비율표</h2></div><strong>{effectiveDate}</strong></div>
@@ -176,8 +180,9 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
       <article className="normal"><span>적합</span><strong>{normalCount}건</strong></article>
       <article className="excess"><span>초과·차이</span><strong>{excessCount}건</strong></article>
       <article className="pending"><span>확인 필요</span><strong>{pendingCount}건</strong></article>
+      <article className="not-applicable"><span>해당 없음</span><strong>{notApplicableCount}건</strong></article>
     </div>
-    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}{row.quote === null ? " · 견적서 비목별 금액 재추출 필요" : ""}</small></td></tr>)}</tbody></table></div>
+    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{row.notApplicable ? "해당 없음" : won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : row.status === "해당 없음" ? "not-applicable" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}{row.notApplicable ? " · 견적서 금액 0원·공란" : ""}</small></td></tr>)}</tbody></table></div>
     {fixedRows.length > 0 && <details className="fixed-rate-details"><summary>사회보험·고정요율 보기</summary>{fixedRows.map((row) => <div key={row.label}><strong>{row.label}</strong><span>{row.formula}</span><small>{row.condition}</small></div>)}</details>}
     <footer><strong>{documentName || "간접공사비 기준자료 [확인 필요]"}</strong><span>이 표는 담당자가 AI 검토결과와 직접 대조하기 위한 참고화면입니다.</span></footer>
   </section>;
