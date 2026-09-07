@@ -16,6 +16,7 @@ type AuditRow = {
   quote: number | null;
   condition?: string;
   comparison?: "CEILING" | "EXACT";
+  quoteConfirmed?: boolean;
 };
 
 function cells(line: string) {
@@ -74,10 +75,11 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const amount = data.totalAmount;
   const days = constructionDays(data.plannedStartDate, data.plannedCompletionDate);
   const isBuilding = Boolean(data.constructionType?.includes("건축"));
-  const durationRow = amount !== null && days !== null && isBuilding
+  const usesBuildingReference = isBuilding || (!data.constructionType && Boolean(documentName?.includes("건축공사")));
+  const durationRow = amount !== null && days !== null && usesBuildingReference
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("개월") && amountMatches(row[0], amount) && periodMatches(row[1], days))
     : undefined;
-  const priceRow = amount !== null && isBuilding
+  const priceRow = amount !== null && usesBuildingReference
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("%") && row[3].includes("%") && amountMatches(row[0], amount))
     : undefined;
 
@@ -91,11 +93,12 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const profitBase = labor === null || data.expenses === null || data.overhead === null ? null : labor + data.expenses + data.overhead;
   const itemQuote = (...aliases: string[]) => {
     const item = data.items.find((candidate) => {
-      const text = `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""}`;
+      const text = `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""} ${candidate.specification || ""} ${candidate.sourceText || ""}`;
       return aliases.some((alias) => text.includes(alias));
     });
     return item?.amount ?? null;
   };
+  const namedOtherExpense = itemQuote("기타경비");
   const fixedRate = (name: string) => {
     const row = tableRows.find((candidate) => candidate[0] === name);
     return percentIn(row?.[2]) ?? percentIn(row?.[1]);
@@ -116,7 +119,7 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const safetyBase = amount !== null && amount < 20_000_000 ? 0 : data.materialCost === null || data.directLaborCost === null ? null : data.materialCost + data.directLaborCost;
   const referenceRows: AuditRow[] = [
     { label: "간접노무비", rate: indirectRate, formula: "직접노무비 × 요율", base: data.directLaborCost, quote: data.indirectLaborCost, comparison: "CEILING" },
-    { label: "기타경비", rate: otherRate, formula: "(재료비 + 노무비) × 요율", base: otherBase, quote: data.expenses, comparison: "CEILING" },
+    { label: "기타경비", rate: otherRate, formula: "(재료비 + 노무비) × 요율", base: otherBase, quote: namedOtherExpense, comparison: "CEILING", quoteConfirmed: namedOtherExpense !== null },
     { label: "산재보험료", rate: accidentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("산재보험료") },
     { label: "고용보험료", rate: employmentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("고용보험료"), condition: "추정금액 등급별 요율" },
     { label: "국민건강보험료", rate: healthRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "직접노무비 × 요율", base: healthBase, quote: itemQuote("국민건강보험료", "건강보험료") },
@@ -142,7 +145,7 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const evaluatedRows = referenceRows.map((row) => {
     const limit = row.rate === null || row.base === null ? null : Math.round(row.base * row.rate / 100);
     const difference = limit === null || row.quote === null ? null : row.quote - limit;
-    const status = limit === null || row.quote === null
+    const status = limit === null || row.quote === null || row.quoteConfirmed === false
       ? "확인 필요"
       : row.comparison === "CEILING"
         ? row.quote <= limit ? "적합" : "상한 초과"
@@ -161,14 +164,15 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
       <span>공사기간 <strong>{days === null ? "[확인 필요]" : `${days}일`}</strong></span>
     </div>
     {!referenceText && <p className="rate-reference-warning">등록된 건축공사 간접공사비 MD 원문을 읽지 못했습니다. 지식관리에서 해당 MD 파일 등록상태를 확인해 주세요.</p>}
-    {!isBuilding && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
+    {!data.constructionType && usesBuildingReference && <p className="rate-reference-warning">공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다. 최종 판정 전 공사종류를 확인해 주세요.</p>}
+    {data.constructionType && !isBuilding && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
     {referenceText && <p className="rate-reference-scope">현재 화면은 견적 총액을 직접공사비·추정가격에 대입한 참고 계산입니다. 두 기준금액이 다르면 담당자가 실제 값을 별도로 확인해야 합니다.</p>}
     <div className="rate-audit-summary" aria-label="제비율 대차대조 요약">
       <article className="normal"><span>적합</span><strong>{normalCount}건</strong></article>
       <article className="excess"><span>초과·차이</span><strong>{excessCount}건</strong></article>
       <article className="pending"><span>확인 필요</span><strong>{pendingCount}건</strong></article>
     </div>
-    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}</small></td></tr>)}</tbody></table></div>
+    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}{row.quote === null ? " · 견적서 비목별 금액 재추출 필요" : ""}</small></td></tr>)}</tbody></table></div>
     {fixedRows.length > 0 && <details className="fixed-rate-details"><summary>사회보험·고정요율 보기</summary>{fixedRows.map((row) => <div key={row.label}><strong>{row.label}</strong><span>{row.formula}</span><small>{row.condition}</small></div>)}</details>}
     <footer><strong>{documentName || "간접공사비 기준자료 [확인 필요]"}</strong><span>이 표는 담당자가 AI 검토결과와 직접 대조하기 위한 참고화면입니다.</span></footer>
   </section>;

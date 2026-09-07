@@ -114,6 +114,8 @@ export async function extractQuotation(file: File): Promise<{ data: QuotationExt
           "날짜는 확인 가능한 경우 YYYY-MM-DD로, 금액은 원 단위 숫자로 반환하세요.",
           "사업자등록번호가 문서에 있으면 businessRegistrationNumber에 숫자 10자리 형태로 추출하세요.",
           "세부항목은 누락 없이 행별로 추출하되, 표의 원문을 sourceText에 짧게 남기세요.",
+          "원가계산서·집계표에 간접노무비, 기타경비, 산재보험료, 고용보험료, 국민건강보험료, 국민연금보험료, 노인장기요양보험료, 산업안전보건관리비, 퇴직공제부금비, 환경보전비, 임금채권부담금, 석면분담금, 일반관리비, 이윤 행이 있으면 각각 별도 items 행으로 반드시 포함하세요.",
+          "비용 요약행의 category는 '원가계산', itemName은 문서에 적힌 비목명, amount는 해당 견적금액으로 반환하고 여러 비목을 경비 합계 하나로 합치지 마세요.",
           "반환 전 문서를 한 번 다시 훑어 누락 여부만 확인하세요.",
         ].join(" "),
         input: [{ role: "user", content: [inputFile, { type: "input_text", text: "이 견적서의 계약 기본정보, 비용 구성, 세부 공종·직종·자재 항목을 지정된 구조로 추출하세요." }] }],

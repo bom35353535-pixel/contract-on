@@ -18,6 +18,18 @@ test("current-rate reference displays registered formulas and separates rate con
   assert.match(component, /\(노무비 \+ 경비 \+ 일반관리비\) × 요율/);
   assert.match(component, /amountMatches\(row\[0\], amount\).*periodMatches\(row\[1\], days\)/s);
   assert.match(component, /견적 총액을 직접공사비·추정가격에 대입한 참고 계산/);
+  assert.match(component, /documentName\?\.includes\("건축공사"\)/);
+  assert.match(component, /itemQuote\("기타경비"\)/);
+  assert.doesNotMatch(component, /label: "기타경비"[^\n]*quote: data\.expenses/);
+  assert.match(component, /공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다/);
+  assert.match(component, /견적서 비목별 금액 재추출 필요/);
+});
+
+test("quotation extraction keeps statutory cost summary rows separate", async () => {
+  const source = await read("lib/openai-estimate.ts");
+  assert.match(source, /간접노무비, 기타경비, 산재보험료, 고용보험료/);
+  assert.match(source, /각각 별도 items 행으로 반드시 포함하세요/);
+  assert.match(source, /여러 비목을 경비 합계 하나로 합치지 마세요/);
 });
 
 test("supplier sanction lookup validates an exact business number and explains current-only coverage", async () => {
