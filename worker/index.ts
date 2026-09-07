@@ -8,6 +8,7 @@ interface Env {
   FILES: R2Bucket;
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
+  DATA_GO_KR_API_KEY?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

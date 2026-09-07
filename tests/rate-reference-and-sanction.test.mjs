@@ -24,11 +24,16 @@ test("supplier sanction lookup validates an exact business number and explains c
   const route = await read("app/api/g2b/sanctions/route.ts");
   const component = await read("components/SupplierSanctionCheck.tsx");
   assert.match(route, /\^\\d\{10\}\$/);
-  assert.match(route, /k-skill-proxy\.nomadamas\.org\/v1\/g2b\/sanctioned-supplier/);
-  assert.match(route, /status: 503/);
+  assert.match(route, /apis\.data\.go\.kr\/1230000\/ao\/UsrInfoService02\/getUnptRsttCorpInfo02/);
+  assert.match(route, /env\.DATA_GO_KR_API_KEY/);
+  assert.match(route, /url\.searchParams\.set\("ServiceKey", key\)/);
+  assert.match(route, /url\.searchParams\.set\("inqryDiv", "1"\)/);
+  assert.match(route, /rstrtSttDt/);
+  assert.doesNotMatch(route, /k-skill-proxy\.nomadamas\.org/);
   assert.match(component, /0건은 과거 제재 이력이 없다는 뜻이 아니며/);
   assert.match(component, /조달청 나라장터 부정당제재업체정보/);
   assert.match(component, /businessRegistrationNumber/);
   assert.match(component, /useEffect/);
+  assert.match(component, /다시 조회/);
   assert.doesNotMatch(component, /사업자등록번호 숫자 10자리를 입력해 주세요/);
 });
