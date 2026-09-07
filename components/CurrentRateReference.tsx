@@ -75,7 +75,11 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const amount = data.totalAmount;
   const days = constructionDays(data.plannedStartDate, data.plannedCompletionDate);
   const isBuilding = Boolean(data.constructionType?.includes("건축"));
-  const usesBuildingReference = isBuilding || (!data.constructionType && Boolean(documentName?.includes("건축공사")));
+  const extractedConstructionText = data.items.map((candidate) =>
+    `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""} ${candidate.specification || ""} ${candidate.sourceText || ""}`,
+  ).join(" ");
+  const hasBuildingItem = extractedConstructionText.includes("건축공사");
+  const usesBuildingReference = isBuilding || hasBuildingItem || (!data.constructionType && Boolean(documentName?.includes("건축공사")));
   const durationRow = amount !== null && days !== null && usesBuildingReference
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("개월") && amountMatches(row[0], amount) && periodMatches(row[1], days))
     : undefined;
@@ -113,7 +117,7 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const healthBase = days === null || data.directLaborCost === null ? null : days >= 30 ? data.directLaborCost : 0;
   const healthLimit = healthRate === null || healthBase === null ? null : Math.round(healthBase * healthRate / 100);
   const retirementBase = amount === null || data.directLaborCost === null ? null : amount >= 100_000_000 ? data.directLaborCost : 0;
-  const safetyRate = amount !== null && amount < 500_000_000 && isBuilding
+  const safetyRate = amount !== null && amount < 500_000_000 && usesBuildingReference
     ? percent(tableRows.find((row) => row[0] === "건축공사" && row.length === 3)?.[1])
     : null;
   const safetyBase = amount !== null && amount < 20_000_000 ? 0 : data.materialCost === null || data.directLaborCost === null ? null : data.materialCost + data.directLaborCost;
@@ -165,7 +169,8 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
     </div>
     {!referenceText && <p className="rate-reference-warning">등록된 건축공사 간접공사비 MD 원문을 읽지 못했습니다. 지식관리에서 해당 MD 파일 등록상태를 확인해 주세요.</p>}
     {!data.constructionType && usesBuildingReference && <p className="rate-reference-warning">공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다. 최종 판정 전 공사종류를 확인해 주세요.</p>}
-    {data.constructionType && !isBuilding && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
+    {data.constructionType && !isBuilding && hasBuildingItem && <p className="rate-reference-warning">공사종류 입력값은 {data.constructionType}이지만 견적서 공종표의 ‘건축공사’를 근거로 등록된 건축공사 기준을 적용했습니다. 최종 판정 전 공종을 확인해 주세요.</p>}
+    {data.constructionType && !usesBuildingReference && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
     {referenceText && <p className="rate-reference-scope">현재 화면은 견적 총액을 직접공사비·추정가격에 대입한 참고 계산입니다. 두 기준금액이 다르면 담당자가 실제 값을 별도로 확인해야 합니다.</p>}
     <div className="rate-audit-summary" aria-label="제비율 대차대조 요약">
       <article className="normal"><span>적합</span><strong>{normalCount}건</strong></article>

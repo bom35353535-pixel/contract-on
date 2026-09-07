@@ -19,9 +19,12 @@ test("current-rate reference displays registered formulas and separates rate con
   assert.match(component, /amountMatches\(row\[0\], amount\).*periodMatches\(row\[1\], days\)/s);
   assert.match(component, /견적 총액을 직접공사비·추정가격에 대입한 참고 계산/);
   assert.match(component, /documentName\?\.includes\("건축공사"\)/);
+  assert.match(component, /extractedConstructionText\.includes\("건축공사"\)/);
+  assert.match(component, /isBuilding \|\| hasBuildingItem/);
   assert.match(component, /itemQuote\("기타경비"\)/);
   assert.doesNotMatch(component, /label: "기타경비"[^\n]*quote: data\.expenses/);
   assert.match(component, /공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다/);
+  assert.match(component, /견적서 공종표의 ‘건축공사’를 근거로 등록된 건축공사 기준을 적용했습니다/);
   assert.match(component, /견적서 비목별 금액 재추출 필요/);
 });
 
