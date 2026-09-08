@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import type { ContractDocumentFileRecord, ContractDocumentReviewItemRecord, ContractDocumentReviewRecord } from "@/db/schema";
 import type { DocumentStage } from "@/lib/contract-document-review";
 import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
+import { CONTRACT_STAGES, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
 type Props = {
   contractId: string;
@@ -32,6 +33,11 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const editable = currentStage === documentStage;
+  const currentStageIndex = isContractStage(currentStage) ? CONTRACT_STAGES.indexOf(currentStage) : -1;
+  const documentStageIndex = CONTRACT_STAGES.indexOf(documentStage);
+  const isFutureStage = currentStageIndex >= 0 && currentStageIndex < documentStageIndex;
+  const isPastStage = currentStageIndex > documentStageIndex;
+  const canUpload = editable || isFutureStage;
   const isContract = documentStage === "NARA_CONTRACT";
   const isCompletion = documentStage === "COMPLETION";
   const title = isContract ? "나라장터 계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
@@ -105,16 +111,17 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
     {error && <div className="document-message error" role="alert">{error}</div>}
     <div className="private-document-notice" role="note"><strong>🔒 업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다.</strong><span>현재 프로토타입에서는 원본 보관을 위해 외부 클라우드 저장소(Cloudflare R2)를 사용합니다.</span></div>
 
-    <section className={`phase6-upload-card ${!editable ? "locked" : ""}`}>
-      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">복수 업로드</span><h3>{title} 분석</h3></div></div><span className={`document-status ${editable ? "current" : "confirmed"}`}>{editable ? "업로드 가능" : "단계 완료"}</span></div>
-      {editable ? <>
+    <section className={`phase6-upload-card ${!canUpload ? "locked" : ""}`}>
+      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">복수 업로드</span><h3>{title} 분석</h3></div></div><span className={`document-status ${editable ? "current" : isFutureStage ? "upcoming" : "confirmed"}`}>{editable ? "업로드 가능" : isFutureStage ? "사전 업로드 가능" : isPastStage ? "단계 완료" : "단계 확인 필요"}</span></div>
+      {isFutureStage && <div className="phase6-upcoming-notice"><strong>현재 단계: {STAGE_INFO[currentStage as keyof typeof STAGE_INFO].label}</strong><span>{title}는 미리 업로드·분석할 수 있습니다. 단계 완료 처리는 해당 업무단계에 도달한 뒤 가능합니다.</span></div>}
+      {canUpload ? <>
         <label className="phase6-file-picker">
           <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" onChange={(event) => selectFiles(Array.from(event.target.files || []))} />
           <span>PDF·문서·표 파일 선택</span><small>최대 10개 · 파일당 20MB · 전체 50MB</small>
         </label>
         {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB</small></span><label><span className="sr-only">{file.name} 문서 종류</span><select value={submittedTypes[index] || ""} onChange={(event) => setSubmittedTypes((current) => current.map((value, typeIndex) => typeIndex === index ? event.target.value : value))}><option value="">문서 종류 확인 필요</option>{typeOptions.map((type) => <option key={type} value={type}>{type}</option>)}</select></label></li>)}</ul>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : "선택한 서류 확인"}</button>
-      </> : <p className="phase6-readonly-note">이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다.</p>}
+      </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
       {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 서류 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{file.detectedType || "문서 종류 확인 필요"}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "판독완료" : "확인필요"}</span></li>)}</ul></details>}
     </section>
 

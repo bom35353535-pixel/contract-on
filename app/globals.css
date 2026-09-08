@@ -569,6 +569,10 @@ a { color: inherit; text-decoration: none; }
 .start-day-card p { margin: 0; color: #61747e; font-size: 9px; }
 .phase6-upload-card, .phase6-results-card { margin-top: 13px; padding: 21px; border: 1px solid var(--line); border-radius: 15px; background: white; box-shadow: 0 10px 30px rgba(25, 61, 82, .04); }
 .phase6-upload-card.locked { background: #fafbfb; }
+.document-status.upcoming { background: #e8f1ff; color: #34669d; }
+.phase6-upcoming-notice { display: flex; gap: 8px 14px; align-items: center; margin-top: 15px; padding: 11px 13px; border: 1px solid #cfe0f3; border-radius: 9px; background: #f3f8fe; color: #315c86; }
+.phase6-upcoming-notice strong { white-space: nowrap; }
+.phase6-upcoming-notice span { font-size: 13px; line-height: 1.5; }
 .phase6-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .phase6-card-heading > div { display: flex; align-items: center; gap: 11px; }
 .phase6-card-heading h3 { margin: 4px 0 0; font-size: 16px; }

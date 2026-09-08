@@ -15,6 +15,7 @@ import {
 import { findRequiredDocumentCriteria, getVectorStoreId } from "@/lib/openai-knowledge";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
 import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
+import { CONTRACT_STAGES, isContractStage } from "@/lib/workflow";
 
 export const runtime = "edge";
 
@@ -43,7 +44,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const form = await request.formData();
   const stage = form.get("documentStage");
   if (!isDocumentStage(stage)) return errorResponse("문서 업무단계를 확인해 주세요.");
-  if (contract.currentStage !== stage) return errorResponse("현재 계약단계와 문서 업무단계가 다릅니다. 화면을 새로고침해 주세요.", 409);
+  if (!isContractStage(contract.currentStage)) return errorResponse("현재 계약단계를 확인할 수 없습니다.", 409);
+  const currentStageIndex = CONTRACT_STAGES.indexOf(contract.currentStage);
+  const documentStageIndex = CONTRACT_STAGES.indexOf(stage);
+  if (currentStageIndex > documentStageIndex) return errorResponse("이미 완료된 업무단계에는 서류를 추가로 업로드할 수 없습니다.", 409);
   const files = form.getAll("files").filter((value): value is File => value instanceof File && value.size > 0);
   if (!files.length) return errorResponse("분석할 서류를 한 개 이상 선택해 주세요.");
   if (files.length > MAX_FILES) return errorResponse(`한 번에 최대 ${MAX_FILES}개까지 분석할 수 있습니다.`);
@@ -174,7 +178,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       JSON.stringify({ method: "LOCAL_FILENAME_RULES", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
     ).run();
 
-    return Response.json({ reviewId, counts, warning }, { status: 201 });
+    return Response.json({ reviewId, counts, warning, preUploaded: currentStageIndex < documentStageIndex }, { status: 201 });
   } catch (error) {
     if (!metadataSaved) await Promise.all(stored.map((entry) => env.FILES.delete(entry.storageKey).catch(() => undefined)));
     return errorResponse(error instanceof Error ? error.message : "서류 분석에 실패했습니다.", 502);

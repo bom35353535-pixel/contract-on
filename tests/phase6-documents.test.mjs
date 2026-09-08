@@ -64,3 +64,14 @@ test("submitted contractor files are classified locally without OpenAI file uplo
   assert.match(workspace, /업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다/);
   assert.match(workspace, /submittedTypes/);
 });
+
+test("future construction documents can be prepared without being mislabeled complete", async () => {
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /const isFutureStage = currentStageIndex >= 0 && currentStageIndex < documentStageIndex/);
+  assert.match(workspace, /const canUpload = editable \|\| isFutureStage/);
+  assert.match(workspace, /사전 업로드 가능/);
+  assert.match(workspace, /단계 완료 처리는 해당 업무단계에 도달한 뒤 가능합니다/);
+  assert.match(route, /currentStageIndex > documentStageIndex/);
+  assert.match(route, /preUploaded: currentStageIndex < documentStageIndex/);
+});
