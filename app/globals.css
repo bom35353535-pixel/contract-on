@@ -368,6 +368,10 @@ a { color: inherit; text-decoration: none; }
 .rate-audit-status.excess { background: #f9e5e1; color: #b34f45; }
 .rate-audit-status.pending { background: #fff0d8; color: #95631f; }
 .rate-audit-status.not-applicable { background: #edf1ef; color: #66736e; }
+.rate-quote-input { display: flex; align-items: center; gap: 5px; min-width: 128px; }
+.rate-quote-input input { width: 108px; min-height: 34px; padding: 6px 8px; border: 1px solid #cfdad6; border-radius: 7px; background: #fff; color: #263b33; text-align: right; font: inherit; }
+.rate-quote-input input:focus { border-color: #238c6a; outline: 2px solid #d8efe7; }
+.rate-quote-input small { color: #75817c; font-size: 12px; }
 .fixed-rate-details { margin: 0 14px 14px; border: 1px solid #dfe8e4; border-radius: 10px; }
 .fixed-rate-details summary { padding: 11px 12px; color: #46645a; font-size: 12px; font-weight: 850; cursor: pointer; }
 .fixed-rate-details > div { display: grid; grid-template-columns: 112px 1fr; gap: 5px 10px; padding: 10px 12px; border-top: 1px solid #e7eeeb; }

@@ -6,6 +6,7 @@ type Props = {
   data: QuotationExtraction;
   documentName: string | null;
   referenceText: string | null;
+  onQuoteChange?: (label: string, value: string) => void;
 };
 
 type AuditRow = {
@@ -70,7 +71,11 @@ function differenceWon(value: number | null) {
   return `${value > 0 ? "+" : ""}${new Intl.NumberFormat("ko-KR").format(Math.round(value))}원`;
 }
 
-export function CurrentRateReference({ data, documentName, referenceText }: Props) {
+function editableWon(value: number | null) {
+  return value === null ? "" : new Intl.NumberFormat("ko-KR").format(value);
+}
+
+export function CurrentRateReference({ data, documentName, referenceText, onQuoteChange }: Props) {
   const tableRows = (referenceText || "").split(/\r?\n/).map(cells).filter((row) => row.length >= 3);
   const amount = data.totalAmount;
   const days = constructionDays(data.plannedStartDate, data.plannedCompletionDate);
@@ -124,11 +129,11 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
   const referenceRows: AuditRow[] = [
     { label: "간접노무비", rate: indirectRate, formula: "직접노무비 × 요율", base: data.directLaborCost, quote: data.indirectLaborCost, comparison: "CEILING" },
     { label: "기타경비", rate: otherRate, formula: "(재료비 + 노무비) × 요율", base: otherBase, quote: namedOtherExpense, comparison: "CEILING", quoteConfirmed: namedOtherExpense !== null },
-    { label: "산재보험료", rate: accidentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("산재보험료") },
-    { label: "고용보험료", rate: employmentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("고용보험료"), condition: "추정금액 등급별 요율" },
-    { label: "국민건강보험료", rate: healthRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "직접노무비 × 요율", base: healthBase, quote: itemQuote("국민건강보험료", "건강보험료") },
-    { label: "국민연금보험료", rate: pensionRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "직접노무비 × 요율", base: healthBase, quote: itemQuote("국민연금보험료", "연금보험료") },
-    { label: "노인장기요양보험료", rate: longTermRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "건강보험료 × 요율", base: days !== null && days < 30 ? 0 : healthLimit, quote: itemQuote("노인장기요양보험료", "노인장기요양보험") },
+    { label: "산재보험료", rate: accidentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("산재보험료", "산재보험") },
+    { label: "고용보험료", rate: employmentRate, formula: "노무비 × 요율", base: labor, quote: itemQuote("고용보험료", "고용보험"), condition: "추정금액 등급별 요율" },
+    { label: "국민건강보험료", rate: healthRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "직접노무비 × 요율", base: healthBase, quote: itemQuote("국민건강보험료", "국민건강보험", "건강보험료", "건강보험") },
+    { label: "국민연금보험료", rate: pensionRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "직접노무비 × 요율", base: healthBase, quote: itemQuote("국민연금보험료", "국민연금보험", "연금보험료", "연금보험") },
+    { label: "노인장기요양보험료", rate: longTermRate, formula: days !== null && days < 30 ? "30일 미만 제외" : "건강보험료 × 요율", base: days !== null && days < 30 ? 0 : healthLimit, quote: itemQuote("노인장기요양보험료", "노인장기요양보험", "장기요양보험료", "장기요양보험") },
     { label: "산업안전보건관리비", rate: safetyRate, formula: amount !== null && amount < 20_000_000 ? "총공사금액 2천만원 미만 제외" : "(재료비 + 직접노무비) × 요율", base: safetyBase, quote: data.safetyHealthCost, condition: amount !== null && amount >= 500_000_000 ? "5억원 이상 구간은 기초액·공종조건 확인 필요" : undefined },
     { label: "퇴직공제부금비", rate: fixedRate("퇴직공제부금비"), formula: amount !== null && amount < 100_000_000 ? "추정금액 1억원 미만 제외" : "직접노무비 × 요율", base: retirementBase, quote: itemQuote("퇴직공제부금비") },
     { label: "환경보전비", rate: null, formula: "직접공사비 × 공종별 요율", base: null, quote: itemQuote("환경보전비"), condition: "세부 공종·실내보수 여부 확인 필요" },
@@ -182,7 +187,7 @@ export function CurrentRateReference({ data, documentName, referenceText }: Prop
       <article className="pending"><span>확인 필요</span><strong>{pendingCount}건</strong></article>
       <article className="not-applicable"><span>해당 없음</span><strong>{notApplicableCount}건</strong></article>
     </div>
-    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{row.notApplicable ? "해당 없음" : won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : row.status === "해당 없음" ? "not-applicable" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}{row.notApplicable ? " · 견적서 금액 0원·공란" : ""}</small></td></tr>)}</tbody></table></div>
+    <div className="rate-audit-table-wrap"><table className="rate-audit-table"><thead><tr><th>비목명</th><th>등록기준액</th><th>견적서 금액</th><th>차액</th><th>판정</th><th>적용 요율·산식</th></tr></thead><tbody>{evaluatedRows.map((row) => <tr key={row.label}><td><strong>{row.label}</strong></td><td className="rate-limit">{won(row.limit)}</td><td>{onQuoteChange ? <div className="rate-quote-input"><input inputMode="numeric" aria-label={`${row.label} 견적서 금액 직접 입력`} value={editableWon(row.quote)} placeholder="직접 입력" onChange={(event) => onQuoteChange(row.label, event.target.value)} /><small>원</small></div> : row.notApplicable ? "해당 없음" : won(row.quote)}</td><td className={row.difference !== null && row.difference > 0 ? "rate-excess-value" : ""}>{differenceWon(row.difference)}</td><td><span className={`rate-audit-status ${row.status === "적합" ? "normal" : row.status === "상한 초과" || row.status === "차이 확인" ? "excess" : row.status === "해당 없음" ? "not-applicable" : "pending"}`}>{row.status}</span></td><td><strong>{row.rate === null ? "[조건 확인 필요]" : `${row.comparison === "CEILING" ? "상한 " : "요율 "}${row.rate}%`}</strong><small>{row.formula}{row.condition ? ` · ${row.condition}` : ""}{row.notApplicable ? " · 견적서 금액 0원·공란" : ""}</small></td></tr>)}</tbody></table></div>
     {fixedRows.length > 0 && <details className="fixed-rate-details"><summary>사회보험·고정요율 보기</summary>{fixedRows.map((row) => <div key={row.label}><strong>{row.label}</strong><span>{row.formula}</span><small>{row.condition}</small></div>)}</details>}
     <footer><strong>{documentName || "간접공사비 기준자료 [확인 필요]"}</strong><span>이 표는 담당자가 AI 검토결과와 직접 대조하기 위한 참고화면입니다.</span></footer>
   </section>;

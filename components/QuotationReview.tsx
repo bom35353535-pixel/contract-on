@@ -34,6 +34,16 @@ const moneyFields = [
   ["profit", "이윤", false], ["safetyHealthCost", "산업안전보건관리비", false],
 ] as const;
 
+const rateQuoteAliases: Record<string, string[]> = {
+  "간접노무비": ["간접노무비"], "기타경비": ["기타경비"], "산재보험료": ["산재보험료", "산재보험"],
+  "고용보험료": ["고용보험료", "고용보험"], "국민건강보험료": ["국민건강보험료", "국민건강보험", "건강보험료", "건강보험"],
+  "국민연금보험료": ["국민연금보험료", "국민연금보험", "연금보험료", "연금보험"],
+  "노인장기요양보험료": ["노인장기요양보험료", "노인장기요양보험", "장기요양보험료", "장기요양보험"],
+  "산업안전보건관리비": ["산업안전보건관리비", "안전관리비"], "퇴직공제부금비": ["퇴직공제부금비", "퇴직공제"],
+  "환경보전비": ["환경보전비"], "임금채권부담금": ["임금채권부담금"], "석면분담금": ["석면분담금"],
+  "일반관리비": ["일반관리비"], "이윤": ["이윤"],
+};
+
 function money(value: number | null) { return value === null ? "" : new Intl.NumberFormat("ko-KR").format(value); }
 function parseMoney(value: string) {
   if (!value.trim()) return null;
@@ -66,6 +76,23 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           : (value || null),
       } : item),
     }));
+  }
+
+  function updateRateQuote(label: string, value: string) {
+    setReviewFresh(false);
+    setData((current) => {
+      const aliases = rateQuoteAliases[label] || [label];
+      const itemIndex = current.items.findIndex((item) => {
+        const text = `${item.category || ""} ${item.trade || ""} ${item.itemName || ""} ${item.specification || ""} ${item.sourceText || ""}`;
+        return aliases.some((alias) => text.includes(alias));
+      });
+      const amount = parseMoney(value);
+      const summaryField = ({ "간접노무비": "indirectLaborCost", "산업안전보건관리비": "safetyHealthCost", "일반관리비": "overhead", "이윤": "profit" } as const)[label as "간접노무비" | "산업안전보건관리비" | "일반관리비" | "이윤"];
+      const items = itemIndex >= 0
+        ? current.items.map((item, index) => index === itemIndex ? { ...item, amount } : item)
+        : [...current.items, { category: "사용자 입력", trade: null, itemName: label, specification: null, unit: "식", quantity: 1, unitPrice: amount, amount, sourceText: "사용자 직접 입력" }];
+      return { ...current, ...(summaryField ? { [summaryField]: amount } : {}), items };
+    });
   }
 
   async function confirm() {
@@ -144,7 +171,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           </section>
         </div>
         <aside className="review-reference-aside">
-          <CurrentRateReference data={data} documentName={rateReferenceDocumentName} referenceText={rateReferenceText} />
+          <CurrentRateReference data={data} documentName={rateReferenceDocumentName} referenceText={rateReferenceText} onQuoteChange={updateRateQuote} />
           <SupplierSanctionCheck companyName={data.companyName} businessRegistrationNumber={data.businessRegistrationNumber} />
         </aside>
       </div>

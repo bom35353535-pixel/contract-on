@@ -36,6 +36,16 @@ test("zero or blank quotation cost rows are not applicable", async () => {
   assert.match(component, /견적서 금액 0원·공란/);
 });
 
+test("rate table accepts direct corrections and recognizes insurance labels without the fee suffix", async () => {
+  const component = await read("components/CurrentRateReference.tsx");
+  const form = await read("components/QuotationReview.tsx");
+  assert.match(component, /itemQuote\("산재보험료", "산재보험"\)/);
+  assert.match(component, /aria-label=\{`\$\{row\.label\} 견적서 금액 직접 입력`\}/);
+  assert.match(form, /function updateRateQuote/);
+  assert.match(form, /category: "사용자 입력"/);
+  assert.match(form, /onQuoteChange=\{updateRateQuote\}/);
+});
+
 test("quotation extraction keeps statutory cost summary rows separate", async () => {
   const source = await read("lib/openai-estimate.ts");
   assert.match(source, /간접노무비, 기타경비, 산재보험료, 고용보험료/);
