@@ -372,6 +372,11 @@ a { color: inherit; text-decoration: none; }
 .rate-quote-input input { width: 108px; min-height: 34px; padding: 6px 8px; border: 1px solid #cfdad6; border-radius: 7px; background: #fff; color: #263b33; text-align: right; font: inherit; }
 .rate-quote-input input:focus { border-color: #238c6a; outline: 2px solid #d8efe7; }
 .rate-quote-input small { color: #75817c; font-size: 12px; }
+.review-notice-actions { display: flex; align-items: flex-end; gap: 8px; flex-direction: column; }
+.review-notice-actions button { min-height: 38px; padding: 8px 12px; border: 1px solid #b9ccc5; border-radius: 8px; background: #fff; color: #27634e; font-weight: 800; cursor: pointer; }
+.review-notice-actions button:hover { background: #eef8f4; }
+.review-notice-actions button:disabled { cursor: wait; opacity: .65; }
+.review-form-grid select { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #d2ddd9; border-radius: 8px; background: #fff; color: #263b33; font: inherit; }
 .fixed-rate-details { margin: 0 14px 14px; border: 1px solid #dfe8e4; border-radius: 10px; }
 .fixed-rate-details summary { padding: 11px 12px; color: #46645a; font-size: 12px; font-weight: 850; cursor: pointer; }
 .fixed-rate-details > div { display: grid; grid-template-columns: 112px 1fr; gap: 5px 10px; padding: 10px 12px; border-top: 1px solid #e7eeeb; }

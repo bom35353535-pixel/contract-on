@@ -34,6 +34,17 @@ const moneyFields = [
   ["profit", "이윤", false], ["safetyHealthCost", "산업안전보건관리비", false],
 ] as const;
 
+const constructionTypeOptions = ["건축공사", "전기공사", "소방공사", "방송통신공사", "기타공사"] as const;
+
+function normalizeConstructionType(value: string | null) {
+  if (!value) return null;
+  return constructionTypeOptions.find((option) => value === option || value.includes(option.replace("공사", ""))) || "기타공사";
+}
+
+function purposeFromProjectName(projectName: string | null) {
+  return projectName ? `${projectName}을 실시하여 관련 시설의 기능과 안전성을 확보하고 쾌적한 교육환경을 조성하고자 함.` : null;
+}
+
 const rateQuoteAliases: Record<string, string[]> = {
   "간접노무비": ["간접노무비"], "기타경비": ["기타경비"], "산재보험료": ["산재보험료", "산재보험"],
   "고용보험료": ["고용보험료", "고용보험"], "국민건강보험료": ["국민건강보험료", "국민건강보험", "건강보험료", "건강보험"],
@@ -52,13 +63,24 @@ function parseMoney(value: string) {
 }
 
 export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText }: Props) {
-  const [data, setData] = useState(initial);
+  const [data, setData] = useState(() => ({
+    ...initial,
+    constructionType: normalizeConstructionType(initial.constructionType),
+    purpose: initial.purpose || purposeFromProjectName(initial.projectName),
+  }));
+  const [purposeManuallyEdited, setPurposeManuallyEdited] = useState(Boolean(initial.purpose));
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [reviewFresh, setReviewFresh] = useState(Boolean(review));
   const updateText = (field: keyof QuotationExtraction, value: string) => {
     setReviewFresh(false);
-    setData((current) => ({ ...current, [field]: value.trimStart() || null }));
+    const nextValue = value.trimStart() || null;
+    if (field === "purpose") setPurposeManuallyEdited(true);
+    setData((current) => ({
+      ...current,
+      [field]: nextValue,
+      ...(field === "projectName" && !purposeManuallyEdited ? { purpose: purposeFromProjectName(nextValue) } : {}),
+    }));
   };
   const updateMoney = (field: keyof QuotationExtraction, value: string) => {
     setReviewFresh(false);
@@ -132,6 +154,21 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     }
   }
 
+  async function reanalyze() {
+    if (busy) return;
+    if (!window.confirm("원본 견적서를 다시 분석하면 현재 화면에서 수정한 값이 초기화됩니다. 다시 분석하시겠습니까?")) return;
+    setBusy("reanalyze"); setError("");
+    try {
+      const response = await fetch(`/api/estimates/${analysisId}/reanalyze`, { method: "POST" });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "견적서를 다시 분석하지 못했습니다.");
+      window.location.reload();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "견적서를 다시 분석하지 못했습니다.");
+      setBusy("");
+    }
+  }
+
   if (confirmedContractId) return <section className="review-complete"><span>✓</span><h2>이미 계약업무를 시작했습니다.</h2><p>확정한 견적정보는 계약 상세화면에서 계속 확인할 수 있습니다.</p><a href={`/contracts/${confirmedContractId}?tab=estimate`}>계약 건으로 이동</a></section>;
 
   const emptyCount = mainFields.filter(([field, , required]) => required && !data[field]).length + (!data.totalAmount ? 1 : 0);
@@ -140,7 +177,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     <>
       <section className="review-notice">
         <div><span className="section-kicker">AI 추출 완료</span><h2>견적서에서 다음과 같이 읽었습니다.</h2><p><strong>{originalName}</strong> · 문서에 없거나 읽지 못한 값은 비워두었습니다.</p></div>
-        <span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span>
+        <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={reanalyze}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>
       </section>
 
       <section className={`knowledge-first-review ${knowledgeReadyCount ? "ready" : "needs"}`}>
@@ -156,7 +193,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
               {mainFields.map(([field, label, required]) => (
                 <label className={required && !data[field] ? "field-missing" : ""} key={field}>
                   <span>{label}{required && <em>필수</em>}</span>
-                  {field.includes("Date") ? <input type="date" value={String(data[field] ?? "")} onChange={(event) => updateText(field, event.target.value)} /> : field === "purpose" ? <textarea rows={2} value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} /> : <input value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} />}
+                  {field === "constructionType" ? <select value={String(data[field] ?? "")} onChange={(event) => updateText(field, event.target.value)}><option value="">공사종류 선택</option>{constructionTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select> : field.includes("Date") ? <input type="date" value={String(data[field] ?? "")} onChange={(event) => updateText(field, event.target.value)} /> : field === "purpose" ? <textarea rows={2} value={String(data[field] ?? "")} placeholder="공사명을 바탕으로 자동 작성되며 직접 수정할 수 있습니다" onChange={(event) => updateText(field, event.target.value)} /> : <input value={String(data[field] ?? "")} placeholder="문서에 없으면 직접 입력" onChange={(event) => updateText(field, event.target.value)} />}
                 </label>
               ))}
             </div>
