@@ -29,6 +29,14 @@ test("Phase 6 does not invent missing requirements when registered evidence is a
   assert.doesNotMatch(items[0].detail, /누락/);
 });
 
+test("Phase 6 confirms an exactly classified construction document even when required-list evidence is absent", async () => {
+  const { buildDocumentChecklist, documentReviewCounts } = await import(moduleUrl.href);
+  const items = buildDocumentChecklist([], [{ id: "F1", originalName: "착공계.pdf", detectedType: "착공계", detectionStatus: "EXACT", summary: null }]);
+  assert.equal(items[0].status, "SUBMITTED");
+  assert.match(items[0].detail, /착공계 업로드를 확인/);
+  assert.deepEqual(documentReviewCounts(items), { submittedCount: 1, missingCount: 0, checkCount: 0 });
+});
+
 test("Phase 6 accepts only requirements verified against ready registered files", async () => {
   const { verifyRequiredDocumentCriteria } = await import(moduleUrl.href);
   const candidates = [{ requiredName: "착공계", aliases: ["착공신고서"], sourceFileId: "file-ready", sourceFilename: "기준.pdf", sourceLocation: "12쪽", sourceExcerpt: "착공계", matchStatus: "EXACT" }];

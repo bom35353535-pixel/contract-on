@@ -139,7 +139,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
           const uploaded = files.find((file) => file.id === item.uploadedFileId);
           return <details className={`phase6-check-row ${status.className}`} key={item.id}>
             <summary><span className="phase6-status-icon">{status.icon}</span><div><strong>{item.requiredName}</strong><small>{uploaded ? `업로드: ${uploaded.originalName}` : item.detail}</small></div><span className="phase6-status-label">{status.label}</span><span className="result-open">⌄</span></summary>
-            <div className="phase6-check-detail"><p>{item.detail}</p>{item.evidenceDocumentName ? <div className="phase6-evidence"><strong>등록자료 근거 · {item.evidenceDocumentName}{item.evidenceYear ? ` (${item.evidenceYear})` : ""}</strong>{item.evidenceLocation && <small>{item.evidenceLocation}</small>}<p>{item.evidenceExcerpt}</p></div> : <div className="phase6-evidence no-evidence">등록자료 직접 근거 없음 · 담당자 확인 필요</div>}</div>
+            <div className="phase6-check-detail"><p>{item.detail}</p>{item.evidenceDocumentName ? <div className="phase6-evidence"><strong>등록자료 근거 · {item.evidenceDocumentName}{item.evidenceYear ? ` (${item.evidenceYear})` : ""}</strong>{item.evidenceLocation && <small>{item.evidenceLocation}</small>}<p>{item.evidenceExcerpt}</p></div> : <div className="phase6-evidence no-evidence">{item.status === "SUBMITTED" ? "업로드 및 문서 종류 확인 완료 · 필수 제출 기준 근거는 미확인" : "등록자료 직접 근거 없음 · 담당자 확인 필요"}</div>}</div>
           </details>;
         })}</div>
       </>}

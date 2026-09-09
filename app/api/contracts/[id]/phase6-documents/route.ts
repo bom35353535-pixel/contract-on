@@ -130,7 +130,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         rawCandidates = evidence.candidates;
         criteriaResponseId = evidence.responseId;
         criteria = verifyRequiredDocumentCriteria(evidence.candidates, evidence.results, readyDocuments);
-        if (!criteria.length) warning = "등록된 지식자료에서 이 단계의 필수 제출서류 기준을 확인하지 못했습니다.";
+        if (!criteria.length) warning = "업로드한 서류의 종류는 확인했습니다. 다만 등록된 지식자료에서 이 단계의 필수 제출서류 목록 근거를 확인하지 못해 누락 여부는 판정하지 않았습니다.";
       } catch (error) {
         console.error("Required document evidence lookup failed", error);
         warning = "등록자료 검색에 실패해 제출 기준을 확정하지 못했습니다. 잠시 후 다시 분석해 주세요.";

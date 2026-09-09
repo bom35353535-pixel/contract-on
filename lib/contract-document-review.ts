@@ -86,10 +86,12 @@ export function verifyRequiredDocumentCriteria(
 export function buildDocumentChecklist(criteria: RequiredDocumentCriterion[], files: ClassifiedDocument[]): DocumentChecklistItem[] {
   if (criteria.length === 0) {
     return files.map((file) => ({
-      status: "CHECK",
+      status: file.detectionStatus === "EXACT" && file.detectedType ? "SUBMITTED" : "CHECK",
       requiredName: file.detectedType || file.originalName,
       uploadedFileId: file.id,
-      detail: "등록된 지식자료에서 제출 기준을 확인할 수 없어 담당자 확인이 필요합니다.",
+      detail: file.detectionStatus === "EXACT" && file.detectedType
+        ? `${file.originalName}에서 ${file.detectedType} 업로드를 확인했습니다. 필수 제출서류 목록의 근거는 등록자료에서 별도로 확인되지 않았습니다.`
+        : "파일은 업로드되었지만 문서 종류를 확인할 수 없어 담당자 확인이 필요합니다.",
       evidenceDocumentId: null,
       evidenceDocumentName: null,
       evidenceYear: null,
