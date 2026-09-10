@@ -22,3 +22,10 @@ test("a stored estimate can be reanalyzed before dashboard confirmation", async 
   assert.match(route, /QUOTATION_REEXTRACTION/);
   assert.match(route, /analysis\.status === "CONFIRMED"/);
 });
+
+test("xlsx and csv estimates use the fast cell-text extraction path", async () => {
+  const source = await read("lib/openai-estimate.ts");
+  assert.match(source, /fastSpreadsheetText/);
+  assert.match(source, /unzipSync/);
+  assert.match(source, /견적서 셀 값을 행과 열 순서대로 추출/);
+});

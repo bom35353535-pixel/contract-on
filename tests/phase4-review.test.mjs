@@ -139,11 +139,20 @@ test("Phase 4 applies one registered labor table row to repeated job titles", as
   assert.ok(reviewed.every((item) => item.evidenceDocumentId === "doc-labor"));
 });
 
-test("Phase 4 knowledge search separates statutory, labor, and material requests", async () => {
-  const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8"));
-  assert.match(source, /\["STATUTORY", "LABOR", "MATERIAL"\]/);
-  assert.match(source, /우선 검색어/);
-  assert.match(source, /공사 및 견적 조건/);
+test("Phase 4 review reads registered text locally without waiting for an external AI search", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/run-quotation-review.ts", import.meta.url), "utf8"));
+  assert.match(source, /findLocalQuotationEvidence/);
+  assert.match(source, /md\|txt\|csv/);
+  assert.doesNotMatch(source, /findQuotationReviewCriteria/);
+});
+
+test("Phase 4 labor review compares only the occupation unit price", async () => {
+  const { buildEvidenceTargets } = await import(moduleUrl.href);
+  const targets = buildEvidenceTargets(amounts, [{ id: 9, category: "철거 작업", trade: "노무비", itemName: "보통인부", specification: "현장 정리", unit: "인", quantity: 2, unitPrice: 172_068, amount: 344_136 }]);
+  const labor = targets.find((target) => target.targetKey === "labor:9");
+  assert.equal(labor?.label, "보통인부");
+  assert.equal(labor?.context, "보통인부");
+  assert.equal(labor?.quotedValue, 172_068);
 });
 
 test("Phase 4 requires construction dates before review and hides quotation date input", async () => {

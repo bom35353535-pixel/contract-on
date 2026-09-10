@@ -23,7 +23,7 @@ export function PreConfirmationReviewResults({ result }: { result: Review }) {
 
   return <>
     <section className="review-dashboard-head pre-confirmation-review-head">
-      <div><span className="section-kicker">현황판 등록 전 견적검토 결과</span><h2>결과를 먼저 확인한 뒤 진행 여부를 결정하세요.</h2><p>산술계산과 등록 지식자료의 근거를 분리해 표시합니다. 최종 판단은 담당자가 합니다.</p></div>
+      <div><span className="section-kicker">현황판 등록 전 견적검토 결과</span><h2>결과를 먼저 확인한 뒤 진행 여부를 결정하세요.</h2><p>산술계산과 등록 지식자료의 근거를 분리해 표시합니다. 노무비는 작업내용을 판정하지 않고 직종별 견적 단가만 비교합니다.</p></div>
       <span className="human-check-badge">사용자 판단 대기</span>
     </section>
     {result.review.warning && <div className="review-warning">{result.review.warning}</div>}

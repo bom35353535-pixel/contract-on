@@ -25,13 +25,13 @@ export async function POST(request: Request) {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const storageKey = `quotations/${id}/${encodeURIComponent(file.name)}`;
-  await env.FILES.put(storageKey, await file.arrayBuffer(), {
+  const storagePromise = env.FILES.put(storageKey, await file.arrayBuffer(), {
     httpMetadata: { contentType: file.type || "application/octet-stream" },
     customMetadata: { analysisId: id, originalName: file.name },
   });
 
   try {
-    const extracted = await extractQuotation(file);
+    const [extracted] = await Promise.all([extractQuotation(file), storagePromise]);
     const values = extracted.data;
     const d1 = getD1();
     await d1.prepare(`
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
 
     return Response.json({ analysisId: id }, { status: 201 });
   } catch (error) {
+    await storagePromise.catch(() => undefined);
     await env.FILES.delete(storageKey).catch(() => undefined);
     const message = error instanceof Error ? error.message : "견적서 분석에 실패했습니다.";
     return errorResponse(message, 502);

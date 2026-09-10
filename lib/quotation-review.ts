@@ -127,8 +127,9 @@ export function buildEvidenceTargets(analysis: AnalysisAmounts, rows: QuotationR
       continue;
     }
     if ((classification.includes("노무") || classification.includes("직종")) && quoted !== null) {
+      const laborLabel = [row.itemName, row.trade].find((value) => value && !["노무비", "직종", "인건비"].includes(normalizedEvidenceLabel(value))) || row.itemName || row.trade || "노무비 항목";
       const key = `labor:${row.id}`; seen.add(key);
-      targets.push({ section: "LABOR", targetKey: key, label: row.itemName || row.trade || "노무비 항목", quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: combined });
+      targets.push({ section: "LABOR", targetKey: key, label: laborLabel, quotedValue: quoted, comparisonKind: "UNIT_PRICE", context: laborLabel });
       continue;
     }
     if ((classification.includes("재료") || classification.includes("자재")) && quoted !== null) {
@@ -237,7 +238,10 @@ export function applyEvidenceCandidates(
   targets: ReviewTarget[], candidates: EvidenceCandidate[], searchResults: EvidenceSearchResult[], documents: ReadyEvidenceDocument[], analysis: AnalysisAmounts,
 ) {
   const targetKeys = new Set(targets.map((target) => target.targetKey));
-  const documentsByFile = new Map(documents.filter((document) => document.openaiFileId).map((document) => [document.openaiFileId!, document]));
+  const documentsByFile = new Map(documents.flatMap((document) => [
+    [document.id, document] as const,
+    ...(document.openaiFileId ? [[document.openaiFileId, document] as const] : []),
+  ]));
   type VerifiedEvidence = { candidate: EvidenceCandidate; result: EvidenceSearchResult; document: ReadyEvidenceDocument };
   const verifiedLists = new Map<string, VerifiedEvidence[]>();
   for (const candidate of candidates) {
@@ -312,7 +316,7 @@ export function applyEvidenceCandidates(
     return {
       section: target.section, targetKey: target.targetKey, label: target.label, status,
       quotedValue: target.quotedValue, expectedValue: expected, ...values, calculation,
-      detail: expected === null ? candidate.note || "등록 기준은 찾았지만 적용 조건이 부족하여 요율을 확정할 수 없습니다." : status === "NORMAL" ? (isCeiling ? "견적값이 등록 근거자료의 허용 상한 이내입니다." : "견적값이 등록 근거자료의 기준값과 일치합니다.") : candidate.note || (isCeiling ? "견적값이 등록 근거자료의 허용 상한을 초과합니다." : "견적값과 등록 근거자료의 기준값이 달라 담당자 확인이 필요합니다."),
+      detail: expected === null ? candidate.note || "등록 기준은 찾았지만 적용 조건이 부족하여 요율을 확정할 수 없습니다." : status === "NORMAL" ? (isCeiling ? "견적값이 등록 근거자료의 허용 상한 이내입니다." : target.section === "LABOR" ? "작업내용과 관계없이 견적 단가가 등록된 직종별 노임단가와 일치합니다." : "견적값이 등록 근거자료의 기준값과 일치합니다.") : candidate.note || (isCeiling ? "견적값이 등록 근거자료의 허용 상한을 초과합니다." : target.section === "LABOR" ? "작업내용은 판정하지 않으며, 견적 단가와 등록된 직종별 노임단가의 차이만 확인해 주세요." : "견적값과 등록 근거자료의 기준값이 달라 담당자 확인이 필요합니다."),
       evidenceDocumentId: document.id, evidenceDocumentName: document.documentName, evidenceYear: document.year,
       evidenceLocation: candidate.sourceLocation, evidenceExcerpt: candidate.sourceExcerpt || result.text.slice(0, 300),
     };
