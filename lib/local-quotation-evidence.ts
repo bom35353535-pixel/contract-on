@@ -13,8 +13,11 @@ function normalize(value: string) {
 }
 
 function cells(line: string) {
-  if (!line.trim().startsWith("|")) return [];
-  return line.split("|").slice(1, -1).map((cell) => cell.trim());
+  if (!line.includes("|")) return [];
+  const row = line.split("|").map((cell) => cell.trim());
+  if (!row[0]) row.shift();
+  if (!row.at(-1)) row.pop();
+  return row;
 }
 
 function percent(value?: string) {
@@ -75,7 +78,10 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
     outer: for (const document of laborDocuments) {
       for (const line of document.text.split(/\r?\n/)) {
         const row = cells(line);
-        const labelIndex = row.findIndex((cell) => normalize(cell) === wanted);
+        const labelIndex = row.findIndex((cell) => {
+          const value = normalize(cell);
+          return value === wanted || (wanted.length >= 2 && value.endsWith(wanted));
+        });
         if (labelIndex < 0) continue;
         for (const cell of row.slice(labelIndex + 1)) {
           const match = cell.match(/^\s*(\d[\d,]*(?:\.\d+)?)\s*(?:원)?\s*$/);
@@ -95,11 +101,11 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
     const name = `${document.documentName} ${document.originalName}`;
     return name.includes("간접공사비") || document.category.includes("제비율");
   });
-  if (!rateDocument || amount === null || !context.constructionType?.includes("건축")) return { candidates, results };
+  if (!rateDocument || amount === null) return { candidates, results };
 
   const rows = rateDocument.text.split(/\r?\n/).map((line) => ({ line, cells: cells(line) })).filter((row) => row.cells.length >= 2);
   const duration = days === null ? null : rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && row.cells[1].includes("개월") && amountMatches(row.cells[0], amount) && periodMatches(row.cells[1], days));
-  const price = rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && row.cells[1].includes("%") && row.cells[3].includes("%") && amountMatches(row.cells[0], amount));
+  const price = rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && !row.cells[1].includes("개월") && percent(row.cells[1]) !== null && percent(row.cells[3]) !== null && amountMatches(row.cells[0], amount));
   const definitions: Array<[string, typeof duration, number, EvidenceCandidate["baseKey"]]> = [
     ["간접노무비", duration, 2, "DIRECT_LABOR_COST"],
     ["기타경비", duration, 3, "MATERIAL_PLUS_LABOR"],

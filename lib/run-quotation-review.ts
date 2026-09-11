@@ -3,14 +3,17 @@ import { inArray } from "drizzle-orm";
 import { getD1, getDb } from "@/db";
 import { knowledgeDocuments, type QuotationAnalysisRecord, type QuotationItemRecord } from "@/db/schema";
 import { findLocalQuotationEvidence } from "./local-quotation-evidence";
-import { applyEvidenceCandidates, buildArithmeticReview, buildEvidenceTargets, reviewCounts, type ReviewItem } from "./quotation-review";
+import { applyEvidenceCandidates, buildArithmeticReview, buildEvidenceTargets, deriveExpenseAmount, reviewCounts, type ReviewItem } from "./quotation-review";
 
 type Quotation = { analysis: QuotationAnalysisRecord; items: QuotationItemRecord[] };
 
 export async function performQuotationReview(quotation: Quotation, contractId: string | null) {
   const db = getDb();
-  const arithmetic = buildArithmeticReview(quotation.analysis, quotation.items);
-  const targets = buildEvidenceTargets(quotation.analysis, quotation.items);
+  const analysis = quotation.analysis.expenses === null
+    ? { ...quotation.analysis, expenses: deriveExpenseAmount(quotation.items) }
+    : quotation.analysis;
+  const arithmetic = buildArithmeticReview(analysis, quotation.items);
+  const targets = buildEvidenceTargets(analysis, quotation.items);
   // READY/INDEXING 원문의 직접 인용만 사용하고 외부 AI 재검색을 기다리지 않는다.
   const searchableDocuments = await db.select({
     id: knowledgeDocuments.id,
@@ -42,14 +45,14 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
         plannedCompletionDate: quotation.analysis.plannedCompletionDate,
     });
     rawCandidates = evidence.candidates;
-    evidenceItems = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, searchableDocuments, quotation.analysis);
+    evidenceItems = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, searchableDocuments, analysis);
     if (targets.length && evidence.candidates.length < targets.length) {
       warning = "등록된 MD·TXT·CSV에서 직접 확인되는 근거만 즉시 반영했습니다. 찾지 못한 항목은 기준자료 없음으로 표시했습니다.";
     }
   } catch (error) {
     console.error("Local quotation evidence lookup failed", error);
     warning = "산술검산은 완료했지만 등록자료 원문을 읽지 못했습니다. 지식자료 등록상태를 확인해 주세요.";
-    evidenceItems = applyEvidenceCandidates(targets, [], [], searchableDocuments, quotation.analysis);
+    evidenceItems = applyEvidenceCandidates(targets, [], [], searchableDocuments, analysis);
   }
 
   const items = [...arithmetic, ...evidenceItems];

@@ -113,16 +113,15 @@ test("Phase 4 reports missing duration as a found-but-unresolved basis", async (
   assert.match(reviewed[0].detail, /공사기간/);
 });
 
-test("Phase 4 separates material and labor targets before knowledge search", async () => {
+test("Phase 4 reviews labor unit prices but does not judge material prices", async () => {
   const { buildEvidenceTargets } = await import(moduleUrl.href);
   const rows = [
     { id: 1, category: "1.설치공사", trade: "재료비", itemName: "각파이프", specification: "50*50", unit: "본", quantity: 4, unitPrice: 35_232, amount: 140_928 },
     { id: 2, category: "1.설치공사", trade: "노무비", itemName: "용접공", specification: null, unit: "인", quantity: 2, unitPrice: 282_536, amount: 565_072 },
   ];
   const targets = buildEvidenceTargets(amounts, rows);
-  assert.equal(targets.find((target) => target.targetKey === "material:1")?.section, "MATERIAL");
   assert.equal(targets.find((target) => target.targetKey === "labor:2")?.section, "LABOR");
-  assert.equal(targets.some((target) => target.targetKey === "labor:1"), false);
+  assert.equal(targets.some((target) => target.section === "MATERIAL"), false);
 });
 
 test("Phase 4 applies one registered labor table row to repeated job titles", async () => {
@@ -153,6 +152,32 @@ test("Phase 4 labor review compares only the occupation unit price", async () =>
   assert.equal(labor?.label, "보통인부");
   assert.equal(labor?.context, "보통인부");
   assert.equal(labor?.quotedValue, 172_068);
+});
+
+test("Phase 4 derives a missing expense total for management and profit formulas", async () => {
+  const { deriveExpenseAmount } = await import(moduleUrl.href);
+  const rows = [
+    { category: "원가계산", trade: "경비", itemName: "기타경비", amount: 205_924 },
+    { category: "원가계산", trade: "경비", itemName: "산재보험료", amount: 0 },
+  ];
+  assert.equal(deriveExpenseAmount(rows), 205_924);
+});
+
+test("Phase 4 local markdown lookup accepts rows without outer pipes", async () => {
+  const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
+  const targets = [
+    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_908, comparisonKind: "UNIT_PRICE", context: "철공" },
+    { section: "STATUTORY", targetKey: "rate:일반관리비", label: "일반관리비", quotedValue: 167_866, comparisonKind: "RATE", context: "일반관리비" },
+    { section: "STATUTORY", targetKey: "rate:이윤", label: "이윤", quotedValue: 235_554, comparisonKind: "RATE", context: "이윤" },
+  ];
+  const documents = [
+    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "1009 | **철공** | - | 239,908" },
+    { id: "rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: null, year: 2026, category: "계약", text: "5억 미만 | 8.0 | 8.0 | 15.0" },
+  ];
+  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "기타공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" });
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_908);
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:일반관리비")?.ratePercent, 8);
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:이윤")?.ratePercent, 15);
 });
 
 test("Phase 4 requires construction dates before review and hides quotation date input", async () => {

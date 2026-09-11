@@ -87,19 +87,6 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     setData((current) => ({ ...current, [field]: parseMoney(value) }));
   };
 
-  function updateItem(index: number, field: string, value: string) {
-    setReviewFresh(false);
-    setData((current) => ({
-      ...current,
-      items: current.items.map((item, itemIndex) => itemIndex === index ? {
-        ...item,
-        [field]: ["quantity", "unitPrice", "amount"].includes(field)
-          ? (field === "quantity" ? (value ? Number(value.replace(/,/g, "")) : null) : parseMoney(value))
-          : (value || null),
-      } : item),
-    }));
-  }
-
   function updateRateQuote(label: string, value: string) {
     setReviewFresh(false);
     setData((current) => {
@@ -213,12 +200,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         </aside>
       </div>
 
-      <section className="review-card item-card">
-        <div className="review-heading"><div><span className="section-kicker">세부내역</span><h2>공종·직종·자재 항목</h2></div><span className="item-count">{data.items.length}개 항목</span></div>
-        {data.items.length ? <div className="quotation-table-wrap"><table className="quotation-table"><thead><tr><th>구분</th><th>공종/직종</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>{data.items.map((item, index) => <tr key={`${index}-${item.sourceText ?? "item"}`}><td><input value={item.category ?? ""} onChange={(event) => updateItem(index, "category", event.target.value)} /></td><td><input value={item.trade ?? ""} onChange={(event) => updateItem(index, "trade", event.target.value)} /></td><td><input value={item.itemName ?? ""} onChange={(event) => updateItem(index, "itemName", event.target.value)} /></td><td><input value={item.specification ?? ""} onChange={(event) => updateItem(index, "specification", event.target.value)} /></td><td><input value={item.unit ?? ""} onChange={(event) => updateItem(index, "unit", event.target.value)} /></td><td><input inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => updateItem(index, "quantity", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.unitPrice)} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} /></td><td><input inputMode="numeric" value={money(item.amount)} onChange={(event) => updateItem(index, "amount", event.target.value)} /></td></tr>)}</tbody></table></div> : <div className="empty-items">세부내역을 읽지 못했습니다. 기본정보를 확인한 뒤 계약업무를 시작할 수 있습니다.</div>}
-      </section>
-
-      {!review ? <section className="review-start-card pre-confirmation-start"><span className="review-start-icon">2</span><h2>현황판 등록 전에 견적검토를 실행하세요.</h2><p>수량×단가와 합계는 코드로 검산하고, 노임·자재·제비율은 등록된 지식자료에서만 근거를 찾습니다.</p><button className="run-review-action" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "검산·근거 확인 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : "견적검토 결과 만들기"}</button></section> : <><PreConfirmationReviewResults result={review} /><div className="pre-review-actions"><button type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : reviewFresh ? "수정한 내용으로 다시 검토" : "입력값이 바뀌었습니다 · 다시 검토"}</button></div></>}
+      {!review ? <section className="review-start-card pre-confirmation-start"><span className="review-start-icon">2</span><h2>현황판 등록 전에 견적검토를 실행하세요.</h2><p>수량×단가와 합계는 코드로 검산하고, 직종별 노임과 제비율은 등록된 지식자료에서 확인합니다.</p><button className="run-review-action" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "검산·근거 확인 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : "견적검토 결과 만들기"}</button></section> : <><PreConfirmationReviewResults result={review} /><div className="pre-review-actions"><button type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : emptyCount ? `필수항목 ${emptyCount}개 입력 후 분석` : reviewFresh ? "수정한 내용으로 다시 검토" : "입력값이 바뀌었습니다 · 다시 검토"}</button></div></>}
 
       <section className={`confirm-bar ${review && reviewFresh && !emptyCount ? "ready-to-confirm" : "waiting-review"}`}><div><strong>{emptyCount ? `필수항목 ${emptyCount}개를 입력한 뒤 견적검토를 다시 실행해 주세요.` : review && reviewFresh ? "검토결과를 확인했습니다. 이 견적으로 계속 진행하시겠습니까?" : review ? "입력값이 바뀌었습니다. 현재 내용으로 다시 검토해 주세요." : "먼저 위에서 견적검토 결과를 확인해 주세요."}</strong><small>아직 공사관리 현황판에는 반영되지 않았습니다. 사용자 승인 후에만 계약 건이 생성됩니다.</small>{error && <p>{error}</p>}</div><button type="button" disabled={!!busy || !review || !reviewFresh || emptyCount > 0} onClick={confirm}>{busy === "confirm" ? "현황판 등록 중…" : "예, 이 견적으로 현황판 등록"}</button></section>
     </>

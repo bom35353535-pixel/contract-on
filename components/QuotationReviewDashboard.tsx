@@ -9,7 +9,7 @@ const statusInfo = {
   NO_BASIS: { icon: "−", label: "기준자료 없음", className: "no-basis" },
 } as const;
 
-const sectionLabels = { ARITHMETIC: "산술검산", LABOR: "노무비", MATERIAL: "재료비", STATUTORY: "법정경비·제비율" } as const;
+const sectionLabels = { ARITHMETIC: "산술검산", LABOR: "노무비", STATUTORY: "법정경비·제비율" } as const;
 
 type Quotation = { analysis: QuotationAnalysisRecord; items: QuotationItemRecord[] };
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
@@ -17,7 +17,7 @@ type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[
 function shownMoney(value: number | null) { return value === null ? "[확인 필요]" : formatWon(Math.round(value)); }
 
 export function QuotationReviewDashboard({ contractId, quotation, review }: { contractId: string; quotation: Quotation; review: Review }) {
-  if (!review) return <section className="review-start-card"><span className="review-start-icon">⌕</span><h2>등록자료 기반 견적검토를 시작하세요.</h2><p>수량×단가와 합계는 코드로 다시 계산하고, 노임·자재·제비율은 지식관리에 등록된 자료에서만 기준을 찾습니다.</p><RunQuotationReviewButton contractId={contractId} /></section>;
+  if (!review) return <section className="review-start-card"><span className="review-start-icon">⌕</span><h2>등록자료 기반 견적검토를 시작하세요.</h2><p>수량×단가와 합계는 코드로 다시 계산하고, 직종별 노임과 제비율은 지식관리에 등록된 자료에서 확인합니다.</p><RunQuotationReviewButton contractId={contractId} /></section>;
 
   const summary = [
     ["NORMAL", "정상", review.review.normalCount], ["CHECK", "확인 필요", review.review.checkCount],
@@ -44,6 +44,6 @@ export function QuotationReviewDashboard({ contractId, quotation, review }: { co
         })}</div></article>;
       })}
     </section>
-    <details className="confirmed-quotation-details"><summary>담당자가 확정한 견적서 추출정보 보기</summary><div className="review-card contract-estimate-card"><p className="estimate-source">원본: {quotation.analysis.originalName} · {quotation.analysis.confirmedAt?.slice(0, 10)} 확정</p><dl className="info-list">{[["총액", quotation.analysis.totalAmount], ["공급가액", quotation.analysis.supplyAmount], ["부가가치세", quotation.analysis.vatAmount], ["재료비", quotation.analysis.materialCost], ["직접노무비", quotation.analysis.directLaborCost], ["경비", quotation.analysis.expenses]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{shownMoney(value as number | null)}</dd></div>)}</dl>{quotation.items.length > 0 && <div className="quotation-table-wrap"><table className="quotation-table readonly"><thead><tr><th>구분</th><th>공종/직종</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th></tr></thead><tbody>{quotation.items.map((item) => <tr key={item.id}><td>{item.category ?? "-"}</td><td>{item.trade ?? "-"}</td><td>{item.itemName ?? "-"}</td><td>{item.specification ?? "-"}</td><td>{item.unit ?? "-"}</td><td>{item.quantity ?? "-"}</td><td>{shownMoney(item.unitPrice)}</td><td>{shownMoney(item.amount)}</td></tr>)}</tbody></table></div>}</div></details>
+    <details className="confirmed-quotation-details"><summary>담당자가 확정한 견적서 추출정보 보기</summary><div className="review-card contract-estimate-card"><p className="estimate-source">원본: {quotation.analysis.originalName} · {quotation.analysis.confirmedAt?.slice(0, 10)} 확정</p><dl className="info-list">{[["총액", quotation.analysis.totalAmount], ["공급가액", quotation.analysis.supplyAmount], ["부가가치세", quotation.analysis.vatAmount], ["재료비", quotation.analysis.materialCost], ["직접노무비", quotation.analysis.directLaborCost], ["경비", quotation.analysis.expenses]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{shownMoney(value as number | null)}</dd></div>)}</dl></div></details>
   </>;
 }

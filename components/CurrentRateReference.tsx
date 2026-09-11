@@ -1,6 +1,7 @@
 "use client";
 
 import type { QuotationExtraction } from "@/lib/estimate";
+import { deriveExpenseAmount } from "@/lib/quotation-review";
 
 type Props = {
   data: QuotationExtraction;
@@ -21,8 +22,11 @@ type AuditRow = {
 };
 
 function cells(line: string) {
-  if (!line.trim().startsWith("|")) return [];
-  return line.split("|").slice(1, -1).map((cell) => cell.trim());
+  if (!line.includes("|")) return [];
+  const row = line.split("|").map((cell) => cell.trim());
+  if (!row[0]) row.shift();
+  if (!row.at(-1)) row.pop();
+  return row;
 }
 
 function percent(value?: string) {
@@ -88,8 +92,8 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
   const durationRow = amount !== null && days !== null && usesBuildingReference
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("개월") && amountMatches(row[0], amount) && periodMatches(row[1], days))
     : undefined;
-  const priceRow = amount !== null && usesBuildingReference
-    ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("%") && row[3].includes("%") && amountMatches(row[0], amount))
+  const priceRow = amount !== null
+    ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && !row[1].includes("개월") && percent(row[1]) !== null && percent(row[3]) !== null && amountMatches(row[0], amount))
     : undefined;
 
   const indirectRate = percent(durationRow?.[2]);
@@ -97,9 +101,10 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
   const managementRate = percent(priceRow?.[1]);
   const profitRate = percent(priceRow?.[3]);
   const labor = data.directLaborCost === null && data.indirectLaborCost === null ? null : (data.directLaborCost || 0) + (data.indirectLaborCost || 0);
+  const expenseAmount = data.expenses ?? deriveExpenseAmount(data.items);
   const otherBase = data.materialCost === null || labor === null ? null : data.materialCost + labor;
-  const managementBase = data.materialCost === null || labor === null || data.expenses === null ? null : data.materialCost + labor + data.expenses;
-  const profitBase = labor === null || data.expenses === null || data.overhead === null ? null : labor + data.expenses + data.overhead;
+  const managementBase = data.materialCost === null || labor === null || expenseAmount === null ? null : data.materialCost + labor + expenseAmount;
+  const profitBase = labor === null || expenseAmount === null || data.overhead === null ? null : labor + expenseAmount + data.overhead;
   const itemQuote = (...aliases: string[]) => {
     const item = data.items.find((candidate) => {
       const text = `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""} ${candidate.specification || ""} ${candidate.sourceText || ""}`;
