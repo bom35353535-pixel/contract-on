@@ -6,6 +6,7 @@ import type { QuotationExtraction } from "@/lib/estimate";
 import { CurrentRateReference } from "./CurrentRateReference";
 import { PreConfirmationReviewResults } from "./PreConfirmationReviewResults";
 import { SupplierSanctionCheck } from "./SupplierSanctionCheck";
+import { buildEvidenceTargets, type ReviewItem } from "@/lib/quotation-review";
 
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
 type Props = {
@@ -166,6 +167,12 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
   if (confirmedContractId) return <section className="review-complete"><span>✓</span><h2>이미 계약업무를 시작했습니다.</h2><p>확정한 견적정보는 계약 상세화면에서 계속 확인할 수 있습니다.</p><a href={`/contracts/${confirmedContractId}?tab=estimate`}>계약 건으로 이동</a></section>;
 
   const emptyCount = mainFields.filter(([field, , required]) => required && !data[field]).length + (!data.totalAmount ? 1 : 0);
+  const missingFields: string[] = mainFields.filter(([field, , required]) => required && !data[field]).map(([, label]) => label);
+  if (!data.totalAmount) missingFields.push("총액");
+  const laborPreview: ReviewItem[] = buildEvidenceTargets(data, data.items.map((item, index) => ({ ...item, id: index })))
+    .filter((target) => target.section === "LABOR")
+    .map((target) => ({ section: "LABOR", targetKey: target.targetKey, label: target.label, status: "CHECK", quotedValue: target.quotedValue, expectedValue: null, difference: null, differenceRate: null, calculation: null, detail: "견적검토를 실행하면 등록 노임단가와 비교합니다.", evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null }));
+  const displayedReview = review ? { ...review, items: review.items.some((item) => item.section === "LABOR") ? review.items : [...review.items, ...laborPreview] } : { review: { warning: null }, items: laborPreview };
 
   return (
     <>
@@ -179,6 +186,9 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <a href="/knowledge">지식관리에서 먼저 업로드</a>
       </section>
 
+      <section className="review-card" aria-label="견적검토 실행">
+        <div className="review-heading"><div><h2>견적검토</h2><p>{emptyCount ? `필수 입력: ${missingFields.join(", ")}` : reviewFresh ? "현재 입력값으로 다시 검토할 수 있습니다." : "입력값을 확인한 후 견적검토를 실행해 주세요."}</p></div><button className="review-again" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "견적검토 중…" : "견적검토"}</button></div>
+      </section>
       <div className="review-reference-grid">
         <div className="review-reference-main">
           <section className="review-card">
@@ -207,7 +217,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         </aside>
       </div>
 
-      {!review ? <section className="review-start-card pre-confirmation-start"><span className="review-start-icon">2</span><h2>현황판 등록 전에 견적검토를 실행하세요.</h2><p>수량×단가와 합계는 코드로 검산하고, 직종별 노임과 제비율은 등록된 지식자료에서 확인합니다.</p></section> : <PreConfirmationReviewResults result={review} />}
+      <PreConfirmationReviewResults result={displayedReview} />
 
       {error && <p className="estimate-action-error" role="alert">{error}</p>}
       <div className="estimate-final-actions">

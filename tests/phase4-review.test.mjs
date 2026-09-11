@@ -3,6 +3,18 @@ import test from "node:test";
 
 const moduleUrl = new URL("../lib/quotation-review.ts", import.meta.url);
 
+test("labor remains a review target without a classification or readable price", async () => {
+  const { buildEvidenceTargets } = await import(moduleUrl.href);
+  const rows = [
+    { id: 81, category: null, trade: null, itemName: "철공", specification: null, unit: "인", quantity: 1, unitPrice: 239_908, amount: 239_908 },
+    { id: 82, category: "노무비", trade: null, itemName: "보통인부", specification: null, unit: null, quantity: 1, unitPrice: null, amount: null },
+  ];
+  const targets = buildEvidenceTargets(amounts, rows).filter((target) => target.section === "LABOR");
+  assert.equal(targets.length, 2);
+  assert.equal(targets[0].quotedValue, 239_908);
+  assert.equal(targets[1].quotedValue, null);
+});
+
 const amounts = {
   totalAmount: 110_000,
   supplyAmount: 100_000,

@@ -146,7 +146,9 @@ export function buildEvidenceTargets(analysis: AnalysisAmounts, rows: QuotationR
       }
       continue;
     }
-    if ((classification.includes("노무") || classification.includes("직종")) && row.unitPrice !== null) {
+    const laborUnit = /^(인|명|인일|인\/일|인·일|인공)$/.test((row.unit || "").trim());
+    const laborName = /^(보통인부|특별인부|철공|용접공|도장공|내선전공|통신내선공|배관공|건축목공|형틀목공|철근공|조적공|미장공|타일공|방수공)$/.test(normalizedEvidenceLabel(row.itemName || ""));
+    if (classification.includes("노무") || classification.includes("직종") || laborUnit || laborName) {
       const laborLabel = [row.itemName, row.trade].find((value) => value && !["노무비", "직종", "인건비"].includes(normalizedEvidenceLabel(value))) || row.itemName || row.trade || "노무비 항목";
       const key = `labor:${row.id}`; seen.add(key);
       targets.push({ section: "LABOR", targetKey: key, label: laborLabel, quotedValue: row.unitPrice, comparisonKind: "UNIT_PRICE", context: laborLabel });

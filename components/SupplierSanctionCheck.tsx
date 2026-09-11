@@ -69,6 +69,6 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
     {result && result.items.length > 0 && <div className="sanction-result-list">{result.items.map((item, index) => <article key={`${item.startDate}-${index}`}><strong>{item.corpName || companyName || "업체명 [확인 필요]"}</strong><dl><div><dt>제재기간</dt><dd>{item.startDate || "[확인 필요]"} ~ {item.endDate || "[확인 필요]"}</dd></div><div><dt>처분기관</dt><dd>{item.institution || "[확인 필요]"}</dd></div><div><dt>진행상태</dt><dd>{item.status || "[확인 필요]"}</dd></div>{item.reason && <div><dt>사유·근거</dt><dd>{item.reason}</dd></div>}</dl></article>)}</div>}
     {result && result.totalCount === 0 && <div className="sanction-clear-result"><strong>조회시점 현재 유효한 제재가 확인되지 않았습니다.</strong><span>{new Date(result.checkedAt).toLocaleString("ko-KR")} 자동 조회</span></div>}
     <p className="sanction-coverage">조회시점 현재 유효한 부정당제재만 확인합니다. 0건은 과거 제재 이력이 없다는 뜻이 아니며, 계약 판단 전 공식 조회결과를 함께 확인하세요.</p>
-    <footer><a href="https://www.data.go.kr/data/15129466/openapi.do" target="_blank" rel="noreferrer">조달청 나라장터 부정당제재업체정보</a></footer>
+    <footer>조회 출처: 조달청 나라장터 부정당제재업체정보</footer>
   </section>;
 }
