@@ -1,4 +1,5 @@
 import type { EvidenceCandidate, EvidenceSearchResult, ReadyEvidenceDocument, ReviewTarget } from "./quotation-review";
+import { findLaborRateInMarkdown } from "./labor-rate-table.ts";
 
 type KnowledgeText = ReadyEvidenceDocument & { category: string; text: string };
 type ReviewContext = {
@@ -109,25 +110,11 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
 
   const laborDocuments = documents.filter((document) => `${document.category} ${document.documentName} ${document.originalName}`.includes("노임"));
   for (const target of targets.filter((candidate) => candidate.section === "LABOR")) {
-    const wanted = normalize(target.label);
-    outer: for (const document of laborDocuments) {
-      const lines = document.text.split(/\r?\n/).map((line) => ({ line, row: cells(line) }));
-      const yearHeader = lines.find(({ row }) => row.some((cell) => /2026(?:년|\.|\s|$)/.test(plainCell(cell))));
-      const yearColumn = yearHeader?.row.findIndex((cell) => /2026(?:년|\.|\s|$)/.test(plainCell(cell))) ?? -1;
-      for (const { line, row } of lines) {
-        const labelIndex = row.findIndex((cell) => {
-          const value = normalize(cell);
-          return value === wanted || (wanted.length >= 2 && (value.includes(wanted) || wanted.includes(value)));
-        });
-        if (labelIndex < 0) continue;
-        const preferred = yearColumn > labelIndex ? [row[yearColumn], ...row.slice(labelIndex + 1)] : row.slice(labelIndex + 1);
-        for (const cell of preferred) {
-          const value = wonValue(cell);
-          if (value === null) continue;
-          push(target, document, line, "직종별 노임단가 표", value, null, "UNKNOWN");
-          break outer;
-        }
-      }
+    for (const document of laborDocuments) {
+      const match = findLaborRateInMarkdown(document.text, target.label);
+      if (!match) continue;
+      push(target, document, match.line, `직종별 노임단가 표 · ${match.occupation}`, match.amount, null, "UNKNOWN");
+      break;
     }
   }
 

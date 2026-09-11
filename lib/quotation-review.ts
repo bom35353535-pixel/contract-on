@@ -1,3 +1,5 @@
+import { findLaborRateInMarkdown } from "./labor-rate-table.ts";
+
 export type ReviewStatus = "NORMAL" | "CHECK" | "ERROR" | "NO_BASIS";
 export type ReviewSection = "ARITHMETIC" | "LABOR" | "MATERIAL" | "STATUTORY";
 
@@ -222,31 +224,14 @@ function laborEvidenceFromRegisteredTable(
   for (const result of searchResults) {
     const document = documentsByFile.get(result.fileId);
     if (!document) continue;
-    for (const line of result.text.split(/\r?\n/)) {
-      if (!line.includes("|")) continue;
-      const cells = line.split("|").map((cell) => cell.trim()).filter(Boolean);
-      const labelIndex = cells.findIndex((cell) => normalizedEvidenceLabel(cell) === wanted);
-      if (labelIndex < 0) continue;
-      for (const cell of cells.slice(labelIndex + 1)) {
-        const match = cell.match(/^\s*(\d[\d,]*(?:\.\d+)?)\s*(?:원)?\s*$/);
-        if (!match) continue;
-        const expectedValue = Number(match[1].replace(/,/g, ""));
-        if (!Number.isFinite(expectedValue) || expectedValue < 1_000) continue;
-        const candidate: EvidenceCandidate = {
-          targetKey: target.targetKey,
-          expectedValue,
-          ratePercent: null,
-          baseKey: "UNKNOWN",
-          matchStatus: "EXACT",
-          sourceFileId: result.fileId,
-          sourceFilename: result.filename,
-          sourceLocation: "직종별 노임단가 표",
-          sourceExcerpt: line.trim(),
-          note: null,
-        };
-        return { candidate, result, document };
-      }
-    }
+    const match = findLaborRateInMarkdown(result.text, target.label);
+    if (!match) continue;
+    const candidate: EvidenceCandidate = {
+      targetKey: target.targetKey, expectedValue: match.amount, ratePercent: null, baseKey: "UNKNOWN", matchStatus: "EXACT",
+      sourceFileId: result.fileId, sourceFilename: result.filename, sourceLocation: `직종별 노임단가 표 · ${match.occupation}`,
+      sourceExcerpt: match.line.trim(), note: null,
+    };
+    return { candidate, result, document };
   }
   return null;
 }

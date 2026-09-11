@@ -6,12 +6,12 @@ const moduleUrl = new URL("../lib/quotation-review.ts", import.meta.url);
 test("labor remains a review target without a classification or readable price", async () => {
   const { buildEvidenceTargets } = await import(moduleUrl.href);
   const rows = [
-    { id: 81, category: null, trade: null, itemName: "철공", specification: null, unit: "인", quantity: 1, unitPrice: 239_908, amount: 239_908 },
+    { id: 81, category: null, trade: null, itemName: "철공", specification: null, unit: "인", quantity: 1, unitPrice: 239_808, amount: 239_808 },
     { id: 82, category: "노무비", trade: null, itemName: "보통인부", specification: null, unit: null, quantity: 1, unitPrice: null, amount: null },
   ];
   const targets = buildEvidenceTargets(amounts, rows).filter((target) => target.section === "LABOR");
   assert.equal(targets.length, 2);
-  assert.equal(targets[0].quotedValue, 239_908);
+  assert.equal(targets[0].quotedValue, 239_808);
   assert.equal(targets[1].quotedValue, null);
 });
 
@@ -178,16 +178,16 @@ test("Phase 4 derives a missing expense total for management and profit formulas
 test("Phase 4 local markdown lookup accepts rows without outer pipes", async () => {
   const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
   const targets = [
-    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_908, comparisonKind: "UNIT_PRICE", context: "철공" },
+    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_808, comparisonKind: "UNIT_PRICE", context: "철공" },
     { section: "STATUTORY", targetKey: "rate:일반관리비", label: "일반관리비", quotedValue: 167_866, comparisonKind: "RATE", context: "일반관리비" },
     { section: "STATUTORY", targetKey: "rate:이윤", label: "이윤", quotedValue: 235_554, comparisonKind: "RATE", context: "이윤" },
   ];
   const documents = [
-    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "1009 | **철공** | - | 239,908" },
+    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "1009 | **철공** | - | 239,808" },
     { id: "rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: null, year: 2026, category: "계약", text: "5억 미만 | 8.0 | 8.0 | 15.0" },
   ];
   const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "기타공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" });
-  assert.equal(evidence.candidates.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_908);
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_808);
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:일반관리비")?.ratePercent, 8);
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:이윤")?.ratePercent, 15);
 });
@@ -196,24 +196,49 @@ test("Phase 4 reads item-oriented rate rows and the formatted 2026 ironworker pr
   const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
   const { applyEvidenceCandidates } = await import(moduleUrl.href);
   const targets = [
-    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_908, comparisonKind: "UNIT_PRICE", context: "철공" },
+    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_808, comparisonKind: "UNIT_PRICE", context: "철공" },
     { section: "STATUTORY", targetKey: "rate:일반관리비", label: "일반관리비", quotedValue: 235_554, comparisonKind: "RATE", context: "일반관리비" },
     { section: "STATUTORY", targetKey: "rate:이윤", label: "이윤", quotedValue: 300_000, comparisonKind: "RATE", context: "이윤" },
   ];
   const documents = [
-    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "2026_노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "| 직종번호 | 직종명 | 2026년 상반기 |\n| 1009 | **철공(일반)** | **239,908원** |" },
+    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "2026_노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "| 직종번호 | 직종명 | 2026년 상반기 |\n| 1009 | **철공(일반)** | **239,808원** |" },
     { id: "rates", documentName: "건축공사 간접공사비 적용기준", originalName: "제비율.md", openaiFileId: null, year: 2026, category: "계약", text: "| 항목 | 요율(%) | 설명 |\n| 일반관리비 | **8.0** | 5억원 미만 · (재료비+노무비+경비) × 비율 |\n| 이윤 | **15.0** | 5억원 미만 · (노무비+경비+일반관리비) × 비율 |" },
   ];
   const context = { constructionType: "건축공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" };
   const evidence = findLocalQuotationEvidence(targets, documents, context);
   const analysis = { ...amounts, materialCost: 907_928, directLaborCost: 2_077_296, indirectLaborCost: 166_184, expenses: null, overhead: 235_554 };
   const reviewed = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, documents, analysis);
-  assert.equal(reviewed.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_908);
+  assert.equal(reviewed.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_808);
   assert.equal(reviewed.find((item) => item.targetKey === "labor:1")?.status, "NORMAL");
   assert.equal(reviewed.find((item) => item.targetKey === "rate:일반관리비")?.expectedValue, 252_113);
   assert.equal(reviewed.find((item) => item.targetKey === "rate:일반관리비")?.status, "NORMAL");
   assert.equal(reviewed.find((item) => item.targetKey === "rate:이윤")?.expectedValue, 371_855);
   assert.equal(reviewed.find((item) => item.targetKey === "rate:이윤")?.status, "NORMAL");
+});
+
+test("Phase 4 reads each occupation from its exact row and the 2026.1.1 column", async () => {
+  const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
+  const targets = [
+    { section: "LABOR", targetKey: "labor:ordinary", label: "보통인부", quotedValue: 172_068, comparisonKind: "UNIT_PRICE", context: "보통인부" },
+    { section: "LABOR", targetKey: "labor:welder", label: "용접공", quotedValue: 282_536, comparisonKind: "UNIT_PRICE", context: "용접공" },
+    { section: "LABOR", targetKey: "labor:iron", label: "철공", quotedValue: 239_808, comparisonKind: "UNIT_PRICE", context: "철공" },
+  ];
+  const text = [
+    "| 직종번호 | 직종명 | 신뢰표시 | 2026.1.1 | 2025.9.1 | 2025.1.1 | 2024.9.1 |",
+    "| ---: | ---- | :--: | -------: | -------: | -------: | -------: |",
+    "| 1001 | 작업반장 | - | 215,907 | 214,661 | 213,033 | 209,949 |",
+    "| 1002 | 보통인부 | - | 172,068 | 171,037 | 169,804 | 167,081 |",
+    "| 1009 | 철공 | - | 239,808 | 237,686 | 237,754 | 237,480 |",
+    "| 1012 | 용접공 | - | 282,536 | 280,178 | 278,326 | 270,724 |",
+  ].join("\n");
+  const documents = [{ id: "labor-table", documentName: "2026년 상반기 건설업 시중노임단가 Codex지식", originalName: "2026년_상반기_건설업_시중노임단가_Codex지식.md", openaiFileId: null, year: 2026, category: "계약", text }];
+  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "건축공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" });
+  assert.deepEqual(Object.fromEntries(evidence.candidates.map((item) => [item.targetKey, item.expectedValue])), {
+    "labor:ordinary": 172_068,
+    "labor:welder": 282_536,
+    "labor:iron": 239_808,
+  });
+  assert.equal(evidence.candidates.some((item) => item.expectedValue === 215_907), false);
 });
 
 test("Phase 4 requires construction dates before review and hides quotation date input", async () => {
