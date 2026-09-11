@@ -180,6 +180,30 @@ test("Phase 4 local markdown lookup accepts rows without outer pipes", async () 
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:이윤")?.ratePercent, 15);
 });
 
+test("Phase 4 reads item-oriented rate rows and the formatted 2026 ironworker price", async () => {
+  const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const targets = [
+    { section: "LABOR", targetKey: "labor:1", label: "철공", quotedValue: 239_908, comparisonKind: "UNIT_PRICE", context: "철공" },
+    { section: "STATUTORY", targetKey: "rate:일반관리비", label: "일반관리비", quotedValue: 235_554, comparisonKind: "RATE", context: "일반관리비" },
+    { section: "STATUTORY", targetKey: "rate:이윤", label: "이윤", quotedValue: 300_000, comparisonKind: "RATE", context: "이윤" },
+  ];
+  const documents = [
+    { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "2026_노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "| 직종번호 | 직종명 | 2026년 상반기 |\n| 1009 | **철공(일반)** | **239,908원** |" },
+    { id: "rates", documentName: "건축공사 간접공사비 적용기준", originalName: "제비율.md", openaiFileId: null, year: 2026, category: "계약", text: "| 항목 | 요율(%) | 설명 |\n| 일반관리비 | **8.0** | 5억원 미만 · (재료비+노무비+경비) × 비율 |\n| 이윤 | **15.0** | 5억원 미만 · (노무비+경비+일반관리비) × 비율 |" },
+  ];
+  const context = { constructionType: "건축공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" };
+  const evidence = findLocalQuotationEvidence(targets, documents, context);
+  const analysis = { ...amounts, materialCost: 907_928, directLaborCost: 2_077_296, indirectLaborCost: 166_184, expenses: null, overhead: 235_554 };
+  const reviewed = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, documents, analysis);
+  assert.equal(reviewed.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_908);
+  assert.equal(reviewed.find((item) => item.targetKey === "labor:1")?.status, "NORMAL");
+  assert.equal(reviewed.find((item) => item.targetKey === "rate:일반관리비")?.expectedValue, 252_113);
+  assert.equal(reviewed.find((item) => item.targetKey === "rate:일반관리비")?.status, "NORMAL");
+  assert.equal(reviewed.find((item) => item.targetKey === "rate:이윤")?.expectedValue, 371_855);
+  assert.equal(reviewed.find((item) => item.targetKey === "rate:이윤")?.status, "NORMAL");
+});
+
 test("Phase 4 requires construction dates before review and hides quotation date input", async () => {
   const { readFile } = await import("node:fs/promises");
   const [component, route] = await Promise.all([

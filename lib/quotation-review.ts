@@ -183,12 +183,12 @@ function baseAmount(baseKey: EvidenceCandidate["baseKey"], analysis: AnalysisAmo
     return analysis.materialCost + (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0);
   }
   if (baseKey === "MATERIAL_PLUS_LABOR_PLUS_EXPENSES") {
-    if (analysis.materialCost === null || analysis.expenses === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
-    return analysis.materialCost + (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + analysis.expenses;
+    if (analysis.materialCost === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
+    return analysis.materialCost + (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + (analysis.expenses || 0);
   }
   if (baseKey === "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD") {
-    if (analysis.expenses === null || analysis.overhead === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
-    return (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + analysis.expenses + analysis.overhead;
+    if (analysis.overhead === null || (analysis.directLaborCost === null && analysis.indirectLaborCost === null)) return null;
+    return (analysis.directLaborCost || 0) + (analysis.indirectLaborCost || 0) + (analysis.expenses || 0) + analysis.overhead;
   }
   return null;
 }

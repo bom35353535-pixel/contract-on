@@ -20,20 +20,42 @@ function cells(line: string) {
   return row;
 }
 
+function plainCell(value: string) {
+  return value.replace(/<br\s*\/?\s*>/gi, " ").replace(/[`*_]/g, "").trim();
+}
+
 function percent(value?: string) {
   if (!value) return null;
-  const match = value.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*%?/);
+  const match = plainCell(value).replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*%?/);
   return match ? Number(match[1]) : null;
 }
 
+function wonValue(value?: string) {
+  if (!value) return null;
+  const match = plainCell(value).match(/^\s*(\d[\d,]*(?:\.\d+)?)\s*(?:원)?\s*$/);
+  if (!match) return null;
+  const parsed = Number(match[1].replace(/,/g, ""));
+  return Number.isFinite(parsed) && parsed >= 1_000 ? parsed : null;
+}
+
 function amountMatches(label: string, amount: number) {
-  const compact = label.replace(/,/g, "").replace(/\s/g, "");
+  const compact = plainCell(label).replace(/,/g, "").replace(/\s/g, "").replace(/억원/g, "억");
   const less = compact.match(/^(\d+(?:\.\d+)?)억미만$/);
   if (less) return amount < Number(less[1]) * 100_000_000;
   const range = compact.match(/^(\d+(?:\.\d+)?)억이상~(\d+(?:\.\d+)?)억미만$/);
   if (range) return amount >= Number(range[1]) * 100_000_000 && amount < Number(range[2]) * 100_000_000;
   const more = compact.match(/^(\d+(?:\.\d+)?)억이상$/);
   return more ? amount >= Number(more[1]) * 100_000_000 : false;
+}
+
+function amountConditionMatches(text: string, amount: number) {
+  const compact = plainCell(text).replace(/,/g, "").replace(/\s/g, "").replace(/억원/g, "억");
+  const labels = [
+    ...compact.matchAll(/\d+(?:\.\d+)?억이상~\d+(?:\.\d+)?억미만/g),
+    ...compact.matchAll(/\d+(?:\.\d+)?억미만/g),
+    ...compact.matchAll(/\d+(?:\.\d+)?억이상/g),
+  ].map((match) => match[0]);
+  return labels.length === 0 || labels.some((label) => amountMatches(label, amount));
 }
 
 function constructionDays(start: string | null, end: string | null) {
@@ -51,6 +73,19 @@ function periodMatches(label: string, days: number) {
   if (label.includes("13~36개월")) return days >= 366 && days <= 1_095;
   if (label.includes("36개월 초과")) return days >= 1_096;
   return false;
+}
+
+function periodConditionMatches(text: string, days: number | null) {
+  const periods = ["6개월 이하", "7~12개월", "13~36개월", "36개월 초과"].filter((label) => text.includes(label));
+  return periods.length === 0 || (days !== null && periods.some((label) => periodMatches(label, days)));
+}
+
+function namedRateRow(rows: Array<{ line: string; cells: string[] }>, label: string, amount: number, days: number | null) {
+  return rows.find((row) => {
+    const labelIndex = row.cells.findIndex((cell) => normalize(cell).includes(normalize(label)));
+    if (labelIndex < 0 || percent(row.cells[labelIndex + 1]) === null) return false;
+    return amountConditionMatches(row.line, amount) && periodConditionMatches(row.line, days);
+  });
 }
 
 function source(document: KnowledgeText, line: string, location: string) {
@@ -76,18 +111,19 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
   for (const target of targets.filter((candidate) => candidate.section === "LABOR")) {
     const wanted = normalize(target.label);
     outer: for (const document of laborDocuments) {
-      for (const line of document.text.split(/\r?\n/)) {
-        const row = cells(line);
+      const lines = document.text.split(/\r?\n/).map((line) => ({ line, row: cells(line) }));
+      const yearHeader = lines.find(({ row }) => row.some((cell) => /2026(?:년|\.|\s|$)/.test(plainCell(cell))));
+      const yearColumn = yearHeader?.row.findIndex((cell) => /2026(?:년|\.|\s|$)/.test(plainCell(cell))) ?? -1;
+      for (const { line, row } of lines) {
         const labelIndex = row.findIndex((cell) => {
           const value = normalize(cell);
-          return value === wanted || (wanted.length >= 2 && value.endsWith(wanted));
+          return value === wanted || (wanted.length >= 2 && (value.includes(wanted) || wanted.includes(value)));
         });
         if (labelIndex < 0) continue;
-        for (const cell of row.slice(labelIndex + 1)) {
-          const match = cell.match(/^\s*(\d[\d,]*(?:\.\d+)?)\s*(?:원)?\s*$/);
-          if (!match) continue;
-          const value = Number(match[1].replace(/,/g, ""));
-          if (!Number.isFinite(value) || value < 1_000) continue;
+        const preferred = yearColumn > labelIndex ? [row[yearColumn], ...row.slice(labelIndex + 1)] : row.slice(labelIndex + 1);
+        for (const cell of preferred) {
+          const value = wonValue(cell);
+          if (value === null) continue;
           push(target, document, line, "직종별 노임단가 표", value, null, "UNKNOWN");
           break outer;
         }
@@ -107,10 +143,10 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
   const duration = days === null ? null : rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && row.cells[1].includes("개월") && amountMatches(row.cells[0], amount) && periodMatches(row.cells[1], days));
   const price = rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && !row.cells[1].includes("개월") && percent(row.cells[1]) !== null && percent(row.cells[3]) !== null && amountMatches(row.cells[0], amount));
   const definitions: Array<[string, typeof duration, number, EvidenceCandidate["baseKey"]]> = [
-    ["간접노무비", duration, 2, "DIRECT_LABOR_COST"],
-    ["기타경비", duration, 3, "MATERIAL_PLUS_LABOR"],
-    ["일반관리비", price, 1, "MATERIAL_PLUS_LABOR_PLUS_EXPENSES"],
-    ["이윤", price, 3, "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD"],
+    ["간접노무비", namedRateRow(rows, "간접노무비", amount, days) || duration, namedRateRow(rows, "간접노무비", amount, days) ? 1 : 2, "DIRECT_LABOR_COST"],
+    ["기타경비", namedRateRow(rows, "기타경비", amount, days) || duration, namedRateRow(rows, "기타경비", amount, days) ? 1 : 3, "MATERIAL_PLUS_LABOR"],
+    ["일반관리비", namedRateRow(rows, "일반관리비", amount, days) || price, namedRateRow(rows, "일반관리비", amount, days) ? 1 : 1, "MATERIAL_PLUS_LABOR_PLUS_EXPENSES"],
+    ["이윤", namedRateRow(rows, "이윤", amount, days) || price, namedRateRow(rows, "이윤", amount, days) ? 1 : 3, "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD"],
   ];
   for (const [label, row, rateIndex, baseKey] of definitions) {
     const target = targets.find((candidate) => candidate.section === "STATUTORY" && candidate.label.includes(label));

@@ -31,7 +31,7 @@ function cells(line: string) {
 
 function percent(value?: string) {
   if (!value) return null;
-  const parsed = Number(value.replace(/[%*,\s]/g, ""));
+  const parsed = Number(value.replace(/[%*`,_\s]/g, ""));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -42,13 +42,38 @@ function percentIn(value?: string) {
 }
 
 function amountMatches(label: string, amount: number) {
-  const normalized = label.replace(/,/g, "").replace(/\s/g, "");
+  const normalized = label.replace(/[`*_]/g, "").replace(/,/g, "").replace(/\s/g, "").replace(/억원/g, "억");
   const less = normalized.match(/^(\d+(?:\.\d+)?)억미만$/);
   if (less) return amount < Number(less[1]) * 100_000_000;
   const range = normalized.match(/^(\d+(?:\.\d+)?)억이상~(\d+(?:\.\d+)?)억미만$/);
   if (range) return amount >= Number(range[1]) * 100_000_000 && amount < Number(range[2]) * 100_000_000;
   const more = normalized.match(/^(\d+(?:\.\d+)?)억이상$/);
   return more ? amount >= Number(more[1]) * 100_000_000 : false;
+}
+
+function namedRate(tableRows: string[][], label: string, amount: number | null, days: number | null) {
+  if (amount === null) return null;
+  const normalize = (value: string) => value.normalize("NFKC").replace(/[`*_\s·ㆍ.,:;()\[\]{}<>\-/]/g, "").toLowerCase();
+  const amountConditionMatches = (text: string) => {
+    const compact = text.replace(/[`*_]/g, "").replace(/,/g, "").replace(/\s/g, "").replace(/억원/g, "억");
+    const labels = [
+      ...compact.matchAll(/\d+(?:\.\d+)?억이상~\d+(?:\.\d+)?억미만/g),
+      ...compact.matchAll(/\d+(?:\.\d+)?억미만/g),
+      ...compact.matchAll(/\d+(?:\.\d+)?억이상/g),
+    ].map((match) => match[0]);
+    return labels.length === 0 || labels.some((candidate) => amountMatches(candidate, amount));
+  };
+  const periodConditionMatches = (text: string) => {
+    const periods = ["6개월 이하", "7~12개월", "13~36개월", "36개월 초과"].filter((candidate) => text.includes(candidate));
+    return periods.length === 0 || (days !== null && periods.some((candidate) => periodMatches(candidate, days)));
+  };
+  for (const row of tableRows) {
+    const labelIndex = row.findIndex((cell) => normalize(cell).includes(normalize(label)));
+    if (labelIndex < 0 || !amountConditionMatches(row.join(" | ")) || !periodConditionMatches(row.join(" | "))) continue;
+    const rate = percent(row[labelIndex + 1]);
+    if (rate !== null) return rate;
+  }
+  return null;
 }
 
 function constructionDays(start: string | null, end: string | null) {
@@ -96,15 +121,16 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && !row[1].includes("개월") && percent(row[1]) !== null && percent(row[3]) !== null && amountMatches(row[0], amount))
     : undefined;
 
-  const indirectRate = percent(durationRow?.[2]);
-  const otherRate = percent(durationRow?.[3]);
-  const managementRate = percent(priceRow?.[1]);
-  const profitRate = percent(priceRow?.[3]);
+  const indirectRate = namedRate(tableRows, "간접노무비", amount, days) ?? percent(durationRow?.[2]);
+  const otherRate = namedRate(tableRows, "기타경비", amount, days) ?? percent(durationRow?.[3]);
+  const managementRate = namedRate(tableRows, "일반관리비", amount, days) ?? percent(priceRow?.[1]);
+  const profitRate = namedRate(tableRows, "이윤", amount, days) ?? percent(priceRow?.[3]);
   const labor = data.directLaborCost === null && data.indirectLaborCost === null ? null : (data.directLaborCost || 0) + (data.indirectLaborCost || 0);
   const expenseAmount = data.expenses ?? deriveExpenseAmount(data.items);
   const otherBase = data.materialCost === null || labor === null ? null : data.materialCost + labor;
-  const managementBase = data.materialCost === null || labor === null || expenseAmount === null ? null : data.materialCost + labor + expenseAmount;
-  const profitBase = labor === null || expenseAmount === null || data.overhead === null ? null : labor + expenseAmount + data.overhead;
+  const formulaExpenses = expenseAmount ?? 0;
+  const managementBase = data.materialCost === null || labor === null ? null : data.materialCost + labor + formulaExpenses;
+  const profitBase = labor === null || data.overhead === null ? null : labor + formulaExpenses + data.overhead;
   const itemQuote = (...aliases: string[]) => {
     const item = data.items.find((candidate) => {
       const text = `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""} ${candidate.specification || ""} ${candidate.sourceText || ""}`;
