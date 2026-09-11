@@ -507,6 +507,15 @@ a { color: inherit; text-decoration: none; }
 .result-status.no-basis { background: #edf1f3; color: #6e7d86; }
 .result-open { color: #8b989f; font-size: 10px; transition: transform .2s; }
 .review-result-row[open] .result-open { transform: rotate(180deg); }
+.labor-visible-heading { display: grid; grid-template-columns: 28px minmax(150px, 1fr) 130px 140px 90px; align-items: center; gap: 14px; padding: 14px 17px; }
+.labor-visible-heading > div span, .labor-visible-meta span { display: block; color: #829099; font-size: 9px; font-weight: 700; }
+.labor-visible-heading > div strong { display: block; margin-top: 4px; font-size: 12px; }
+.labor-occupation { font-size: 12px; }
+.labor-visible-meta { display: grid; grid-template-columns: 150px 1fr; gap: 12px; padding: 12px 17px 14px 59px; border-top: 1px solid #edf1f3; background: #fbfcfc; }
+.labor-visible-meta > div { padding: 10px 12px; border: 1px solid #e5ebed; border-radius: 8px; background: white; }
+.labor-visible-meta strong, .labor-visible-meta small { display: block; margin-top: 4px; font-size: 10px; line-height: 1.45; }
+.labor-visible-meta small { color: #71828c; }
+.labor-empty-message { margin: 0; padding: 18px; color: #71828c; font-size: 10px; }
 .result-detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 14px 17px 17px 57px; border-top: 1px solid #edf1f3; background: #fbfcfc; }
 .result-detail-grid > div { padding: 11px; border: 1px solid #e5ebed; border-radius: 8px; background: white; }
 .result-detail-grid span, .result-detail-grid strong, .result-detail-grid small { display: block; }
@@ -715,6 +724,7 @@ a { color: inherit; text-decoration: none; }
   .knowledge-header { align-items: flex-start; }
   .money-grid { grid-template-columns: repeat(2, 1fr); }
   .review-result-row summary { grid-template-columns: 28px minmax(160px, 1fr) 100px 18px; }
+  .labor-visible-heading { grid-template-columns: 28px minmax(120px, 1fr) 110px 120px 80px; gap: 10px; }
   .result-status { display: none; }
   .contract-method-heading { align-items: flex-start; flex-direction: column; }
   .review-reference-aside { grid-template-columns: 1fr; }
@@ -753,6 +763,11 @@ a { color: inherit; text-decoration: none; }
   .run-review-action { width: 100%; }
   .review-summary-grid { grid-template-columns: 1fr; }
   .review-result-row summary { grid-template-columns: 28px 1fr 18px; }
+  .labor-visible-heading { grid-template-columns: 28px 1fr auto; }
+  .labor-visible-heading > div { grid-column: 2 / -1; display: grid; grid-template-columns: 110px 1fr; align-items: center; }
+  .labor-visible-heading > div strong { margin-top: 0; }
+  .labor-visible-heading .result-status { display: inline-flex; }
+  .labor-visible-meta { grid-template-columns: 1fr; padding-left: 17px; }
   .result-value { display: none; }
   .result-detail-grid { grid-template-columns: 1fr; padding-left: 17px; }
   .administrative-workspace-head { flex-direction: column; }
