@@ -186,9 +186,6 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <a href="/knowledge">지식관리에서 먼저 업로드</a>
       </section>
 
-      <section className="review-card" aria-label="견적검토 실행">
-        <div className="review-heading"><div><h2>견적검토</h2><p>{emptyCount ? `필수 입력: ${missingFields.join(", ")}` : reviewFresh ? "현재 입력값으로 다시 검토할 수 있습니다." : "입력값을 확인한 후 견적검토를 실행해 주세요."}</p></div><button className="review-again" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "견적검토 중…" : "견적검토"}</button></div>
-      </section>
       <div className="review-reference-grid">
         <div className="review-reference-main">
           <section className="review-card">
@@ -217,9 +214,15 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         </aside>
       </div>
 
+      <section className="review-start-card pre-confirmation-start" aria-label="견적검토 실행">
+        <h2>견적검토를 실행하세요.</h2>
+        <p>{emptyCount ? `필수 입력: ${missingFields.join(", ")}` : "입력한 금액과 등록 지식자료를 바탕으로 견적서를 검토합니다."}</p>
+        <button className="run-review-action" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "견적검토 중…" : "견적검토"}</button>
+      </section>
       <PreConfirmationReviewResults result={displayedReview} />
 
       {error && <p className="estimate-action-error" role="alert">{error}</p>}
+      <div className="estimate-actions-space" aria-hidden="true" />
       <div className="estimate-final-actions">
         <button className="review-again" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : "다시 검토"}</button>
         <button className="register-estimate" type="button" disabled={!!busy || !review || !reviewFresh || emptyCount > 0} onClick={confirm}>{busy === "confirm" ? "현황판 등록 중…" : "이 견적으로 현황판 등록"}</button>

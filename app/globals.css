@@ -445,7 +445,9 @@ a { color: inherit; text-decoration: none; }
 .confirm-bar p { margin: 7px 0 0; color: #bd5146; font-size: 9px; }
 .confirm-bar button, .review-complete a { padding: 11px 16px; border: 0; border-radius: 9px; background: var(--navy); color: white; font-size: 10px; font-weight: 850; cursor: pointer; }
 .confirm-bar button:disabled { opacity: .6; cursor: wait; }
-.estimate-final-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+.estimate-actions-space { height: calc(96px + env(safe-area-inset-bottom, 0px)); }
+.estimate-final-actions { position: fixed; z-index: 50; right: 24px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: flex-end; gap: 12px; max-width: calc(100vw - 48px); }
+.estimate-final-actions button { box-shadow: 0 4px 18px #142d4230; }
 .estimate-final-actions button { min-width: 180px; min-height: 48px; padding: 11px 18px; border-radius: 10px; font-size: 1rem; font-weight: 900; cursor: pointer; }
 .estimate-final-actions .review-again { border: 1px solid #8fb4aa; background: #fff; color: #286f5e; }
 .estimate-final-actions .register-estimate { border: 1px solid var(--navy); background: var(--navy); color: #fff; }
@@ -744,7 +746,8 @@ a { color: inherit; text-decoration: none; }
   .review-form-grid, .money-grid { grid-template-columns: 1fr; }
   .review-form-grid label:nth-child(5) { grid-column: auto; }
   .confirm-bar button { width: 100%; }
-  .estimate-final-actions { flex-direction: column; }
+  .estimate-actions-space { height: calc(152px + env(safe-area-inset-bottom, 0px)); }
+  .estimate-final-actions { flex-direction: column; right: 12px; left: 12px; max-width: none; gap: 8px; }
   .estimate-final-actions button { width: 100%; }
   .review-dashboard-head { align-items: flex-start; flex-direction: column; }
   .run-review-action { width: 100%; }
