@@ -28,7 +28,7 @@ export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { kn
       const response = await fetch("/api/estimates", { method: "POST", body: form });
       const result = await response.json() as { analysisId?: string; error?: string };
       if (!response.ok || !result.analysisId) throw new Error(result.error || "견적서 분석에 실패했습니다.");
-      router.push(`/estimates/${result.analysisId}`);
+      router.push(`/estimates/${result.analysisId}?analysis=complete`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "견적서 분석에 실패했습니다.");
       setBusy(false);

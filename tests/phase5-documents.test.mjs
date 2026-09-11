@@ -38,6 +38,7 @@ test("Phase 5 keeps the final contract method as a user-editable decision", asyn
 test("Quotation analysis asks before creating a dashboard contract", async () => {
   const source = await readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8");
   assert.match(source, /이 견적으로 계속 진행하시겠습니까\?/);
-  assert.match(source, /아직 공사관리 현황판에는 반영되지 않았습니다/);
+  assert.match(source, /이 견적으로 현황판 등록/);
+  assert.match(source, /estimate-final-actions/);
   assert.match(source, /window\.confirm/);
 });

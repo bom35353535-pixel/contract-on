@@ -7,14 +7,24 @@ test("Quotation review is required before dashboard registration", async () => {
   const confirmRoute = await readFile(new URL("../app/api/estimates/[id]/confirm/route.ts", import.meta.url), "utf8");
   assert.match(review, /\/api\/estimates\/\$\{analysisId\}\/review/);
   assert.match(review, /\/api\/estimates\/\$\{analysisId\}\/confirm/);
-  assert.ok(review.indexOf("<PreConfirmationReviewResults") < review.indexOf("confirm-bar"));
+  assert.ok(review.indexOf("<PreConfirmationReviewResults") < review.indexOf("estimate-final-actions"));
   assert.match(review, /disabled=\{!!busy \|\| !review \|\| !reviewFresh \|\| emptyCount > 0\}/);
   assert.match(review, /setReviewFresh\(false\)/);
-  assert.match(review, /검토결과를 확인했습니다\. 이 견적으로 계속 진행하시겠습니까\?/);
+  assert.match(review, /"다시 검토"/);
+  assert.match(review, /이 견적으로 현황판 등록/);
+  assert.doesNotMatch(review, /className=\{`confirm-bar/);
   assert.ok(confirmRoute.indexOf("SELECT id FROM quotation_reviews") < confirmRoute.indexOf("INSERT INTO contracts"));
   assert.match(confirmRoute, /먼저 견적검토를 실행하고 결과를 확인해 주세요/);
   assert.match(confirmRoute, /JSON\.stringify\(values\) !== JSON\.stringify\(reviewedValues\)/);
   assert.match(confirmRoute, /검토 후 입력값이 변경되었습니다/);
+});
+
+test("Estimate completion is announced once after navigation", async () => {
+  const review = await readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8");
+  const upload = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
+  assert.match(upload, /\?analysis=complete/);
+  assert.match(review, /window\.alert\("견적서 분석 완료"\)/);
+  assert.match(review, /url\.searchParams\.delete\("analysis"\)/);
 });
 
 test("Knowledge files can be stored before indexing without spending tokens", async () => {
