@@ -241,6 +241,37 @@ test("Phase 4 reads each occupation from its exact row and the 2026.1.1 column",
   assert.equal(evidence.candidates.some((item) => item.expectedValue === 215_907), false);
 });
 
+test("Phase 4 overrides a wrong first-row AI match with each exact occupation row", async () => {
+  const { applyEvidenceCandidates } = await import(moduleUrl.href);
+  const targets = [
+    { section: "LABOR", targetKey: "labor:ordinary", label: "보통인부", quotedValue: 172_068, comparisonKind: "UNIT_PRICE", context: "보통인부" },
+    { section: "LABOR", targetKey: "labor:welder", label: "용접공", quotedValue: 282_536, comparisonKind: "UNIT_PRICE", context: "용접공" },
+    { section: "LABOR", targetKey: "labor:iron", label: "철공", quotedValue: 239_808, comparisonKind: "UNIT_PRICE", context: "철공" },
+  ];
+  const text = [
+    "| 직종번호 | 직종명 | 신뢰표시 | 2026.1.1 | 2025.9.1 |",
+    "| ---: | ---- | :--: | -------: | -------: |",
+    "| 1001 | 작업반장 | - | 215,907 | 214,661 |",
+    "| 1002 | 보통인부 | - | 172,068 | 171,037 |",
+    "| 1009 | 철공 | - | 239,808 | 237,686 |",
+    "| 1012 | 용접공 | - | 282,536 | 280,178 |",
+  ].join("\n");
+  const document = { id: "labor-table", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "노임단가.md", openaiFileId: "file-labor", year: 2026 };
+  const results = [{ fileId: "file-labor", filename: "노임단가.md", text }];
+  const wrongCandidates = targets.map((target) => ({
+    targetKey: target.targetKey, expectedValue: 215_907, ratePercent: null, baseKey: "UNKNOWN", matchStatus: "EXACT",
+    sourceFileId: "file-labor", sourceFilename: "노임단가.md", sourceLocation: "직종별 노임단가 표 · 작업반장",
+    sourceExcerpt: "| 1001 | 작업반장 | - | 215,907 | 214,661 |", note: null,
+  }));
+  const reviewed = applyEvidenceCandidates(targets, wrongCandidates, results, [document], amounts);
+  assert.deepEqual(Object.fromEntries(reviewed.map((item) => [item.label, item.expectedValue])), {
+    "보통인부": 172_068,
+    "용접공": 282_536,
+    "철공": 239_808,
+  });
+  assert.equal(reviewed.every((item) => item.status === "NORMAL"), true);
+});
+
 test("Phase 4 requires construction dates before review and hides quotation date input", async () => {
   const { readFile } = await import("node:fs/promises");
   const [component, route] = await Promise.all([

@@ -281,11 +281,18 @@ export function applyEvidenceCandidates(
     });
   }
 
-  // A response may return one row for repeated labor items, or omit a target key
-  // even though the exact markdown table row was retrieved. Reuse a verified row
-  // for the same job title, then fall back to deterministic exact-cell parsing.
+  // Labor rates must always come from the row whose occupation matches the
+  // quotation item. AI search candidates can occasionally point every target at
+  // the first table row, so deterministic table parsing takes precedence even
+  // when an AI candidate was otherwise verified by filename and number.
   for (const target of targets) {
-    if (target.section !== "LABOR" || verified.has(target.targetKey)) continue;
+    if (target.section !== "LABOR") continue;
+    const tableEvidence = laborEvidenceFromRegisteredTable(target, searchResults, documentsByFile);
+    if (tableEvidence) {
+      verified.set(target.targetKey, tableEvidence);
+      continue;
+    }
+    if (verified.has(target.targetKey)) continue;
     const matchingTarget = targets.find((candidateTarget) =>
       candidateTarget.section === "LABOR"
       && candidateTarget.targetKey !== target.targetKey
@@ -293,10 +300,7 @@ export function applyEvidenceCandidates(
       && verified.has(candidateTarget.targetKey));
     if (matchingTarget) {
       verified.set(target.targetKey, verified.get(matchingTarget.targetKey)!);
-      continue;
     }
-    const tableEvidence = laborEvidenceFromRegisteredTable(target, searchResults, documentsByFile);
-    if (tableEvidence) verified.set(target.targetKey, tableEvidence);
   }
 
   return targets.map<ReviewItem>((target) => {

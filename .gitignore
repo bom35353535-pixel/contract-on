@@ -42,3 +42,6 @@ yarn-error.log*
 /.npm-cache/
 /.pnpm-store/
 /tmp/
+/.deploy-stage-*/
+/.npm-cache-law/
+/*.tgz
