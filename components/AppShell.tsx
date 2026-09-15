@@ -8,7 +8,7 @@ export function AppShell({ children, active, contractCount }: { children: ReactN
       <header className="global-header">
         <div className="brand">
           <span className="brand-mark">AI</span>
-          <span><strong>공사계약 통합지원</strong><small>교육행정 업무시스템</small></span>
+          <span><strong>공책! 공사계약 통합지원</strong><small>교육행정 업무시스템</small></span>
         </div>
         <nav className="primary-tabs" aria-label="주요 업무">
           <a className={`primary-tab ${active === "home" ? "active" : ""}`} href="/" aria-current={active === "home" ? "page" : undefined}>견적 검토</a>

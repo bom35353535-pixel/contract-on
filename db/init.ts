@@ -1,5 +1,4 @@
 import { getD1 } from ".";
-import { SAMPLE_CONTRACTS } from "./sample-data";
 
 let initialization: Promise<void> | null = null;
 
@@ -343,18 +342,6 @@ const WARRANTY_CRITERIA = [
   ["W12","소방","자동식소화기·옥내외소화전·스프링클러·물분무등소화·자동화재탐지·소화용수·소화활동설비",3,0.02],
 ] as const;
 
-const INSERT_CONTRACT = `
-  INSERT INTO contracts (
-    id, project_name, construction_type, purpose, location,
-    estimated_amount, contract_amount, company_name, contract_method,
-    quotation_date, purchase_request_date, internal_approval_date, contract_date,
-    planned_start_date, actual_start_date, planned_completion_date, actual_completion_date,
-    inspection_date, payment_date, current_stage, progress,
-    warranty_type, warranty_start_date, warranty_end_date,
-    next_task, next_task_date, attention, created_at, updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`;
-
 async function initialize() {
   const d1 = getD1();
   await d1.batch([
@@ -406,11 +393,7 @@ async function initialize() {
     "INSERT OR IGNORE INTO warranty_criteria (id, category, work_name, keywords_json, warranty_years, bond_rate, source_name, source_page, source_excerpt) VALUES (?, ?, ?, '[]', ?, ?, '하자기간.pdf', 'p.155', ?)"
   ).bind(id, category, workName, years, rate, `${workName}: ${years}년, 하자보수보증금률 ${Math.round(rate * 100)}%`)));
 
-  const countRow = await d1.prepare("SELECT COUNT(*) AS count FROM contracts").first<{ count: number }>();
-  if ((countRow?.count ?? 0) === 0) {
-    await d1.batch(SAMPLE_CONTRACTS.map((contract) => d1.prepare(INSERT_CONTRACT).bind(...contract)));
-    await d1.prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) SELECT id, NULL, current_stage, '샘플 계약 생성', '시스템', created_at FROM contracts").run();
-  }
+  await d1.prepare("DELETE FROM contracts WHERE id IN ('CTR-2026-001', 'CTR-2026-002', 'CTR-2026-003', 'CTR-2026-004', 'CTR-2026-005', 'CTR-2026-006')").run();
 
   await d1.prepare("PRAGMA optimize").run();
 }

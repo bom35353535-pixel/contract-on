@@ -12,7 +12,7 @@ export default async function ContractsPage() {
     <AppShell active="contracts" contractCount={contracts.length}>
       <header className="page-header">
         <div><span className="section-kicker">계약업무 전체보기</span><h1>계약 현황</h1><p>계약별 현재 단계와 다음 업무, 주요 일정을 한눈에 확인합니다.</p></div>
-        <div className="header-badges"><span className="sample-data-label">샘플 데이터</span><span className="total-badge">전체 {contracts.length}건</span></div>
+        <div className="header-badges"><span className="total-badge">전체 {contracts.length}건</span></div>
       </header>
 
       <section className="all-contracts-card">
@@ -36,7 +36,6 @@ export default async function ContractsPage() {
           })}
         </div>
       </section>
-      <p className="data-note">현재 화면의 계약정보는 Phase 1 동작 확인을 위한 샘플 데이터입니다.</p>
     </AppShell>
   );
 }
