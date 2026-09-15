@@ -31,13 +31,21 @@ test("Estimate completion is announced once after navigation", async () => {
 test("Knowledge files can be stored before indexing without spending tokens", async () => {
   const manager = await readFile(new URL("../components/KnowledgeManager.tsx", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/knowledge/route.ts", import.meta.url), "utf8");
-  const uploadPanel = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
   assert.match(manager, /name="deferIndexing"/);
   assert.match(manager, /defaultChecked/);
   assert.match(route, /PENDING_INDEXING/);
   assert.match(route, /if \(shouldIndex\)/);
-  assert.match(uploadPanel, /지식관리 먼저 열기/);
-  assert.match(uploadPanel, /지식자료를 먼저 등록하세요/);
+});
+
+test("The home screen starts directly with estimate upload", async () => {
+  const [home, uploadPanel] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.ok(home.indexOf("<UploadPanel />") < home.indexOf("summary-grid"));
+  assert.doesNotMatch(home, /className="topbar"/);
+  assert.doesNotMatch(uploadPanel, /knowledge-first-home|지식자료를 먼저 등록하세요/);
+  assert.match(uploadPanel, /새 계약업무 시작/);
 });
 
 test("Pre-confirmation review can exist without a contract id", async () => {

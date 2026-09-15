@@ -1,13 +1,12 @@
 import { AppShell } from "@/components/AppShell";
 import { UploadPanel } from "@/components/UploadPanel";
 import { getDeadlineForContract, formatWon, listContracts } from "@/lib/contracts";
-import { daysBetween, formatTodayHeading, getDdayLabel, getKoreanToday, isContractStage, STAGE_INFO } from "@/lib/workflow";
-import { listKnowledgeDocuments } from "@/lib/knowledge";
+import { daysBetween, getDdayLabel, getKoreanToday, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [contracts, knowledgeDocuments] = await Promise.all([listContracts(), listKnowledgeDocuments()]);
+  const contracts = await listContracts();
   const today = getKoreanToday();
   const inProgress = contracts.filter((contract) => contract.currentStage !== "FINISHED").length;
   const startingSoon = contracts.filter((contract) => contract.plannedStartDate && !contract.actualStartDate && daysBetween(today, contract.plannedStartDate) >= 0 && daysBetween(today, contract.plannedStartDate) <= 30).length;
@@ -30,15 +29,7 @@ export default async function Home() {
 
   return (
     <AppShell active="home" contractCount={contracts.length}>
-      <header className="topbar">
-        <div><span className="today-label">오늘의 계약업무</span><h1>멋진 선생님, 안녕하세요!</h1><p>오늘도 청렴한 하루 되세요.</p></div>
-        <div className="top-actions"><span className="date-chip">{formatTodayHeading(today)}</span></div>
-      </header>
-
-      <UploadPanel
-        knowledgeReadyCount={knowledgeDocuments.filter((document) => document.status === "READY").length}
-        knowledgePendingCount={knowledgeDocuments.filter((document) => document.status !== "READY").length}
-      />
+      <UploadPanel />
 
       <section className="summary-grid" aria-label="계약업무 요약">
         {summaryCards.map((card) => (
