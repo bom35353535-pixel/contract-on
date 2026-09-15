@@ -10,6 +10,10 @@ test("construction type is selected and purpose is proposed from the project nam
   assert.match(form, /field === "constructionType" \? <select/);
   assert.match(form, /purposeFromProjectName\(initial\.projectName\)/);
   assert.match(form, /purposeManuallyEdited/);
+  assert.match(form, /name\.includes\("방송"\).*"방송통신공사"/s);
+  assert.match(form, /name\.includes\("소방"\).*"소방공사"/s);
+  assert.match(form, /name\.includes\("전기"\).*"전기공사"/s);
+  assert.match(form, /return "건축공사"/);
 });
 
 test("a stored estimate can be reanalyzed before dashboard confirmation", async () => {

@@ -37,9 +37,12 @@ const moneyFields = [
 
 const constructionTypeOptions = ["건축공사", "전기공사", "소방공사", "방송통신공사", "기타공사"] as const;
 
-function normalizeConstructionType(value: string | null) {
-  if (!value) return null;
-  return constructionTypeOptions.find((option) => value === option || value.includes(option.replace("공사", ""))) || "기타공사";
+function constructionTypeFromProjectName(projectName: string | null) {
+  const name = projectName?.replace(/\s+/g, "") || "";
+  if (name.includes("방송")) return "방송통신공사";
+  if (name.includes("소방")) return "소방공사";
+  if (name.includes("전기")) return "전기공사";
+  return "건축공사";
 }
 
 function purposeFromProjectName(projectName: string | null) {
@@ -66,17 +69,19 @@ function parseMoney(value: string) {
 export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText }: Props) {
   const [data, setData] = useState(() => ({
     ...initial,
-    constructionType: normalizeConstructionType(initial.constructionType),
+    constructionType: constructionTypeFromProjectName(initial.projectName),
     purpose: initial.purpose || purposeFromProjectName(initial.projectName),
   }));
   const [purposeManuallyEdited, setPurposeManuallyEdited] = useState(Boolean(initial.purpose));
+  const [constructionTypeManuallyEdited, setConstructionTypeManuallyEdited] = useState(false);
+  const [analysisCompleteOpen, setAnalysisCompleteOpen] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [reviewFresh, setReviewFresh] = useState(Boolean(review));
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("analysis") !== "complete") return;
-    window.alert("견적서 분석 완료");
+    setAnalysisCompleteOpen(true);
     url.searchParams.delete("analysis");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, []);
@@ -84,10 +89,12 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     setReviewFresh(false);
     const nextValue = value.trimStart() || null;
     if (field === "purpose") setPurposeManuallyEdited(true);
+    if (field === "constructionType") setConstructionTypeManuallyEdited(true);
     setData((current) => ({
       ...current,
       [field]: nextValue,
       ...(field === "projectName" && !purposeManuallyEdited ? { purpose: purposeFromProjectName(nextValue) } : {}),
+      ...(field === "projectName" && !constructionTypeManuallyEdited ? { constructionType: constructionTypeFromProjectName(nextValue) } : {}),
     }));
   };
   const updateMoney = (field: keyof QuotationExtraction, value: string) => {
@@ -176,6 +183,12 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
   return (
     <>
+      {analysisCompleteOpen && <div className="analysis-complete-backdrop" role="presentation">
+        <section className="analysis-complete-dialog" role="dialog" aria-modal="true" aria-labelledby="analysis-complete-title">
+          <h2 id="analysis-complete-title">견적서 분석 완료</h2>
+          <button type="button" autoFocus onClick={() => setAnalysisCompleteOpen(false)}>확인</button>
+        </section>
+      </div>}
       <section className="review-notice">
         <div><span className="section-kicker">AI 추출 완료</span><h2>견적서에서 다음과 같이 읽었습니다.</h2><p><strong>{originalName}</strong> · 문서에 없거나 읽지 못한 값은 비워두었습니다.</p></div>
         <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={reanalyze}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>

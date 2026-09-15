@@ -23,7 +23,8 @@ test("Estimate completion is announced once after navigation", async () => {
   const review = await readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8");
   const upload = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
   assert.match(upload, /\?analysis=complete/);
-  assert.match(review, /window\.alert\("견적서 분석 완료"\)/);
+  assert.match(review, /<h2 id="analysis-complete-title">견적서 분석 완료<\/h2>/);
+  assert.doesNotMatch(review, /window\.alert\("견적서 분석 완료"\)/);
   assert.match(review, /url\.searchParams\.delete\("analysis"\)/);
 });
 

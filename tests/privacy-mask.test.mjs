@@ -37,8 +37,7 @@ test("upload UI keeps selection local and sends the masked copy only after analy
   const source = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
   assert.match(source, /setMaskResult\(null\)/);
   assert.match(source, /form\.set\("file", maskResult\?\.file \?\? file\)/);
-  assert.match(source, /마스킹된 견적서 확인/);
-  assert.match(source, /disabled=\{!maskResult/);
+  assert.doesNotMatch(source, /마스킹된 견적서 확인|previewOpen/);
   assert.equal((source.match(/fetch\("\/api\/estimates"/g) || []).length, 1);
   assert.ok(source.indexOf("async function analyze") < source.indexOf('fetch("/api/estimates"'));
 });

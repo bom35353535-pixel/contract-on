@@ -22,4 +22,5 @@ test("privacy actions stay below the upload selector without legacy button offse
   assert.match(panel, /className="upload-workflow"[\s\S]*className=\{`drop-zone[\s\S]*className="privacy-mask-panel"/);
   assert.match(css, /\.privacy-mask-actions \.analysis-button \{[^}]*margin-top: 0/);
   assert.doesNotMatch(css, /\n\.analysis-button \{/);
+  assert.doesNotMatch(panel, /마스킹된 견적서 확인|previewOpen/);
 });

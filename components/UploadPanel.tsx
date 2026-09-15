@@ -15,14 +15,12 @@ export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { kn
   const [masking, setMasking] = useState(false);
   const [maskResult, setMaskResult] = useState<Extract<BrowserMaskResult, { supported: true }> | null>(null);
   const [maskNotice, setMaskNotice] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   function selectFile(selected?: File) {
     if (!selected) return;
     setFile(selected);
     setMaskResult(null);
     setMaskNotice("");
-    setPreviewOpen(false);
     setNotice("파일을 선택했습니다. 분석을 시작하면 문서에 적힌 정보만 추출합니다.");
   }
 
@@ -90,7 +88,6 @@ export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { kn
           <p>견적서에 휴대전화번호나 이메일 등 개인정보가 포함된 경우, 분석 전에 먼저 개인정보 마스킹을 진행해 주세요.</p>
           <div className="privacy-mask-actions">
             <button className="mask-button" type="button" disabled={!file || busy || masking} onClick={maskPrivacy}>{masking ? "마스킹 중…" : "개인정보 마스킹하기"}</button>
-            <button className="preview-button" type="button" disabled={!maskResult || busy || masking} onClick={() => setPreviewOpen(true)}>마스킹된 견적서 확인</button>
             <button className="analysis-button" type="button" disabled={!file || busy || masking} onClick={analyze}>{busy ? "분석 중…" : "견적서 분석하기"}</button>
           </div>
           {maskNotice && <div className={`privacy-mask-result ${maskResult ? "complete" : "notice"}`} role="status">{maskNotice}</div>}
@@ -98,15 +95,6 @@ export function UploadPanel({ knowledgeReadyCount, knowledgePendingCount }: { kn
         </div>
       </div>
     </section>
-    {previewOpen && maskResult && <div className="mask-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPreviewOpen(false); }}>
-      <section className="mask-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="mask-preview-title">
-        <div className="mask-preview-heading"><div><span className="section-kicker">브라우저 내부 미리보기</span><h2 id="mask-preview-title">마스킹된 견적서 확인</h2></div><button type="button" aria-label="미리보기 닫기" onClick={() => setPreviewOpen(false)}>×</button></div>
-        <p>휴대전화번호와 이메일의 마스킹 상태를 확인해 주세요. 이 화면을 여는 동안 파일은 외부로 전송되지 않습니다.</p>
-        <div className="mask-preview-summary"><strong>휴대전화번호 {maskResult.counts.mobile}건</strong><strong>이메일 {maskResult.counts.email}건</strong></div>
-        <pre>{maskResult.preview || "표시할 텍스트가 없습니다. 원본 파일의 내용을 직접 확인해 주세요."}</pre>
-        <div className="mask-preview-footer"><button type="button" onClick={() => setPreviewOpen(false)}>확인하고 닫기</button></div>
-      </section>
-    </div>}
     </>
   );
 }
