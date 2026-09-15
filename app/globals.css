@@ -95,6 +95,29 @@ a { color: inherit; text-decoration: none; }
 .drop-zone small { margin-top: 5px; color: #88969f; font-size: 10px; }
 .drop-zone button { margin-left: auto; flex: 0 0 auto; padding: 10px 14px; border: 0; border-radius: 9px; background: var(--navy); color: white; font-size: 11px; font-weight: 750; cursor: pointer; }
 .drop-zone.has-file { border-style: solid; border-color: #8fc2b7; background: #f3faf8; }
+.privacy-mask-panel { grid-column: 1 / -1; padding: 16px; border: 1px solid #cbdde1; border-radius: 13px; background: #f7fafb; }
+.privacy-mask-panel > p { margin: 0; color: #415767; font-size: 14px; line-height: 1.55; }
+.privacy-mask-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 13px; }
+.privacy-mask-actions button { min-height: 45px; padding: 10px 13px; border-radius: 9px; font-size: 14px; font-weight: 850; cursor: pointer; }
+.privacy-mask-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.privacy-mask-actions .mask-button { border: 1px solid #378976; background: #eaf6f3; color: #1c6a59; }
+.privacy-mask-actions .preview-button { border: 1px solid #7893a2; background: white; color: #314e60; }
+.privacy-mask-actions .analysis-button { border: 1px solid var(--navy); background: var(--navy); color: white; }
+.privacy-mask-result { margin-top: 11px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 750; line-height: 1.45; }
+.privacy-mask-result.complete { background: #e7f5f0; color: #176b58; }
+.privacy-mask-result.notice { background: #fff5e5; color: #895a11; }
+.privacy-mask-security { display: block; margin-top: 8px; color: #457567; font-size: 13px; }
+.mask-preview-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 22px; background: rgba(10, 27, 40, .58); }
+.mask-preview-dialog { width: min(820px, 100%); max-height: min(760px, calc(100vh - 44px)); overflow: auto; padding: 23px; border-radius: 17px; background: white; box-shadow: 0 26px 80px rgba(4, 22, 34, .3); }
+.mask-preview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.mask-preview-heading h2 { margin: 5px 0 0; font-size: 22px; }
+.mask-preview-heading > button { width: 38px; height: 38px; border: 0; border-radius: 9px; background: #edf2f4; color: #38505f; font-size: 25px; cursor: pointer; }
+.mask-preview-dialog > p { color: #60717b; font-size: 14px; line-height: 1.6; }
+.mask-preview-summary { display: flex; gap: 8px; margin: 14px 0 10px; }
+.mask-preview-summary strong { padding: 7px 10px; border-radius: 7px; background: #e9f5f2; color: #226c5d; font-size: 13px; }
+.mask-preview-dialog pre { min-height: 250px; max-height: 430px; overflow: auto; margin: 0; padding: 16px; border: 1px solid #d9e2e6; border-radius: 10px; background: #f8fafb; color: #273c49; font: 14px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.mask-preview-footer { display: flex; justify-content: flex-end; margin-top: 15px; }
+.mask-preview-footer button { min-width: 130px; padding: 11px 16px; border: 0; border-radius: 9px; background: var(--navy); color: white; font-size: 14px; font-weight: 800; cursor: pointer; }
 .analysis-button { grid-column: 2; justify-self: end; margin-top: -17px; padding: 10px 15px; border: 1px solid var(--navy); border-radius: 9px; background: #fff; color: var(--navy); font-size: 11px; font-weight: 800; cursor: pointer; }
 .analysis-button:disabled { border-color: #dce3e6; color: #a7b1b7; cursor: not-allowed; }
 
@@ -735,6 +758,9 @@ a { color: inherit; text-decoration: none; }
   .upload-section { padding: 23px 20px; }
   .drop-zone { align-items: flex-start; flex-wrap: wrap; }
   .drop-zone button { width: 100%; margin-left: 0; }
+  .privacy-mask-actions { grid-template-columns: 1fr; }
+  .mask-preview-backdrop { padding: 10px; }
+  .mask-preview-dialog { max-height: calc(100vh - 20px); padding: 18px; }
   .summary-grid { gap: 9px; }
   .summary-card { padding: 15px; }
   .contract-main { align-items: flex-start; }
