@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { DeleteContractButton } from "@/components/DeleteContractButton";
 import { getDeadlineForContract, formatWon, listContracts } from "@/lib/contracts";
 import { getDdayLabel, getKoreanToday, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
@@ -16,22 +17,22 @@ export default async function ContractsPage() {
       </header>
 
       <section className="all-contracts-card">
-        <div className="contract-table-head"><span>공사명·업체</span><span>금액</span><span>현재단계</span><span>진행률</span><span>다음 업무</span><span>D-Day</span><span /></div>
+        <div className="contract-table-head"><span>공사명·업체</span><span>금액</span><span>현재단계</span><span>진행률</span><span>다음 업무</span><span>D-Day</span><span>관리</span></div>
         <div className="contract-table-body">
           {contracts.map((contract) => {
             const stage = isContractStage(contract.currentStage) ? STAGE_INFO[contract.currentStage].label : "[확인 필요]";
             const deadline = getDeadlineForContract(contract);
             const dday = getDdayLabel(deadline.date, deadline.prefix, today);
             return (
-              <a href={`/contracts/${contract.id}`} className="contract-table-row" key={contract.id}>
-                <span className="table-project"><strong>{contract.projectName}</strong><small>{contract.companyName} · {contract.id}</small></span>
+              <div className="contract-table-row" key={contract.id}>
+                <a href={`/contracts/${contract.id}`} className="table-project table-project-link"><strong>{contract.projectName}</strong><small>{contract.companyName} · {contract.id}</small></a>
                 <strong className="amount-cell">{formatWon(contract.contractAmount)}</strong>
                 <span><span className={`stage-pill stage-${contract.currentStage.toLowerCase()}`}>{stage}</span></span>
                 <span className="table-progress"><span>{contract.progress}%</span><span className="progress-track"><span style={{ width: `${contract.progress}%` }} /></span></span>
                 <span className="next-task-cell">{contract.nextTask ?? "[확인 필요]"}</span>
                 <span className={`table-dday ${dday.includes("지남") || dday.includes("D-Day") ? "urgent" : ""}`}>{dday}</span>
-                <span className="row-arrow">›</span>
-              </a>
+                <span className="contract-row-actions"><a href={`/contracts/${contract.id}`}>열기</a>{contract.currentStage !== "FINISHED" && <DeleteContractButton contractId={contract.id} projectName={contract.projectName} />}</span>
+              </div>
             );
           })}
         </div>
