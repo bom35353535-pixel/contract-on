@@ -250,7 +250,7 @@ export async function findRequiredDocumentCriteria(
   stage: DocumentStage,
   vectorStoreId: string,
 ) {
-  const stageLabel = stage === "NARA_CONTRACT" ? "나라장터 계약 체결" : stage === "PRE_CONSTRUCTION" ? "착공계 제출 및 착공" : "준공계 제출 및 준공";
+  const stageLabel = stage === "NARA_CONTRACT" ? "계약 체결" : stage === "PRE_CONSTRUCTION" ? "착공계 제출 및 착공" : "준공계 제출 및 준공";
   const response = await openai("/responses", {
     method: "POST",
     body: JSON.stringify({

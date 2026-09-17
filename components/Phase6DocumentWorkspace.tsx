@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ContractDocumentFileRecord, ContractDocumentReviewItemRecord, ContractDocumentReviewRecord } from "@/db/schema";
 import type { DocumentStage } from "@/lib/contract-document-review";
-import { isSensitiveContractDocument, maskContractDocumentInBrowser, type PrivacyMaskCounts } from "@/lib/browser-privacy-mask";
-import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
+import { maskContractDocumentInBrowser, type PrivacyMaskCounts } from "@/lib/browser-privacy-mask";
 import { CONTRACT_STAGES, isContractStage, STAGE_INFO } from "@/lib/workflow";
 
 type Props = {
@@ -32,11 +31,21 @@ type PrivacyState = {
   reason?: string;
 };
 
+function displayDetectedTypes(value: string | null) {
+  if (!value) return "문서 종류 확인 필요";
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((item) => typeof item === "string").join(" · ") || "문서 종류 확인 필요";
+  } catch {
+    // Existing records contain one plain-text document type.
+  }
+  return value;
+}
+
 export function Phase6DocumentWorkspace({ contractId, currentStage, documentStage, files, review, items, ddayLabel, isStartDay }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<File[]>([]);
-  const [submittedTypes, setSubmittedTypes] = useState<string[]>([]);
   const [privacyStates, setPrivacyStates] = useState<PrivacyState[]>([]);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
@@ -49,38 +58,25 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const canUpload = editable || isFutureStage;
   const isContract = documentStage === "NARA_CONTRACT";
   const isCompletion = documentStage === "COMPLETION";
-  const title = isContract ? "나라장터 계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
-  const completeLabel = isContract ? "나라장터 계약 완료" : isCompletion ? "준공서류 확인 완료" : "착공 확인 완료";
-  const typeOptions = submittedDocumentTypeOptions(documentStage);
+  const title = isContract ? "계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
+  const completeLabel = isContract ? "계약 완료" : isCompletion ? "준공서류 확인 완료" : "착공 확인 완료";
 
   function selectFiles(files: File[]) {
     setSelected(files);
-    setSubmittedTypes(files.map((file) => classifySubmittedDocumentName(file.name, documentStage).detectedType || ""));
     setPrivacyStates(files.map(() => ({ status: "pending" })));
-  }
-
-  function updateSubmittedType(index: number, value: string) {
-    setSubmittedTypes((current) => current.map((type, typeIndex) => typeIndex === index ? value : type));
-    setPrivacyStates((current) => current.map((state, stateIndex) => stateIndex === index ? { status: "pending" } : state));
   }
 
   async function maskSensitiveFiles() {
     if (!selected.length || busy) return;
-    if (isContract && submittedTypes.some((type) => !type)) { setError("개인정보 보호 여부를 판단할 수 있도록 각 계약서류의 문서 종류를 선택해 주세요."); return; }
     setBusy("mask"); setError(""); setMessage("");
     try {
-      const next = await Promise.all(selected.map(async (file, index): Promise<PrivacyState> => {
-        const documentType = submittedTypes[index] || "";
-        if (!isSensitiveContractDocument(documentType)) return { status: "masked", file, counts: { mobile: 0, email: 0, residentRegistration: 0, account: 0 } };
-        const result = await maskContractDocumentInBrowser(file, documentType);
+      const next = await Promise.all(selected.map(async (file): Promise<PrivacyState> => {
+        const result = await maskContractDocumentInBrowser(file, "계약서류");
         if (!result.supported) return { status: "manual-required", reason: result.reason };
-        const protectedCount = documentType === "통장사본" ? result.counts.account : result.counts.residentRegistration;
-        return protectedCount > 0
-          ? { status: "masked", file: result.file, counts: result.counts }
-          : { status: "manual-required", reason: `${documentType === "통장사본" ? "계좌번호" : "주민등록번호"}를 자동으로 찾지 못했습니다. 파일에서 직접 가린 뒤 다시 선택하거나, 이미 마스킹한 사본임을 확인해 주세요.` };
+        return { status: "masked", file: result.file, counts: result.counts };
       }));
       setPrivacyStates(next);
-      const maskedCount = next.filter((state, index) => isSensitiveContractDocument(submittedTypes[index] || "") && state.status === "masked").length;
+      const maskedCount = next.filter((state) => state.status === "masked").length;
       const manualCount = next.filter((state) => state.status === "manual-required").length;
       setMessage(manualCount
         ? `자동 마스킹 ${maskedCount}개 완료 · 직접 가린 사본 확인이 필요한 파일 ${manualCount}개`
@@ -100,23 +96,21 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   async function analyze() {
     if (!selected.length) { setError("분석할 서류를 한 개 이상 선택해 주세요."); return; }
-    if (isContract && submittedTypes.some((type) => !type)) { setError("각 계약서류의 문서 종류를 선택해 주세요."); return; }
-    const unprotected = selected.findIndex((_file, index) => isSensitiveContractDocument(submittedTypes[index] || "") && !["masked", "manual-confirmed"].includes(privacyStates[index]?.status));
+    const unprotected = isContract ? selected.findIndex((_file, index) => !["masked", "manual-confirmed"].includes(privacyStates[index]?.status)) : -1;
     if (unprotected >= 0) { setError(`${selected[unprotected].name}: 개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요.`); return; }
     setBusy("analyze"); setError(""); setMessage("");
     const form = new FormData();
     form.set("documentStage", documentStage);
-    form.set("submittedTypes", JSON.stringify(submittedTypes));
+    if (isContract) form.set("privacyConfirmed", "true");
     selected.forEach((file, index) => form.append("files", privacyStates[index]?.file ?? file));
     try {
       const response = await fetch(`/api/contracts/${contractId}/phase6-documents`, { method: "POST", body: form });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "서류를 분석하지 못했습니다.");
       setSelected([]);
-      setSubmittedTypes([]);
       setPrivacyStates([]);
       if (inputRef.current) inputRef.current.value = "";
-      setMessage("외부 생성형 AI 전송 없이 서류명 확인과 등록자료 기준 비교를 완료했습니다.");
+      setMessage(isContract ? "마스킹 사본의 전체 페이지를 읽어 포함된 계약서류 종류를 확인했습니다." : "서류명 확인과 등록자료 기준 비교를 완료했습니다.");
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "서류를 분석하지 못했습니다.");
@@ -149,7 +143,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   return <>
     <section className="phase6-workspace-head">
-      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>파일명과 담당자 선택으로 문서 종류를 확인하고, 등록된 지식자료의 제출 기준과 비교합니다.</p></div>
+      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>{isContract ? "묶음 파일의 전체 페이지를 읽어 포함된 여러 계약서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다." : "파일명으로 문서 종류를 확인하고 등록된 지식자료의 제출 기준과 비교합니다."}</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
 
@@ -162,7 +156,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
-    <div className="private-document-notice" role="note"><strong>🔒 업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다.</strong><span>현재 프로토타입에서는 원본 보관을 위해 외부 클라우드 저장소(Cloudflare R2)를 사용합니다.</span></div>
+    <div className="private-document-notice" role="note"><strong>🔒 계약서류 분석에는 개인정보를 가린 사본만 사용합니다.</strong><span>계약서류 원본을 직접 선택하더라도 마스킹 확인 전에는 저장소나 분석 서비스로 전송하지 않습니다.</span></div>
 
     <section className={`phase6-upload-card ${!canUpload ? "locked" : ""}`}>
       <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">복수 업로드</span><h3>{title} 분석</h3></div></div><span className={`document-status ${editable ? "current" : isFutureStage ? "upcoming" : "confirmed"}`}>{editable ? "업로드 가능" : isFutureStage ? "사전 업로드 가능" : isPastStage ? "단계 완료" : "단계 확인 필요"}</span></div>
@@ -172,11 +166,11 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
           <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" onChange={(event) => selectFiles(Array.from(event.target.files || []))} />
           <span>PDF·문서·표 파일 선택</span><small>최대 10개 · 파일당 20MB · 전체 50MB · 계약서류는 전송 전 개인정보 보호 확인</small>
         </label>
-        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => { const privacy = privacyStates[index]; const sensitive = isSensitiveContractDocument(submittedTypes[index] || ""); return <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB{sensitive ? " · 개인정보 보호 대상" : ""}</small>{sensitive && privacy?.status === "masked" && <small className="privacy-inline-ok">자동 마스킹 완료 · 계좌번호 {privacy.counts?.account || 0}건 · 주민등록번호 {privacy.counts?.residentRegistration || 0}건</small>}{sensitive && privacy?.status === "manual-required" && <small className="privacy-inline-warning">{privacy.reason}</small>}{sensitive && privacy?.status === "manual-confirmed" && <small className="privacy-inline-ok">직접 마스킹한 사본 확인 완료</small>}</span><label><span className="sr-only">{file.name} 문서 종류</span><select value={submittedTypes[index] || ""} onChange={(event) => updateSubmittedType(index, event.target.value)}><option value="">문서 종류 확인 필요</option>{typeOptions.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>{sensitive && (privacy?.status === "manual-required" || privacy?.status === "manual-confirmed") && <label className="manual-mask-confirm"><input type="checkbox" checked={privacy.status === "manual-confirmed"} onChange={(event) => confirmManualMask(index, event.target.checked)} /><span>계좌번호·주민등록번호를 직접 가린 사본입니다</span></label>}</li>; })}</ul>}
+        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => { const privacy = privacyStates[index]; return <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB{isContract ? " · 묶음 전체 판독" : ""}</small>{isContract && privacy?.status === "masked" && <small className="privacy-inline-ok">자동 마스킹 확인 완료 · 계좌번호 {privacy.counts?.account || 0}건 · 주민등록번호 {privacy.counts?.residentRegistration || 0}건</small>}{isContract && privacy?.status === "manual-required" && <small className="privacy-inline-warning">{privacy.reason}</small>}{isContract && privacy?.status === "manual-confirmed" && <small className="privacy-inline-ok">직접 마스킹한 사본 확인 완료</small>}</span>{isContract && (privacy?.status === "manual-required" || privacy?.status === "manual-confirmed") && <label className="manual-mask-confirm"><input type="checkbox" checked={privacy.status === "manual-confirmed"} onChange={(event) => confirmManualMask(index, event.target.checked)} /><span>계좌번호·주민등록번호를 직접 가린 사본입니다</span></label>}</li>; })}</ul>}
         {isContract && selected.length > 0 && <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>통장사본의 계좌번호와 인감증명서의 대표자 주민등록번호를 먼저 확인합니다. 선택한 원본은 이 단계까지 브라우저 밖으로 전송되지 않습니다.</p></div><button type="button" disabled={!!busy} onClick={maskSensitiveFiles}>{busy === "mask" ? "마스킹 중…" : "개인정보 마스킹·확인"}</button></div>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : "선택한 서류 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
-      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 서류 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{file.detectedType || "문서 종류 확인 필요"}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "판독완료" : "확인필요"}</span></li>)}</ul></details>}
+      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{displayDetectedTypes(file.detectedType)}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "전체 판독완료" : "확인필요"}</span></li>)}</ul></details>}
     </section>
 
     <section className="phase6-results-card">

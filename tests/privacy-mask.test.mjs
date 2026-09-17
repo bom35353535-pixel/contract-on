@@ -43,10 +43,10 @@ test("contract privacy mask covers representative registration and bank account 
 
 test("contract document UI blocks sensitive originals until masking or manual confirmation", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(source, /isSensitiveContractDocument/);
   assert.match(source, /개인정보 마스킹·확인/);
   assert.match(source, /개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요/);
   assert.match(source, /privacyStates\[index\]\?\.file \?\? file/);
+  assert.match(source, /form\.set\("privacyConfirmed", "true"\)/);
 });
 
 test("upload UI keeps selection local and sends the masked copy only after analyze", async () => {

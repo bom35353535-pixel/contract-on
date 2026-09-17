@@ -14,7 +14,8 @@ import {
 } from "@/lib/contract-document-review";
 import { findRequiredDocumentCriteria, getVectorStoreId } from "@/lib/openai-knowledge";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
-import { classifySubmittedDocumentName, submittedDocumentTypeOptions } from "@/lib/submitted-document-classifier";
+import { classifySubmittedDocumentName } from "@/lib/submitted-document-classifier";
+import { classifySubmittedDocumentContents, decodeDetectedTypes, encodeDetectedTypes } from "@/lib/submitted-document-content-classifier";
 import { CONTRACT_STAGES, isContractStage } from "@/lib/workflow";
 
 export const runtime = "edge";
@@ -56,22 +57,26 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (files.some((file) => !ALLOWED_EXTENSIONS.includes((file.name.split(".").pop()?.toLowerCase() || "") as (typeof ALLOWED_EXTENSIONS)[number]))) {
     return errorResponse("PDF, DOCX, XLSX, XLS, CSV, TXT 서류만 분석할 수 있습니다.");
   }
-  const submittedTypesRaw = String(form.get("submittedTypes") || "[]");
-  let submittedTypes: unknown[] = [];
-  try {
-    const parsed = JSON.parse(submittedTypesRaw);
-    if (Array.isArray(parsed)) submittedTypes = parsed;
-  } catch {
-    return errorResponse("선택한 문서 종류를 확인해 주세요.");
-  }
-  const allowedTypes = new Set(submittedDocumentTypeOptions(stage));
-  if (submittedTypes.some((value) => value !== null && value !== "" && (typeof value !== "string" || !allowedTypes.has(value)))) {
-    return errorResponse("선택한 문서 종류를 확인해 주세요.");
-  }
+  if (stage === "NARA_CONTRACT" && form.get("privacyConfirmed") !== "true") return errorResponse("개인정보 마스킹 확인 후 계약서류를 분석해 주세요.");
 
   const stored: Array<{ id: string; storageKey: string; file: File }> = [];
   let metadataSaved = false;
   try {
+    const classified: Array<Awaited<ReturnType<typeof classifySubmittedDocumentContents>>> = [];
+    for (const file of files) {
+      if (stage === "NARA_CONTRACT") {
+        classified.push(await classifySubmittedDocumentContents(file, stage));
+      } else {
+        const result = classifySubmittedDocumentName(file.name, stage);
+        classified.push({
+          detectedTypes: result.detectedType ? [result.detectedType] : [],
+          detectionStatus: result.detectionStatus,
+          summary: result.summary,
+          responseId: null,
+        });
+      }
+    }
+
     for (const file of files) {
       const id = crypto.randomUUID();
       const storageKey = `contract-documents/${contractId}/${stage}/${id}-${safeFileName(file.name)}`;
@@ -83,11 +88,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     const classification = {
-      responseId: null,
+      responseId: classified.find((result) => result.responseId)?.responseId || null,
       documents: files.map((file, index) => ({
         originalName: file.name,
         openaiFileId: null,
-        ...classifySubmittedDocumentName(file.name, stage, typeof submittedTypes[index] === "string" ? submittedTypes[index] as string : null),
+        ...classified[index],
       })),
     };
     const now = new Date().toISOString();
@@ -101,7 +106,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         entry.id, contractId, stage, entry.file.name, entry.file.type || "application/octet-stream", entry.file.size, entry.storageKey,
-        null, result?.detectedType || null, result?.detectionStatus || "UNCERTAIN", result?.summary || null, now,
+        null, encodeDetectedTypes(result?.detectedTypes || []), result?.detectionStatus || "UNCERTAIN", result?.summary || null, now,
       );
     });
     await d1.batch(inserts);
@@ -143,7 +148,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const classifiedFiles: ClassifiedDocument[] = workspace.files.map((file) => ({
       id: file.id,
       originalName: file.originalName,
-      detectedType: file.detectedType,
+      detectedTypes: decodeDetectedTypes(file.detectedType),
       detectionStatus: file.detectionStatus === "EXACT" ? "EXACT" : "UNCERTAIN",
       summary: file.summary,
     }));
@@ -175,7 +180,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     `).bind(
       crypto.randomUUID(), contractId, stage === "COMPLETION" ? "PHASE7_COMPLETION_DOCUMENT_REVIEW" : "PHASE6_DOCUMENT_REVIEW",
       files.map((file) => file.name).join(", "), JSON.stringify(classification.documents),
-      JSON.stringify({ method: "LOCAL_FILENAME_RULES", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
+      JSON.stringify({ method: stage === "NARA_CONTRACT" ? "FULL_FILE_CONTENT_CLASSIFICATION" : "LOCAL_FILENAME_RULES", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
     ).run();
 
     return Response.json({ reviewId, counts, warning, preUploaded: currentStageIndex < documentStageIndex }, { status: 201 });

@@ -27,10 +27,15 @@ export type ReadyKnowledgeDocument = { id: string; documentName: string; origina
 export type ClassifiedDocument = {
   id: string;
   originalName: string;
-  detectedType: string | null;
+  detectedType?: string | null;
+  detectedTypes?: string[];
   detectionStatus: "EXACT" | "UNCERTAIN";
   summary: string | null;
 };
+
+function fileTypes(file: ClassifiedDocument) {
+  return file.detectedTypes?.length ? file.detectedTypes : file.detectedType ? [file.detectedType] : [];
+}
 
 export type DocumentChecklistItem = {
   status: DocumentReviewStatus;
@@ -85,25 +90,31 @@ export function verifyRequiredDocumentCriteria(
 
 export function buildDocumentChecklist(criteria: RequiredDocumentCriterion[], files: ClassifiedDocument[]): DocumentChecklistItem[] {
   if (criteria.length === 0) {
-    return files.map((file) => ({
-      status: file.detectionStatus === "EXACT" && file.detectedType ? "SUBMITTED" : "CHECK",
-      requiredName: file.detectedType || file.originalName,
-      uploadedFileId: file.id,
-      detail: file.detectionStatus === "EXACT" && file.detectedType
-        ? `${file.originalName}에서 ${file.detectedType} 업로드를 확인했습니다. 필수 제출서류 목록의 근거는 등록자료에서 별도로 확인되지 않았습니다.`
-        : "파일은 업로드되었지만 문서 종류를 확인할 수 없어 담당자 확인이 필요합니다.",
-      evidenceDocumentId: null,
-      evidenceDocumentName: null,
-      evidenceYear: null,
-      evidenceLocation: null,
-      evidenceExcerpt: null,
-    }));
+    return files.flatMap((file) => {
+      const types = fileTypes(file);
+      if (!types.length) return [{
+        status: "CHECK" as const,
+        requiredName: file.originalName,
+        uploadedFileId: file.id,
+        detail: "파일 전체를 확인했지만 문서 종류를 확정하지 못해 담당자 확인이 필요합니다.",
+        evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null,
+      }];
+      return types.map((type) => ({
+        status: file.detectionStatus === "EXACT" ? "SUBMITTED" as const : "CHECK" as const,
+        requiredName: type,
+        uploadedFileId: file.id,
+        detail: file.detectionStatus === "EXACT"
+          ? `${file.originalName} 전체에서 ${type} 서류를 확인했습니다. 필수 제출서류 목록의 근거는 등록자료에서 별도로 확인되지 않았습니다.`
+          : `${file.originalName}에서 ${type} 가능성이 있으나 담당자 확인이 필요합니다.`,
+        evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null,
+      }));
+    });
   }
 
   const usedFiles = new Set<string>();
   const items = criteria.map<DocumentChecklistItem>((criterion) => {
     const names = [criterion.requiredName, ...criterion.aliases];
-    const matches = files.filter((file) => !usedFiles.has(file.id) && names.some((name) => namesMatch(name, file.detectedType || "") || namesMatch(name, file.originalName)));
+    const matches = files.filter((file) => names.some((name) => fileTypes(file).some((type) => namesMatch(name, type)) || namesMatch(name, file.originalName)));
     const exact = matches.find((file) => file.detectionStatus === "EXACT");
     const matched = exact || matches[0];
     if (!matched) return {
@@ -137,7 +148,7 @@ export function buildDocumentChecklist(criteria: RequiredDocumentCriterion[], fi
     if (usedFiles.has(file.id)) continue;
     items.push({
       status: "CHECK",
-      requiredName: file.detectedType || file.originalName,
+      requiredName: fileTypes(file).join(", ") || file.originalName,
       uploadedFileId: file.id,
       detail: "업로드된 문서이지만 등록자료의 제출 기준과 정확히 연결되지 않았습니다.",
       evidenceDocumentId: null,

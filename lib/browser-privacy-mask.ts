@@ -134,7 +134,7 @@ export function isSensitiveContractDocument(documentType: string) {
 
 export async function maskContractDocumentInBrowser(file: File, documentType: string): Promise<BrowserMaskResult> {
   const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "";
-  const options = { maskAccountNumbers: documentType === "통장사본" };
+  const options = { maskAccountNumbers: documentType === "통장사본" || documentType === "계약서류" };
   if (extension === ".txt" || extension === ".csv") {
     const original = await file.text();
     const masked = maskPrivateText(original, options);

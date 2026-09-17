@@ -15,7 +15,7 @@ export type ContractStage = (typeof CONTRACT_STAGES)[number];
 export const STAGE_INFO: Record<ContractStage, { label: string; action: string; description: string }> = {
   PURCHASE_REQUEST: { label: "품의", action: "품의 완료", description: "에듀파인 품의 처리를 확인합니다." },
   INTERNAL_APPROVAL: { label: "내부기안", action: "내부기안 완료", description: "내부기안 처리 결과를 확인합니다." },
-  NARA_CONTRACT: { label: "나라장터 계약", action: "나라장터 계약 완료", description: "계약서류와 나라장터 계약 완료 여부를 확인합니다." },
+  NARA_CONTRACT: { label: "계약 체결", action: "계약 완료", description: "계약서류와 계약 완료 여부를 확인합니다." },
   COMMITMENT: { label: "원인행위", action: "원인행위 완료", description: "에듀파인 원인행위 처리를 확인합니다." },
   PRE_CONSTRUCTION: { label: "착공", action: "착공 확인 완료", description: "착공계와 착공서류를 확인합니다." },
   IN_CONSTRUCTION: { label: "공사중", action: "준공 접수 확인", description: "공사 진행사항과 준공계 접수를 확인합니다." },
