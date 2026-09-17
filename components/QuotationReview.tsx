@@ -75,6 +75,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
   const [purposeManuallyEdited, setPurposeManuallyEdited] = useState(Boolean(initial.purpose));
   const [constructionTypeManuallyEdited, setConstructionTypeManuallyEdited] = useState(false);
   const [analysisCompleteOpen, setAnalysisCompleteOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [reviewFresh, setReviewFresh] = useState(Boolean(review));
@@ -119,11 +120,15 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     });
   }
 
-  async function confirm() {
+  function requestConfirm() {
     if (confirmedContractId || busy) return;
     if (emptyCount) { setError(`필수항목 ${emptyCount}개를 모두 입력한 뒤 다시 검토해 주세요.`); return; }
     if (!review || !reviewFresh) { setError("현재 입력값으로 견적검토를 다시 실행하고 결과를 확인해 주세요."); return; }
-    if (!window.confirm("이 견적으로 계속 진행하시겠습니까?\n확인하면 계약 건이 생성되고 공사관리 현황판에 표시됩니다.")) return;
+    setError("");
+    setConfirmOpen(true);
+  }
+
+  async function confirm() {
     setBusy("confirm"); setError("");
     try {
       const response = await fetch(`/api/estimates/${analysisId}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
@@ -189,6 +194,13 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           <button type="button" autoFocus onClick={() => setAnalysisCompleteOpen(false)}>확인</button>
         </section>
       </div>}
+      {confirmOpen && <div className="action-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setConfirmOpen(false); }}>
+        <section className="action-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="estimate-confirm-title" aria-describedby="estimate-confirm-description">
+          <h2 id="estimate-confirm-title">이 견적으로 계속 진행하시겠습니까?</h2>
+          <p id="estimate-confirm-description">확인하면 계약 건이 생성되고 공사관리 현황판에 표시됩니다.</p>
+          <div className="action-confirm-actions"><button type="button" onClick={() => setConfirmOpen(false)}>취소</button><button className="primary" type="button" autoFocus onClick={() => { setConfirmOpen(false); void confirm(); }}>현황판 등록</button></div>
+        </section>
+      </div>}
       <section className="review-notice">
         <div><span className="section-kicker">AI 추출 완료</span><h2>견적서에서 다음과 같이 읽었습니다.</h2><p><strong>{originalName}</strong> · 문서에 없거나 읽지 못한 값은 비워두었습니다.</p></div>
         <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={reanalyze}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>
@@ -238,7 +250,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
       <div className="estimate-actions-space" aria-hidden="true" />
       <div className="estimate-final-actions">
         <button className="review-again" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "다시 검토 중…" : "다시 검토"}</button>
-        <button className="register-estimate" type="button" disabled={!!busy || !review || !reviewFresh || emptyCount > 0} onClick={confirm}>{busy === "confirm" ? "현황판 등록 중…" : "이 견적으로 현황판 등록"}</button>
+        <button className="register-estimate" type="button" disabled={!!busy || !review || !reviewFresh || emptyCount > 0} onClick={requestConfirm}>{busy === "confirm" ? "현황판 등록 중…" : "이 견적으로 현황판 등록"}</button>
       </div>
     </>
   );

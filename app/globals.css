@@ -110,6 +110,14 @@ a { color: inherit; text-decoration: none; }
 .analysis-complete-dialog { width: min(360px, 100%); padding: 26px; border-radius: 16px; background: white; text-align: center; box-shadow: 0 24px 70px rgba(4, 22, 34, .28); }
 .analysis-complete-dialog h2 { margin: 0; font-size: 21px; letter-spacing: -.5px; }
 .analysis-complete-dialog button { min-width: 120px; margin-top: 22px; padding: 11px 18px; border: 0; border-radius: 9px; background: var(--navy); color: white; font-weight: 800; cursor: pointer; }
+.action-confirm-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(7, 24, 35, .58); }
+.action-confirm-dialog { width: min(440px, 100%); padding: 26px; border-radius: 17px; background: white; box-shadow: 0 26px 75px rgba(4, 22, 34, .32); }
+.action-confirm-dialog h2 { margin: 0; color: var(--ink); font-size: 20px; line-height: 1.4; letter-spacing: -.5px; }
+.action-confirm-dialog > p { margin: 13px 0 0; color: #667986; font-size: 14px; line-height: 1.65; }
+.action-confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 23px; }
+.action-confirm-actions button { min-width: 92px; padding: 11px 16px; border: 1px solid #d6e0e3; border-radius: 9px; background: white; color: #536773; font-weight: 800; cursor: pointer; }
+.action-confirm-actions button.primary { border-color: var(--navy); background: var(--navy); color: white; }
+.action-confirm-actions button:disabled { opacity: .55; cursor: wait; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-top: 15px; }
 .summary-card { padding: 17px 18px; background: white; border: 1px solid var(--line); border-radius: 14px; }
 .summary-top { display: flex; justify-content: space-between; align-items: center; color: #73828d; font-size: 11px; font-weight: 700; }
@@ -594,7 +602,15 @@ a { color: inherit; text-decoration: none; }
 .recommendation-result.no-evidence { border: 1px solid #dce3e6; background: #f3f5f6; }
 .recommendation-result strong { color: #2d7866; font-size: 9px; }
 .recommendation-result.no-evidence strong { color: #687983; }
-.recommendation-result p { margin: 7px 0 0; white-space: pre-wrap; }
+.recommendation-readable { display: grid; gap: 8px; margin-top: 10px; }
+.recommendation-readable > p { margin: 0; color: #536873; font-size: 10px; line-height: 1.7; }
+.recommendation-readable h5 { margin: 7px 0 0; color: var(--ink); font-size: 11px; }
+.recommendation-point { display: grid; grid-template-columns: 20px 1fr; align-items: start; gap: 7px; padding: 9px 11px; border: 1px solid #e1ebe8; border-radius: 8px; background: #f9fcfb; }
+.recommendation-point > span { display: grid; place-items: center; min-height: 20px; border-radius: 6px; background: #dff0eb; color: #287864; font-size: 9px; font-weight: 900; }
+.recommendation-point > p { margin: 1px 0 0; color: #445d69; font-size: 10px; line-height: 1.6; }
+.recommendation-data-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); overflow: hidden; border: 1px solid #dce8e4; border-radius: 8px; background: white; }
+.recommendation-data-row span { padding: 8px 10px; border-right: 1px solid #e7eeec; color: #4e6671; font-size: 9px; line-height: 1.5; }
+.recommendation-data-row span:last-child { border-right: 0; }
 .recommendation-sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .recommendation-sources span { padding: 4px 6px; border-radius: 5px; background: #e6f2ef; color: #337a69; font-size: 7px; font-weight: 800; }
 .contract-method-decision { display: grid; gap: 6px; margin-top: 13px; color: #526773; font-size: 9px; font-weight: 850; }

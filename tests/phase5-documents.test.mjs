@@ -31,7 +31,7 @@ test("Phase 5 creates reusable purchase request text from the contract record", 
 test("Phase 5 keeps the final contract method as a user-editable decision", async () => {
   const { buildInternalApprovalContent, replaceContractMethod } = await import(moduleUrl.href);
   const draft = buildInternalApprovalContent(contract);
-  assert.match(draft, /계약방법: \[담당자 확인 필요\]/);
+  assert.match(draft, /계약방법: 나라장터 전자계약/);
   assert.match(replaceContractMethod(draft, "수의계약(담당자 확정)"), /계약방법: 수의계약\(담당자 확정\)/);
 });
 
@@ -40,5 +40,15 @@ test("Quotation analysis asks before creating a dashboard contract", async () =>
   assert.match(source, /이 견적으로 계속 진행하시겠습니까\?/);
   assert.match(source, /이 견적으로 현황판 등록/);
   assert.match(source, /estimate-final-actions/);
-  assert.match(source, /window\.confirm/);
+  assert.match(source, /role="alertdialog"/);
+  assert.doesNotMatch(source, /window\.confirm\("이 견적으로 계속 진행하시겠습니까/);
+});
+
+test("Phase 5 uses app dialogs and formats contract-method evidence", async () => {
+  const source = await readFile(new URL("../components/AdministrativeDocumentsWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(source, /실제 \{pendingConfirmation === "PURCHASE_REQUEST" \? "품의" : "내부기안"\} 처리를 완료하셨나요/);
+  assert.match(source, /role="alertdialog"/);
+  assert.doesNotMatch(source, /window\.confirm/);
+  assert.match(source, /RecommendationContent/);
+  assert.match(source, /나라장터 전자계약/);
 });

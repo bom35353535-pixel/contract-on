@@ -36,7 +36,7 @@ export function buildPurchaseRequestContent(contract: ContractDraftSource) {
   ].join("\n");
 }
 
-export function buildInternalApprovalContent(contract: ContractDraftSource, contractMethod = contract.contractMethod || "[담당자 확인 필요]") {
+export function buildInternalApprovalContent(contract: ContractDraftSource, contractMethod = contract.contractMethod || "나라장터 전자계약") {
   return [
     `제목: ${contract.projectName} 계약 추진`,
     "",
