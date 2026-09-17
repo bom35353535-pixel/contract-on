@@ -52,3 +52,10 @@ test("Phase 5 uses app dialogs and formats contract-method evidence", async () =
   assert.match(source, /RecommendationContent/);
   assert.match(source, /나라장터 전자계약/);
 });
+
+test("Later stage completion also avoids browser-native confirmation popups", async () => {
+  const source = await readFile(new URL("../components/AdvanceStageButton.tsx", import.meta.url), "utf8");
+  assert.match(source, /role="alertdialog"/);
+  assert.match(source, /실제 행정처리를 완료하셨나요/);
+  assert.doesNotMatch(source, /window\.confirm/);
+});
