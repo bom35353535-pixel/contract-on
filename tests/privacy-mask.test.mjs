@@ -22,7 +22,7 @@ test("browser mask handles both types and leaves unrelated contract data unchang
   const { maskPrivateText } = await import(maskingModule.href);
   const result = maskPrivateText("업체 가나다건설 사업자 123-45-67890 연락 010-2222-3333 a@b.co.kr 금액 1,200,000원");
   assert.equal(result.text, "업체 가나다건설 사업자 123-45-67890 연락 010-****-3333 a***@b.co.kr 금액 1,200,000원");
-  assert.deepEqual(result.counts, { mobile: 1, email: 1 });
+  assert.deepEqual(result.counts, { mobile: 1, email: 1, residentRegistration: 0, account: 0 });
 });
 
 test("browser mask does nothing when mobile numbers and emails are absent", async () => {
@@ -30,7 +30,23 @@ test("browser mask does nothing when mobile numbers and emails are absent", asyn
   const input = "공사명: 체육관 보수공사 / 사업자등록번호: 123-45-67890";
   const result = maskPrivateText(input);
   assert.equal(result.text, input);
-  assert.deepEqual(result.counts, { mobile: 0, email: 0 });
+  assert.deepEqual(result.counts, { mobile: 0, email: 0, residentRegistration: 0, account: 0 });
+});
+
+test("contract privacy mask covers representative registration and bank account numbers", async () => {
+  const { maskPrivateText } = await import(maskingModule.href);
+  const result = maskPrivateText("대표자 주민번호 900101-1234567 / 계좌번호 123-456-789012", { maskAccountNumbers: true });
+  assert.equal(result.text, "대표자 주민번호 ******-******* / 계좌번호 ***-***-**9012");
+  assert.equal(result.counts.residentRegistration, 1);
+  assert.equal(result.counts.account, 1);
+});
+
+test("contract document UI blocks sensitive originals until masking or manual confirmation", async () => {
+  const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(source, /isSensitiveContractDocument/);
+  assert.match(source, /개인정보 마스킹·확인/);
+  assert.match(source, /개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요/);
+  assert.match(source, /privacyStates\[index\]\?\.file \?\? file/);
 });
 
 test("upload UI keeps selection local and sends the masked copy only after analyze", async () => {

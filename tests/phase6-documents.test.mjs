@@ -71,6 +71,8 @@ test("submitted contractor files are classified locally without OpenAI file uplo
   assert.match(route, /openai_file_id[\s\S]*?null/);
   assert.match(workspace, /업체 제출 원본서류는 외부 생성형 AI로 전송하지 않습니다/);
   assert.match(workspace, /submittedTypes/);
+  assert.match(workspace, /통장사본의 계좌번호와 인감증명서의 대표자 주민등록번호/);
+  assert.match(workspace, /선택한 원본은 이 단계까지 브라우저 밖으로 전송되지 않습니다/);
 });
 
 test("future construction documents can be prepared without being mislabeled complete", async () => {
