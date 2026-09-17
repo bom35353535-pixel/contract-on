@@ -2,7 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 export type PrivacyMaskCounts = { mobile: number; email: number; residentRegistration: number; account: number };
 export type BrowserMaskResult =
-  | { supported: true; file: File; preview: string; counts: PrivacyMaskCounts }
+  | { supported: true; file: File; preview: string; counts: PrivacyMaskCounts; requiresReview?: boolean }
   | { supported: false; reason: string };
 
 const MOBILE_PATTERN = /\b(01[016789])([ -]?)(\d{3,4})([ -]?)(\d{4})\b/g;
@@ -132,7 +132,7 @@ export function isSensitiveContractDocument(documentType: string) {
   return documentType === "통장사본" || documentType === "인감증명서";
 }
 
-export async function maskContractDocumentInBrowser(file: File, documentType: string): Promise<BrowserMaskResult> {
+export async function maskContractDocumentInBrowser(file: File, documentType: string, onProgress?: (message: string) => void): Promise<BrowserMaskResult> {
   const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "";
   const options = { maskAccountNumbers: documentType === "통장사본" || documentType === "계약서류" };
   if (extension === ".txt" || extension === ".csv") {
@@ -142,7 +142,11 @@ export async function maskContractDocumentInBrowser(file: File, documentType: st
   }
   if (extension === ".xlsx") return maskZipDocument(file, "xlsx", options);
   if (extension === ".docx") return maskZipDocument(file, "docx", options);
-  if (extension === ".pdf") return { supported: false, reason: "PDF·스캔 문서는 브라우저가 계좌번호와 주민등록번호의 화면 위치를 안전하게 확인할 수 없습니다. 개인정보를 직접 가린 사본을 다시 선택하거나, 아래에서 이미 마스킹한 사본임을 확인해 주세요." };
+  if (extension === ".pdf") {
+    const { redactPdfInBrowser } = await import("./pdf-auto-redact");
+    const result = await redactPdfInBrowser(file, onProgress);
+    return { supported: true, file: result.file, preview: "", counts: result.counts, requiresReview: true };
+  }
   if (extension === ".xls") return { supported: false, reason: "구형 XLS 문서는 브라우저에서 원본 구조를 보존한 마스킹 사본을 만들 수 없습니다. 개인정보를 직접 가린 사본을 사용해 주세요." };
   return { supported: false, reason: "이 파일 형식은 자동 마스킹을 지원하지 않습니다. 개인정보를 직접 가린 사본을 사용해 주세요." };
 }

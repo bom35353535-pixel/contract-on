@@ -25,7 +25,7 @@ const STATUS_INFO = {
 } as const;
 
 type PrivacyState = {
-  status: "pending" | "masked" | "manual-required" | "manual-confirmed";
+  status: "pending" | "masked" | "review-required" | "reviewed" | "manual-required" | "manual-confirmed";
   file?: File;
   counts?: PrivacyMaskCounts;
   reason?: string;
@@ -71,16 +71,19 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
     setBusy("mask"); setError(""); setMessage("");
     try {
       const next = await Promise.all(selected.map(async (file): Promise<PrivacyState> => {
-        const result = await maskContractDocumentInBrowser(file, "계약서류");
+        const result = await maskContractDocumentInBrowser(file, "계약서류", (progress) => setMessage(`${file.name} · ${progress}`));
         if (!result.supported) return { status: "manual-required", reason: result.reason };
-        return { status: "masked", file: result.file, counts: result.counts };
+        return { status: result.requiresReview ? "review-required" : "masked", file: result.file, counts: result.counts };
       }));
       setPrivacyStates(next);
-      const maskedCount = next.filter((state) => state.status === "masked").length;
+      const maskedCount = next.filter((state) => state.status === "masked" || state.status === "review-required").length;
       const manualCount = next.filter((state) => state.status === "manual-required").length;
+      const reviewCount = next.filter((state) => state.status === "review-required").length;
       setMessage(manualCount
         ? `자동 마스킹 ${maskedCount}개 완료 · 직접 가린 사본 확인이 필요한 파일 ${manualCount}개`
-        : "계약서류 개인정보 보호 확인을 완료했습니다. 분석 시 보호 처리된 사본만 전송됩니다.");
+        : reviewCount
+          ? `PDF 자동 마스킹 ${reviewCount}개 완료 · 마스킹된 PDF를 열어 확인해 주세요.`
+          : "계약서류 개인정보 보호 확인을 완료했습니다. 분석 시 보호 처리된 사본만 전송됩니다.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "개인정보 마스킹에 실패했습니다.");
     } finally {
@@ -94,9 +97,23 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       : state));
   }
 
+  function confirmAutoMask(index: number, checked: boolean) {
+    setPrivacyStates((current) => current.map((state, stateIndex) => stateIndex === index
+      ? { ...state, status: checked ? "reviewed" : "review-required" }
+      : state));
+  }
+
+  function openMaskedPdf(index: number) {
+    const file = privacyStates[index]?.file;
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   async function analyze() {
     if (!selected.length) { setError("분석할 서류를 한 개 이상 선택해 주세요."); return; }
-    const unprotected = isContract ? selected.findIndex((_file, index) => !["masked", "manual-confirmed"].includes(privacyStates[index]?.status)) : -1;
+    const unprotected = isContract ? selected.findIndex((_file, index) => !["masked", "reviewed", "manual-confirmed"].includes(privacyStates[index]?.status)) : -1;
     if (unprotected >= 0) { setError(`${selected[unprotected].name}: 개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요.`); return; }
     setBusy("analyze"); setError(""); setMessage("");
     const form = new FormData();
@@ -166,8 +183,8 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
           <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" onChange={(event) => selectFiles(Array.from(event.target.files || []))} />
           <span>PDF·문서·표 파일 선택</span><small>최대 10개 · 파일당 20MB · 전체 50MB · 계약서류는 전송 전 개인정보 보호 확인</small>
         </label>
-        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => { const privacy = privacyStates[index]; return <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB{isContract ? " · 묶음 전체 판독" : ""}</small>{isContract && privacy?.status === "masked" && <small className="privacy-inline-ok">자동 마스킹 확인 완료 · 계좌번호 {privacy.counts?.account || 0}건 · 주민등록번호 {privacy.counts?.residentRegistration || 0}건</small>}{isContract && privacy?.status === "manual-required" && <small className="privacy-inline-warning">{privacy.reason}</small>}{isContract && privacy?.status === "manual-confirmed" && <small className="privacy-inline-ok">직접 마스킹한 사본 확인 완료</small>}</span>{isContract && (privacy?.status === "manual-required" || privacy?.status === "manual-confirmed") && <label className="manual-mask-confirm"><input type="checkbox" checked={privacy.status === "manual-confirmed"} onChange={(event) => confirmManualMask(index, event.target.checked)} /><span>계좌번호·주민등록번호를 직접 가린 사본입니다</span></label>}</li>; })}</ul>}
-        {isContract && selected.length > 0 && <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>통장사본의 계좌번호와 인감증명서의 대표자 주민등록번호를 먼저 확인합니다. 선택한 원본은 이 단계까지 브라우저 밖으로 전송되지 않습니다.</p></div><button type="button" disabled={!!busy} onClick={maskSensitiveFiles}>{busy === "mask" ? "마스킹 중…" : "개인정보 마스킹·확인"}</button></div>}
+        {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => { const privacy = privacyStates[index]; const autoReview = privacy?.status === "review-required" || privacy?.status === "reviewed"; return <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB{isContract ? " · 묶음 전체 판독" : ""}</small>{isContract && privacy?.status === "masked" && <small className="privacy-inline-ok">자동 마스킹 완료 · 계좌번호 {privacy.counts?.account || 0}건 · 주민등록번호 {privacy.counts?.residentRegistration || 0}건</small>}{isContract && autoReview && <small className="privacy-inline-ok">PDF 자동 마스킹 완료 · 계좌번호 {privacy.counts?.account || 0}건 · 주민등록번호 {privacy.counts?.residentRegistration || 0}건</small>}{isContract && privacy?.status === "manual-required" && <small className="privacy-inline-warning">{privacy.reason}</small>}{isContract && privacy?.status === "manual-confirmed" && <small className="privacy-inline-ok">직접 마스킹한 사본 확인 완료</small>}</span>{isContract && autoReview && <div className="auto-mask-review"><button type="button" onClick={() => openMaskedPdf(index)}>마스킹된 PDF 확인</button><label><input type="checkbox" checked={privacy.status === "reviewed"} onChange={(event) => confirmAutoMask(index, event.target.checked)} /><span>마스킹 결과를 확인했습니다</span></label></div>}{isContract && (privacy?.status === "manual-required" || privacy?.status === "manual-confirmed") && <label className="manual-mask-confirm"><input type="checkbox" checked={privacy.status === "manual-confirmed"} onChange={(event) => confirmManualMask(index, event.target.checked)} /><span>계좌번호·주민등록번호를 직접 가린 사본입니다</span></label>}</li>; })}</ul>}
+        {isContract && selected.length > 0 && <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>PDF를 포함한 계약서류를 브라우저에서 판독해 계좌번호와 주민등록번호를 자동으로 가립니다. 선택한 원본은 마스킹 확인 전까지 브라우저 밖으로 전송되지 않습니다.</p></div><button type="button" disabled={!!busy} onClick={maskSensitiveFiles}>{busy === "mask" ? "PDF 마스킹 중…" : "개인정보 자동 마스킹"}</button></div>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : "선택한 서류 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
       {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{displayDetectedTypes(file.detectedType)}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "전체 판독완료" : "확인필요"}</span></li>)}</ul></details>}
