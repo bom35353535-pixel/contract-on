@@ -32,4 +32,7 @@ test("xlsx and csv estimates use the fast cell-text extraction path", async () =
   assert.match(source, /fastSpreadsheetText/);
   assert.match(source, /unzipSync/);
   assert.match(source, /견적서 셀 값을 행과 열 순서대로 추출/);
+  assert.match(source, /reasoning: \{ effort: "minimal" \}/);
+  assert.match(source, /slice\(0, 100_000\)/);
+  assert.doesNotMatch(source, /inputFile\.detail = "high"/);
 });

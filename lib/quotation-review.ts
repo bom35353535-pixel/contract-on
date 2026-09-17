@@ -1,4 +1,4 @@
-import { findLaborRateInMarkdown } from "./labor-rate-table.ts";
+import { findLaborRateInMarkdown, laborDocumentPriority } from "./labor-rate-table.ts";
 
 export type ReviewStatus = "NORMAL" | "CHECK" | "ERROR" | "NO_BASIS";
 export type ReviewSection = "ARITHMETIC" | "LABOR" | "MATERIAL" | "STATUTORY";
@@ -45,7 +45,7 @@ export type EvidenceCandidate = {
 };
 
 export type EvidenceSearchResult = { fileId: string; filename: string; text: string };
-export type ReadyEvidenceDocument = { id: string; documentName: string; originalName: string; openaiFileId: string | null; year: number | null };
+export type ReadyEvidenceDocument = { id: string; documentName: string; originalName: string; openaiFileId: string | null; year: number | null; effectiveFrom?: string | null; effectiveTo?: string | null };
 
 type AnalysisAmounts = {
   totalAmount: number | null; supplyAmount: number | null; vatAmount: number | null;
@@ -220,7 +220,7 @@ function laborEvidenceFromRegisteredTable(
   documentsByFile: Map<string, ReadyEvidenceDocument>,
 ) {
   if (target.section !== "LABOR") return null;
-  const wanted = normalizedEvidenceLabel(target.label);
+  const matches = [];
   for (const result of searchResults) {
     const document = documentsByFile.get(result.fileId);
     if (!document) continue;
@@ -231,9 +231,9 @@ function laborEvidenceFromRegisteredTable(
       sourceFileId: result.fileId, sourceFilename: result.filename, sourceLocation: `직종별 노임단가 표 · ${match.occupation}`,
       sourceExcerpt: match.line.trim(), note: null,
     };
-    return { candidate, result, document };
+    matches.push({ candidate, result, document });
   }
-  return null;
+  return matches.sort((a, b) => laborDocumentPriority(b.document) - laborDocumentPriority(a.document))[0] || null;
 }
 
 export function applyEvidenceCandidates(

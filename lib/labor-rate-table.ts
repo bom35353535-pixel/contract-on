@@ -28,18 +28,46 @@ function amount(value: string | undefined) {
   return Number.isFinite(parsed) && parsed >= 1_000 ? parsed : null;
 }
 
-function currentYearColumn(cells: string[]) {
-  return cells.findIndex((cell) => {
-    const digits = plain(cell).replace(/[^0-9]/g, "");
-    return digits.startsWith("2026");
+function ratePeriodScore(value: string) {
+  const label = plain(value);
+  const date = label.match(/(20\d{2})\D{0,3}(\d{1,2})?(?:\D{0,3}(\d{1,2}))?/);
+  if (!date) return -1;
+  const year = Number(date[1]);
+  const month = date[2] ? Number(date[2]) : label.includes("하반기") ? 7 : label.includes("상반기") ? 1 : 0;
+  const day = date[3] ? Number(date[3]) : 0;
+  return year * 10_000 + month * 100 + day;
+}
+
+function latestRateColumn(cells: string[]) {
+  let index = -1;
+  let score = -1;
+  cells.forEach((cell, cellIndex) => {
+    const candidate = ratePeriodScore(cell);
+    if (candidate > score) {
+      score = candidate;
+      index = cellIndex;
+    }
   });
+  return index;
+}
+
+export function laborDocumentPriority(document: { documentName: string; originalName: string; year: number | null; effectiveFrom?: string | null }) {
+  if (document.effectiveFrom) {
+    const parsed = Number(document.effectiveFrom.replace(/[^0-9]/g, "").slice(0, 8));
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  const name = `${document.documentName} ${document.originalName}`;
+  const dated = name.match(/(20\d{2})\D{0,3}(\d{1,2})(?:\D{0,3}(\d{1,2}))?/);
+  if (dated) return Number(dated[1]) * 10_000 + Number(dated[2]) * 100 + Number(dated[3] || 0);
+  const year = Number(name.match(/20\d{2}/)?.[0] || document.year || 0);
+  return year * 10_000 + (name.includes("하반기") ? 700 : name.includes("상반기") ? 100 : 0);
 }
 
 export function findLaborRateInMarkdown(text: string, targetLabel: string): LaborRateMatch | null {
   const rows = text.split(/\r?\n/).map((line) => ({ line, cells: tableCells(line) })).filter(({ cells }) => cells.length > 1);
-  const header = rows.find(({ cells }) => cells.some((cell) => normalized(cell) === "직종명") && currentYearColumn(cells) >= 0);
+  const header = rows.find(({ cells }) => cells.some((cell) => normalized(cell) === "직종명") && latestRateColumn(cells) >= 0);
   const occupationColumn = header?.cells.findIndex((cell) => normalized(cell) === "직종명") ?? -1;
-  const rateColumn = header ? currentYearColumn(header.cells) : -1;
+  const rateColumn = header ? latestRateColumn(header.cells) : -1;
   const wanted = normalized(targetLabel);
 
   const candidates = rows.flatMap(({ line, cells }) => {

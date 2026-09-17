@@ -150,11 +150,12 @@ test("Phase 4 applies one registered labor table row to repeated job titles", as
   assert.ok(reviewed.every((item) => item.evidenceDocumentId === "doc-labor"));
 });
 
-test("Phase 4 review reads registered text locally without waiting for an external AI search", async () => {
+test("Phase 4 review uses local text first and only searches the index for missing labor", async () => {
   const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/run-quotation-review.ts", import.meta.url), "utf8"));
   assert.match(source, /findLocalQuotationEvidence/);
   assert.match(source, /md\|txt\|csv/);
-  assert.doesNotMatch(source, /findQuotationReviewCriteria/);
+  assert.match(source, /missingLaborTargets/);
+  assert.match(source, /findQuotationReviewCriteria\(missingLaborTargets/);
 });
 
 test("Phase 4 labor review compares only the occupation unit price", async () => {
@@ -239,6 +240,42 @@ test("Phase 4 reads each occupation from its exact row and the 2026.1.1 column",
     "labor:iron": 239_808,
   });
   assert.equal(evidence.candidates.some((item) => item.expectedValue === 215_907), false);
+});
+
+test("Phase 4 prefers the 2026 second-half labor table and its latest rate column", async () => {
+  const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
+  const targets = [
+    ["interior", "내장공", 258_904],
+    ["ordinary", "보통인부", 172_698],
+    ["special", "특별인부", 228_717],
+    ["painter", "도장공", 268_225],
+    ["electric", "내선전공", 276_108],
+  ].map(([key, label, quotedValue]) => ({ section: "LABOR", targetKey: `labor:${key}`, label, quotedValue, comparisonKind: "UNIT_PRICE", context: label }));
+  const firstHalf = [
+    "| 직종명 | 2026년 상반기 | 2025년 하반기 |",
+    "| 보통인부 | 172,068 | 171,037 |",
+    "| 도장공 | 265,000 | 260,000 |",
+  ].join("\n");
+  const secondHalf = [
+    "| 직종번호 | 직종명 | 2025년 하반기 | 2026년 하반기 |",
+    "| 1014 | 내장공 | 250,000 | 258,904 |",
+    "| 1002 | 보통인부 | 171,037 | 172,698 |",
+    "| 1003 | 특별인부 | 224,490 | 228,717 |",
+    "| 1020 | 도장공 | 260,000 | 268,225 |",
+    "| 1040 | 내선전공 | 270,000 | 276,108 |",
+  ].join("\n");
+  const documents = [
+    { id: "first", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "상반기.md", openaiFileId: null, year: 2026, effectiveFrom: "2026-01-01", category: "노임단가", text: firstHalf },
+    { id: "second", documentName: "2026년 하반기 건설업 시중노임단가", originalName: "하반기.md", openaiFileId: null, year: 2026, effectiveFrom: "2026-09-01", category: "노임단가", text: secondHalf },
+  ];
+  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "건축공사", totalAmount: 10_000_000, plannedStartDate: "2026-09-20", plannedCompletionDate: "2026-10-20" });
+  assert.deepEqual(Object.fromEntries(evidence.candidates.map((item) => [item.targetKey, item.expectedValue])), {
+    "labor:interior": 258_904,
+    "labor:ordinary": 172_698,
+    "labor:special": 228_717,
+    "labor:painter": 268_225,
+    "labor:electric": 276_108,
+  });
 });
 
 test("Phase 4 overrides a wrong first-row AI match with each exact occupation row", async () => {

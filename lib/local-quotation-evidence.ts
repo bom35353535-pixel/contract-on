@@ -1,5 +1,5 @@
 import type { EvidenceCandidate, EvidenceSearchResult, ReadyEvidenceDocument, ReviewTarget } from "./quotation-review";
-import { findLaborRateInMarkdown } from "./labor-rate-table.ts";
+import { findLaborRateInMarkdown, laborDocumentPriority } from "./labor-rate-table.ts";
 
 type KnowledgeText = ReadyEvidenceDocument & { category: string; text: string };
 type ReviewContext = {
@@ -108,7 +108,9 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
     results.push(found.result);
   };
 
-  const laborDocuments = documents.filter((document) => `${document.category} ${document.documentName} ${document.originalName}`.includes("노임"));
+  const laborDocuments = documents
+    .filter((document) => `${document.category} ${document.documentName} ${document.originalName}`.includes("노임"))
+    .sort((a, b) => laborDocumentPriority(b) - laborDocumentPriority(a));
   for (const target of targets.filter((candidate) => candidate.section === "LABOR")) {
     for (const document of laborDocuments) {
       const match = findLaborRateInMarkdown(document.text, target.label);

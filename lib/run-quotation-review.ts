@@ -3,6 +3,7 @@ import { inArray } from "drizzle-orm";
 import { getD1, getDb } from "@/db";
 import { knowledgeDocuments, type QuotationAnalysisRecord, type QuotationItemRecord } from "@/db/schema";
 import { findLocalQuotationEvidence } from "./local-quotation-evidence";
+import { findQuotationReviewCriteria, getVectorStoreId } from "./openai-knowledge";
 import { applyEvidenceCandidates, buildArithmeticReview, buildEvidenceTargets, deriveExpenseAmount, reviewCounts, type ReviewItem } from "./quotation-review";
 
 type Quotation = { analysis: QuotationAnalysisRecord; items: QuotationItemRecord[] };
@@ -21,6 +22,8 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
     originalName: knowledgeDocuments.originalName,
     openaiFileId: knowledgeDocuments.openaiFileId,
     year: knowledgeDocuments.year,
+    effectiveFrom: knowledgeDocuments.effectiveFrom,
+    effectiveTo: knowledgeDocuments.effectiveTo,
     status: knowledgeDocuments.status,
     category: knowledgeDocuments.category,
     storageKey: knowledgeDocuments.storageKey,
@@ -38,15 +41,37 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
       if (!stored) return null;
       return { ...document, text: await stored.text() };
     }))).filter((document): document is NonNullable<typeof document> => Boolean(document));
-    const evidence = findLocalQuotationEvidence(targets, textDocuments, {
+    const reviewContext = {
         constructionType: quotation.analysis.constructionType,
         totalAmount: quotation.analysis.totalAmount,
         plannedStartDate: quotation.analysis.plannedStartDate,
         plannedCompletionDate: quotation.analysis.plannedCompletionDate,
-    });
-    rawCandidates = evidence.candidates;
-    evidenceItems = applyEvidenceCandidates(targets, evidence.candidates, evidence.results, searchableDocuments, analysis);
-    if (targets.length && evidence.candidates.length < targets.length) {
+    };
+    const localEvidence = findLocalQuotationEvidence(targets, textDocuments, reviewContext);
+    const candidates = [...localEvidence.candidates];
+    const results = [...localEvidence.results];
+    const locallyMatched = new Set(candidates.map((candidate) => candidate.targetKey));
+    const missingLaborTargets = targets.filter((target) => target.section === "LABOR" && !locallyMatched.has(target.targetKey));
+    if (missingLaborTargets.length && env.OPENAI_API_KEY) {
+      const vectorStoreId = await getVectorStoreId();
+      if (vectorStoreId) {
+        try {
+          const remoteEvidence = await findQuotationReviewCriteria(missingLaborTargets, vectorStoreId, {
+            ...reviewContext,
+            referenceDate: quotation.analysis.plannedStartDate || new Date().toISOString().slice(0, 10),
+            instruction: "같은 직종 자료가 여러 개면 적용일이 가장 최신인 등록자료를 우선",
+          });
+          candidates.push(...remoteEvidence.candidates);
+          results.push(...remoteEvidence.results);
+          responseId = remoteEvidence.responseId;
+        } catch (error) {
+          console.error("Indexed labor evidence lookup failed", error);
+        }
+      }
+    }
+    rawCandidates = candidates;
+    evidenceItems = applyEvidenceCandidates(targets, candidates, results, searchableDocuments, analysis);
+    if (targets.length && candidates.length < targets.length) {
       warning = "등록된 MD·TXT·CSV에서 직접 확인되는 근거만 즉시 반영했습니다. 찾지 못한 항목은 기준자료 없음으로 표시했습니다.";
     }
   } catch (error) {
