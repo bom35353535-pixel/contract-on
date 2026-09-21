@@ -51,6 +51,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showCompletionNotice, setShowCompletionNotice] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ContractDocumentFileRecord | null>(null);
   const editable = currentStage === documentStage;
   const currentStageIndex = isContractStage(currentStage) ? CONTRACT_STAGES.indexOf(currentStage) : -1;
   const documentStageIndex = CONTRACT_STAGES.indexOf(documentStage);
@@ -160,7 +161,29 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
     }
   }
 
+  async function deleteUploadedFile() {
+    if (!pendingDelete || busy) return;
+    setBusy("delete"); setError(""); setMessage("");
+    try {
+      const response = await fetch(`/api/contracts/${contractId}/phase6-documents`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ fileId: pendingDelete.id, documentStage }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || "파일을 삭제하지 못했습니다.");
+      setPendingDelete(null);
+      setMessage("업로드된 파일을 삭제했습니다. 남은 파일을 다시 확인해 주세요.");
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "파일을 삭제하지 못했습니다.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <>
+    {pendingDelete && <div className="action-confirm-backdrop" role="presentation" onMouseDown={() => !busy && setPendingDelete(null)}><section className="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-uploaded-file-title" onMouseDown={(event) => event.stopPropagation()}><h2 id="delete-uploaded-file-title">업로드된 파일을 삭제할까요?</h2><p><strong>{pendingDelete.originalName}</strong></p><p>파일을 삭제하면 이 단계의 기존 서류 확인 결과도 초기화됩니다.</p><div className="action-confirm-actions"><button type="button" disabled={!!busy} onClick={() => setPendingDelete(null)}>취소</button><button className="danger" type="button" disabled={!!busy} onClick={deleteUploadedFile}>{busy === "delete" ? "삭제 중…" : "파일 삭제"}</button></div></section></div>}
     {showCompletionNotice && <div className="action-confirm-backdrop" role="presentation" onMouseDown={() => setShowCompletionNotice(false)}><section className="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="document-check-complete-title" onMouseDown={(event) => event.stopPropagation()}><h2 id="document-check-complete-title">서류 확인이 완료되었습니다.</h2><div className="action-confirm-actions"><button className="primary" type="button" autoFocus onClick={() => setShowCompletionNotice(false)}>확인</button></div></section></div>}
     <section className="phase6-workspace-head">
       <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>묶음 파일의 전체 페이지를 읽어 포함된 여러 서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다.</p></div>
@@ -190,7 +213,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
         {isContract && selected.length > 0 && <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>PDF를 포함한 계약서류를 브라우저에서 판독해 계좌번호와 주민등록번호를 자동으로 가립니다. 선택한 원본은 마스킹 확인 전까지 브라우저 밖으로 전송되지 않습니다.</p></div><button type="button" disabled={!!busy} onClick={maskSensitiveFiles}>{busy === "mask" ? "PDF 마스킹 중…" : "개인정보 자동 마스킹"}</button></div>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || !selected.length} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : "선택한 서류 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
-      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{displayDetectedTypes(file.detectedType)}</small></div><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "전체 판독완료" : "확인필요"}</span></li>)}</ul></details>}
+      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{displayDetectedTypes(file.detectedType)}</small></div><div className="uploaded-document-actions"><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "전체 판독완료" : "확인필요"}</span>{canUpload && <button type="button" disabled={!!busy} onClick={() => setPendingDelete(file)} aria-label={`${file.originalName} 삭제`}>삭제</button>}</div></li>)}</ul></details>}
     </section>
 
     <section className="phase6-results-card">

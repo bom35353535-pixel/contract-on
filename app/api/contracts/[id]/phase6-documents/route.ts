@@ -189,6 +189,42 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 }
 
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  await ensureDatabase();
+  const { id: contractId } = await context.params;
+  const body = await request.json().catch(() => ({})) as { fileId?: unknown; documentStage?: unknown };
+  if (typeof body.fileId !== "string" || !body.fileId) return errorResponse("삭제할 파일을 확인해 주세요.");
+  if (!isDocumentStage(body.documentStage)) return errorResponse("문서 업무단계를 확인해 주세요.");
+
+  const contract = await getContract(contractId);
+  if (!contract) return errorResponse("계약 정보를 찾을 수 없습니다.", 404);
+  if (!isContractStage(contract.currentStage)) return errorResponse("현재 계약단계를 확인할 수 없습니다.", 409);
+  if (CONTRACT_STAGES.indexOf(contract.currentStage) > CONTRACT_STAGES.indexOf(body.documentStage)) {
+    return errorResponse("이미 완료된 업무단계의 파일은 삭제할 수 없습니다.", 409);
+  }
+
+  const d1 = getD1();
+  const file = await d1.prepare(`
+    SELECT id, storage_key AS storageKey, document_stage AS documentStage
+    FROM contract_document_files
+    WHERE id = ? AND contract_id = ?
+  `).bind(body.fileId, contractId).first<{ id: string; storageKey: string; documentStage: string }>();
+  if (!file || file.documentStage !== body.documentStage) return errorResponse("업로드된 파일을 찾을 수 없습니다.", 404);
+
+  await d1.batch([
+    d1.prepare(`
+      DELETE FROM contract_document_review_items
+      WHERE review_id IN (
+        SELECT id FROM contract_document_reviews WHERE contract_id = ? AND document_stage = ?
+      )
+    `).bind(contractId, body.documentStage),
+    d1.prepare("DELETE FROM contract_document_reviews WHERE contract_id = ? AND document_stage = ?").bind(contractId, body.documentStage),
+    d1.prepare("DELETE FROM contract_document_files WHERE id = ? AND contract_id = ?").bind(body.fileId, contractId),
+  ]);
+  await env.FILES.delete(file.storageKey).catch((error) => console.error("Uploaded contract file cleanup failed", error));
+  return Response.json({ deleted: true });
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   await ensureDatabase();
   const { id: contractId } = await context.params;

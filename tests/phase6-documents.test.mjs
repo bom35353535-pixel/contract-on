@@ -152,3 +152,17 @@ test("document analysis completion uses an app dialog without the site-address p
   assert.match(workspace, /role="dialog"/);
   assert.doesNotMatch(workspace, /window\.alert/);
 });
+
+test("uploaded contract document files can be deleted and stale reviews are cleared", async () => {
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(route, /export async function DELETE/);
+  assert.match(route, /DELETE FROM contract_document_review_items/);
+  assert.match(route, /DELETE FROM contract_document_reviews/);
+  assert.match(route, /DELETE FROM contract_document_files/);
+  assert.match(route, /env\.FILES\.delete\(file\.storageKey\)/);
+  assert.match(workspace, /pendingDelete/);
+  assert.match(workspace, /method: "DELETE"/);
+  assert.match(workspace, /업로드된 파일을 삭제할까요\?/);
+  assert.match(workspace, /파일 삭제/);
+});

@@ -661,6 +661,11 @@ a { color: inherit; text-decoration: none; }
 .uploaded-document-details li > span { padding: 4px 6px; border-radius: 5px; font-size: 7px; font-weight: 850; }
 .uploaded-document-details .exact { background: #e3f2ed; color: #287b67; }
 .uploaded-document-details .uncertain { background: #fff1d8; color: #9f6b1f; }
+.uploaded-document-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.uploaded-document-actions > span { padding: 4px 6px; border-radius: 5px; font-size: 7px; font-weight: 850; }
+.uploaded-document-actions > button { border: 1px solid #e5b7b7; border-radius: 6px; background: #fff7f7; color: #b33b3b; padding: 5px 8px; font-size: 8px; font-weight: 850; cursor: pointer; }
+.uploaded-document-actions > button:hover { background: #ffeaea; }
+.uploaded-document-actions > button:disabled { cursor: wait; opacity: .55; }
 .phase6-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-top: 14px; }
 .phase6-summary { display: flex; align-items: center; gap: 11px; padding: 15px; border: 1px solid var(--line); border-radius: 11px; }
 .phase6-summary > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 8px; font-size: 14px; font-weight: 900; }
