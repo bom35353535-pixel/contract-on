@@ -178,3 +178,11 @@ test("stored uploaded files can be reviewed again without selecting another loca
   assert.match(workspace, /업로드된 서류 다시 확인/);
   assert.match(workspace, /\(!selected\.length && !files\.length\)/);
 });
+
+test("uploaded file list shows only the filename and delete action", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(workspace, /displayDetectedTypes/);
+  assert.doesNotMatch(workspace, /문서 종류 확인 필요/);
+  assert.match(workspace, /업로드된 파일 \{files\.length\}개/);
+  assert.match(workspace, /aria-label=\{`\$\{file\.originalName\} 삭제`\}/);
+});

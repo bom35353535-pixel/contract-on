@@ -31,17 +31,6 @@ type PrivacyState = {
   reason?: string;
 };
 
-function displayDetectedTypes(value: string | null) {
-  if (!value) return "문서 종류 확인 필요";
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.filter((item) => typeof item === "string").join(" · ") || "문서 종류 확인 필요";
-  } catch {
-    // Existing records contain one plain-text document type.
-  }
-  return value;
-}
-
 export function Phase6DocumentWorkspace({ contractId, currentStage, documentStage, files, review, items, ddayLabel, isStartDay }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -231,7 +220,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
         {isContract && selected.length > 0 && <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>PDF를 포함한 계약서류를 브라우저에서 판독해 계좌번호와 주민등록번호를 자동으로 가립니다. 선택한 원본은 마스킹 확인 전까지 브라우저 밖으로 전송되지 않습니다.</p></div><button type="button" disabled={!!busy} onClick={maskSensitiveFiles}>{busy === "mask" ? "PDF 마스킹 중…" : "개인정보 자동 마스킹"}</button></div>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || (!selected.length && !files.length)} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : selected.length ? "선택한 서류 확인" : "업로드된 서류 다시 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
-      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><div><strong>{file.originalName}</strong><small>{displayDetectedTypes(file.detectedType)}</small></div><div className="uploaded-document-actions"><span className={file.detectionStatus === "EXACT" ? "exact" : "uncertain"}>{file.detectionStatus === "EXACT" ? "전체 판독완료" : "확인필요"}</span>{canUpload && <button type="button" disabled={!!busy} onClick={() => setPendingDelete(file)} aria-label={`${file.originalName} 삭제`}>삭제</button>}</div></li>)}</ul></details>}
+      {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><strong>{file.originalName}</strong>{canUpload && <div className="uploaded-document-actions"><button type="button" disabled={!!busy} onClick={() => setPendingDelete(file)} aria-label={`${file.originalName} 삭제`}>삭제</button></div>}</li>)}</ul></details>}
     </section>
 
     <section className="phase6-results-card">

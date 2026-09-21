@@ -659,10 +659,7 @@ a { color: inherit; text-decoration: none; }
 .uploaded-document-details strong { color: #334b58; font-size: 9px; }
 .uploaded-document-details small { margin-top: 3px; color: #829099; font-size: 8px; }
 .uploaded-document-details li > span { padding: 4px 6px; border-radius: 5px; font-size: 7px; font-weight: 850; }
-.uploaded-document-details .exact { background: #e3f2ed; color: #287b67; }
-.uploaded-document-details .uncertain { background: #fff1d8; color: #9f6b1f; }
 .uploaded-document-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.uploaded-document-actions > span { padding: 4px 6px; border-radius: 5px; font-size: 7px; font-weight: 850; }
 .uploaded-document-actions > button { border: 1px solid #e5b7b7; border-radius: 6px; background: #fff7f7; color: #b33b3b; padding: 5px 8px; font-size: 8px; font-weight: 850; cursor: pointer; }
 .uploaded-document-actions > button:hover { background: #ffeaea; }
 .uploaded-document-actions > button:disabled { cursor: wait; opacity: .55; }
