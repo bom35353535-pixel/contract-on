@@ -225,6 +225,117 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   return Response.json({ deleted: true });
 }
 
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  await ensureDatabase();
+  const { id: contractId } = await context.params;
+  const body = await request.json().catch(() => ({})) as { documentStage?: unknown };
+  if (!isDocumentStage(body.documentStage)) return errorResponse("문서 업무단계를 확인해 주세요.");
+
+  const stage = body.documentStage;
+  const contract = await getContract(contractId);
+  if (!contract) return errorResponse("계약 정보를 찾을 수 없습니다.", 404);
+  if (!isContractStage(contract.currentStage)) return errorResponse("현재 계약단계를 확인할 수 없습니다.", 409);
+  if (CONTRACT_STAGES.indexOf(contract.currentStage) > CONTRACT_STAGES.indexOf(stage)) {
+    return errorResponse("이미 완료된 업무단계의 서류는 다시 확인할 수 없습니다.", 409);
+  }
+
+  const workspace = await getPhase6DocumentWorkspace(contractId, stage);
+  if (!workspace.files.length) return errorResponse("먼저 확인할 서류를 업로드해 주세요.", 409);
+
+  const storedKnowledgeDocuments = await getDb().select({
+    id: knowledgeDocuments.id,
+    documentName: knowledgeDocuments.documentName,
+    originalName: knowledgeDocuments.originalName,
+    openaiFileId: knowledgeDocuments.openaiFileId,
+    year: knowledgeDocuments.year,
+    storageKey: knowledgeDocuments.storageKey,
+    sizeBytes: knowledgeDocuments.sizeBytes,
+    status: knowledgeDocuments.status,
+  }).from(knowledgeDocuments);
+  const readyDocuments = storedKnowledgeDocuments.filter((document) => document.status === "READY");
+  const localKnowledge = (await Promise.all(storedKnowledgeDocuments.map(async (document) => {
+    if (!/\.(?:md|txt|csv)$/i.test(document.originalName) || document.sizeBytes > 3 * 1024 * 1024) return null;
+    const stored = await env.FILES.get(document.storageKey);
+    if (!stored) return null;
+    return { ...document, text: await stored.text() };
+  }))).filter((document): document is NonNullable<typeof document> => Boolean(document));
+
+  let criteria = findLocalRequiredDocumentCriteria(stage, localKnowledge);
+  let criteriaResponseId: string | null = null;
+  let rawCandidates: unknown[] = [];
+  let warning: string | null = null;
+  const vectorStoreId = criteria.length ? null : readyDocuments.length ? await getVectorStoreId() : null;
+  if (vectorStoreId) {
+    try {
+      const evidence = await findRequiredDocumentCriteria({
+        projectName: contract.projectName,
+        constructionType: contract.constructionType,
+        contractMethod: contract.contractMethod,
+      }, stage, vectorStoreId);
+      rawCandidates = evidence.candidates;
+      criteriaResponseId = evidence.responseId;
+      criteria = verifyRequiredDocumentCriteria(evidence.candidates, evidence.results, readyDocuments);
+      if (!criteria.length) warning = "업로드한 서류의 종류는 확인했습니다. 다만 등록된 지식자료에서 이 단계의 필수 제출서류 목록 근거를 확인하지 못해 누락 여부는 판정하지 않았습니다.";
+    } catch (error) {
+      console.error("Required document evidence lookup failed", error);
+      warning = "등록자료 검색에 실패해 제출 기준을 확정하지 못했습니다. 잠시 후 다시 확인해 주세요.";
+    }
+  } else if (!criteria.length) {
+    warning = "검색 가능한 등록 지식자료가 없어 필수 제출서류 기준을 표시하지 않았습니다.";
+  }
+
+  const classifiedFiles: ClassifiedDocument[] = workspace.files.map((file) => ({
+    id: file.id,
+    originalName: file.originalName,
+    detectedTypes: decodeDetectedTypes(file.detectedType),
+    detectionStatus: file.detectionStatus === "EXACT" ? "EXACT" : "UNCERTAIN",
+    summary: file.summary,
+  }));
+  const items = buildDocumentChecklist(criteria, classifiedFiles);
+  const counts = documentReviewCounts(items);
+  const reviewId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const d1 = getD1();
+
+  await d1.batch([
+    d1.prepare(`
+      DELETE FROM contract_document_review_items
+      WHERE review_id IN (
+        SELECT id FROM contract_document_reviews WHERE contract_id = ? AND document_stage = ?
+      )
+    `).bind(contractId, stage),
+    d1.prepare("DELETE FROM contract_document_reviews WHERE contract_id = ? AND document_stage = ?").bind(contractId, stage),
+  ]);
+  await d1.prepare(`
+    INSERT INTO contract_document_reviews (
+      id, contract_id, document_stage, submitted_count, missing_count, check_count, response_id, warning, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(reviewId, contractId, stage, counts.submittedCount, counts.missingCount, counts.checkCount, criteriaResponseId, warning, now).run();
+  for (let start = 0; start < items.length; start += 75) {
+    const statements = items.slice(start, start + 75).map((item) => d1.prepare(`
+      INSERT INTO contract_document_review_items (
+        id, review_id, status, required_name, uploaded_file_id, detail,
+        evidence_document_id, evidence_document_name, evidence_year, evidence_location, evidence_excerpt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      crypto.randomUUID(), reviewId, item.status, item.requiredName, item.uploadedFileId, item.detail,
+      item.evidenceDocumentId, item.evidenceDocumentName, item.evidenceYear, item.evidenceLocation, item.evidenceExcerpt,
+    ));
+    if (statements.length) await d1.batch(statements);
+  }
+  await d1.prepare(`
+    INSERT INTO ai_decision_audit (id, analysis_id, contract_id, action, source_file, extracted_json, ai_judgment, user_corrected_json, final_json, decided_at)
+    VALUES (?, NULL, ?, ?, ?, ?, ?, NULL, ?, ?)
+  `).bind(
+    crypto.randomUUID(), contractId, stage === "COMPLETION" ? "PHASE7_COMPLETION_DOCUMENT_REVIEW" : "PHASE6_DOCUMENT_REVIEW",
+    workspace.files.map((file) => file.originalName).join(", "), JSON.stringify(classifiedFiles),
+    JSON.stringify({ method: "STORED_FILE_REVIEW", criteriaSource: criteria.length ? "REGISTERED_KNOWLEDGE" : "NONE", knowledgeCandidates: rawCandidates }),
+    JSON.stringify({ counts, items }), now,
+  ).run();
+
+  return Response.json({ reviewId, counts, warning });
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   await ensureDatabase();
   const { id: contractId } = await context.params;

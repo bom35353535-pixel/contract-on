@@ -166,3 +166,15 @@ test("uploaded contract document files can be deleted and stale reviews are clea
   assert.match(workspace, /업로드된 파일을 삭제할까요\?/);
   assert.match(workspace, /파일 삭제/);
 });
+
+test("stored uploaded files can be reviewed again without selecting another local file", async () => {
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(route, /export async function PUT/);
+  assert.match(route, /method: "STORED_FILE_REVIEW"/);
+  assert.match(route, /buildDocumentChecklist\(criteria, classifiedFiles\)/);
+  assert.match(workspace, /!selected\.length && files\.length/);
+  assert.match(workspace, /method: "PUT"/);
+  assert.match(workspace, /업로드된 서류 다시 확인/);
+  assert.match(workspace, /\(!selected\.length && !files\.length\)/);
+});
