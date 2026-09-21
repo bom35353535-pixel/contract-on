@@ -139,6 +139,16 @@ test("construction PDFs use full-file classification and only registered checkli
   assert.doesNotMatch(route, /LOCAL_FILENAME_RULES/);
   assert.match(route, /for \(const file of files\) classified\.push\(await classifySubmittedDocumentContents\(file, stage\)\)/);
   assert.match(route, /findLocalRequiredDocumentCriteria/);
+  assert.match(route, /storedKnowledgeDocuments/);
+  assert.match(route, /status === "READY"/);
   assert.match(contentClassifier, /공정별 인력·장비투입계획서/);
   assert.match(contentClassifier, /착공 전 현장사진은 선택 가능한 문서 종류가 아니므로 결과에 포함하지 마세요/);
+});
+
+test("document analysis completion uses an app dialog without the site-address prefix", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /showCompletionNotice/);
+  assert.match(workspace, /서류 확인이 완료되었습니다\./);
+  assert.match(workspace, /role="dialog"/);
+  assert.doesNotMatch(workspace, /window\.alert/);
 });

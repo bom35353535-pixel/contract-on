@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import { getD1, getDb } from "@/db";
 import { ensureDatabase } from "@/db/init";
 import { knowledgeDocuments } from "@/db/schema";
@@ -100,7 +99,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     await d1.batch(inserts);
     metadataSaved = true;
 
-    const readyDocuments = await getDb().select({
+    const storedKnowledgeDocuments = await getDb().select({
       id: knowledgeDocuments.id,
       documentName: knowledgeDocuments.documentName,
       originalName: knowledgeDocuments.originalName,
@@ -108,13 +107,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       year: knowledgeDocuments.year,
       storageKey: knowledgeDocuments.storageKey,
       sizeBytes: knowledgeDocuments.sizeBytes,
-    }).from(knowledgeDocuments).where(eq(knowledgeDocuments.status, "READY"));
+      status: knowledgeDocuments.status,
+    }).from(knowledgeDocuments);
+    const readyDocuments = storedKnowledgeDocuments.filter((document) => document.status === "READY");
 
     let criteria: RequiredDocumentCriterion[] = [];
     let criteriaResponseId: string | null = null;
     let rawCandidates: unknown[] = [];
     let warning: string | null = null;
-    const localKnowledge = (await Promise.all(readyDocuments.map(async (document) => {
+    const localKnowledge = (await Promise.all(storedKnowledgeDocuments.map(async (document) => {
       if (!/\.(?:md|txt|csv)$/i.test(document.originalName) || document.sizeBytes > 3 * 1024 * 1024) return null;
       const stored = await env.FILES.get(document.storageKey);
       if (!stored) return null;

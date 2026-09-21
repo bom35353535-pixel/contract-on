@@ -50,6 +50,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showCompletionNotice, setShowCompletionNotice] = useState(false);
   const editable = currentStage === documentStage;
   const currentStageIndex = isContractStage(currentStage) ? CONTRACT_STAGES.indexOf(currentStage) : -1;
   const documentStageIndex = CONTRACT_STAGES.indexOf(documentStage);
@@ -128,6 +129,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       setPrivacyStates([]);
       if (inputRef.current) inputRef.current.value = "";
       setMessage(isContract ? "마스킹 사본의 전체 페이지를 읽어 포함된 계약서류 종류를 확인했습니다." : "파일의 전체 페이지를 읽고 등록자료 기준과 비교했습니다.");
+      setShowCompletionNotice(true);
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "서류를 분석하지 못했습니다.");
@@ -159,6 +161,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   }
 
   return <>
+    {showCompletionNotice && <div className="action-confirm-backdrop" role="presentation" onMouseDown={() => setShowCompletionNotice(false)}><section className="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="document-check-complete-title" onMouseDown={(event) => event.stopPropagation()}><h2 id="document-check-complete-title">서류 확인이 완료되었습니다.</h2><div className="action-confirm-actions"><button className="primary" type="button" autoFocus onClick={() => setShowCompletionNotice(false)}>확인</button></div></section></div>}
     <section className="phase6-workspace-head">
       <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>묶음 파일의 전체 페이지를 읽어 포함된 여러 서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>

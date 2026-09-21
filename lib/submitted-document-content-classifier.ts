@@ -97,7 +97,7 @@ export async function classifySubmittedDocumentContents(file: File, stage: Docum
       method: "POST",
       body: JSON.stringify({
         model: env.OPENAI_MODEL || "gpt-5.6",
-        reasoning: { effort: "minimal" },
+        reasoning: { effort: "low" },
         instructions: [
           "당신은 한국 교육행정 공사계약 제출서류 분류기입니다.",
           "첨부 파일의 첫 페이지만 보지 말고 전체 페이지를 끝까지 확인하세요.",
