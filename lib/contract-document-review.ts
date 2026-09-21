@@ -53,9 +53,26 @@ function normalize(value: string) {
   return value.toLocaleLowerCase("ko-KR").replace(/\.[a-z0-9]{1,6}$/i, "").replace(/[^0-9a-z가-힣]/g, "");
 }
 
+const DOCUMENT_NAME_EQUIVALENTS = [
+  ["착공계", "착공신고서", "착공계신고서"],
+  ["공사공정예정표", "공정예정표", "예정공정표", "공사공정표"],
+  ["현장기술자지정신고서", "현장대리인계", "현장대리인선임계", "현장대리인신고서"],
+] as const;
+
+function canonicalDocumentName(value: string) {
+  const normalized = normalize(value);
+  for (const names of DOCUMENT_NAME_EQUIVALENTS) {
+    if (names.some((name) => {
+      const alias = normalize(name);
+      return normalized === alias || (Math.min(normalized.length, alias.length) >= 3 && (normalized.includes(alias) || alias.includes(normalized)));
+    })) return normalize(names[0]);
+  }
+  return normalized;
+}
+
 function namesMatch(left: string, right: string) {
-  const a = normalize(left);
-  const b = normalize(right);
+  const a = canonicalDocumentName(left);
+  const b = canonicalDocumentName(right);
   if (!a || !b) return false;
   if (a === b) return true;
   return Math.min(a.length, b.length) >= 3 && (a.includes(b) || b.includes(a));

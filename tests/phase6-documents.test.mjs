@@ -186,3 +186,32 @@ test("uploaded file list shows only the filename and delete action", async () =>
   assert.match(workspace, /업로드된 파일 \{files\.length\}개/);
   assert.match(workspace, /aria-label=\{`\$\{file\.originalName\} 삭제`\}/);
 });
+
+test("construction document aliases match the same submitted documents", async () => {
+  const { buildDocumentChecklist } = await import(new URL("../lib/contract-document-review.ts", import.meta.url).href);
+  const criterion = (requiredName, aliases) => ({
+    requiredName, aliases, evidenceDocumentId: "K1", evidenceDocumentName: "계약구비서류_공사",
+    evidenceYear: 2026, evidenceLocation: "5. 착공 단계", evidenceExcerpt: `${requiredName} 제출`,
+  });
+  const criteria = [
+    criterion("착공신고서", []),
+    criterion("공사공정예정표", []),
+    criterion("현장기술자 지정신고서", []),
+  ];
+  const files = [{
+    id: "F1", originalName: "착공서류묶음.pdf",
+    detectedTypes: ["착공계", "예정공정표", "현장대리인계"], detectionStatus: "EXACT", summary: null,
+  }];
+  const items = buildDocumentChecklist(criteria, files);
+  assert.deepEqual(items.map((item) => item.status), ["SUBMITTED", "SUBMITTED", "SUBMITTED"]);
+  assert.ok(items.every((item) => item.uploadedFileId === "F1"));
+});
+
+test("reviewing stored files rereads the saved PDF before rebuilding the checklist", async () => {
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  assert.match(route, /env\.FILES\.get\(storedFile\.storageKey\)/);
+  assert.match(route, /new File\(\[await storedObject\.arrayBuffer\(\)\]/);
+  assert.match(route, /classifySubmittedDocumentContents\(file, stage\)/);
+  assert.match(route, /UPDATE contract_document_files/);
+  assert.match(route, /encodeDetectedTypes\(classification\.detectedTypes\)/);
+});

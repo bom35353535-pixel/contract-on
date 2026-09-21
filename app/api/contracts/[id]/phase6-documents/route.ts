@@ -242,6 +242,45 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   const workspace = await getPhase6DocumentWorkspace(contractId, stage);
   if (!workspace.files.length) return errorResponse("먼저 확인할 서류를 업로드해 주세요.", 409);
 
+  const d1 = getD1();
+  const refreshedClassifiedFiles: ClassifiedDocument[] = [];
+  const classificationResponseIds: string[] = [];
+  const classificationWarnings: string[] = [];
+  for (const storedFile of workspace.files) {
+    try {
+      const storedObject = await env.FILES.get(storedFile.storageKey);
+      if (!storedObject) throw new Error("저장된 원본을 찾을 수 없습니다.");
+      const file = new File([await storedObject.arrayBuffer()], storedFile.originalName, { type: storedFile.contentType });
+      const classification = await classifySubmittedDocumentContents(file, stage);
+      if (classification.responseId) classificationResponseIds.push(classification.responseId);
+      await d1.prepare(`
+        UPDATE contract_document_files
+        SET detected_type = ?, detection_status = ?, summary = ?
+        WHERE id = ? AND contract_id = ?
+      `).bind(
+        encodeDetectedTypes(classification.detectedTypes), classification.detectionStatus, classification.summary,
+        storedFile.id, contractId,
+      ).run();
+      refreshedClassifiedFiles.push({
+        id: storedFile.id,
+        originalName: storedFile.originalName,
+        detectedTypes: classification.detectedTypes,
+        detectionStatus: classification.detectionStatus,
+        summary: classification.summary,
+      });
+    } catch (error) {
+      console.error("Stored contract document reclassification failed", { fileId: storedFile.id, error });
+      classificationWarnings.push(storedFile.originalName);
+      refreshedClassifiedFiles.push({
+        id: storedFile.id,
+        originalName: storedFile.originalName,
+        detectedTypes: decodeDetectedTypes(storedFile.detectedType),
+        detectionStatus: storedFile.detectionStatus === "EXACT" ? "EXACT" : "UNCERTAIN",
+        summary: storedFile.summary,
+      });
+    }
+  }
+
   const storedKnowledgeDocuments = await getDb().select({
     id: knowledgeDocuments.id,
     documentName: knowledgeDocuments.documentName,
@@ -284,18 +323,16 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     warning = "검색 가능한 등록 지식자료가 없어 필수 제출서류 기준을 표시하지 않았습니다.";
   }
 
-  const classifiedFiles: ClassifiedDocument[] = workspace.files.map((file) => ({
-    id: file.id,
-    originalName: file.originalName,
-    detectedTypes: decodeDetectedTypes(file.detectedType),
-    detectionStatus: file.detectionStatus === "EXACT" ? "EXACT" : "UNCERTAIN",
-    summary: file.summary,
-  }));
+  if (classificationWarnings.length) {
+    const message = `${classificationWarnings.join(", ")} 파일을 다시 판독하지 못해 기존 판독 결과를 사용했습니다.`;
+    warning = warning ? `${warning} ${message}` : message;
+  }
+
+  const classifiedFiles = refreshedClassifiedFiles;
   const items = buildDocumentChecklist(criteria, classifiedFiles);
   const counts = documentReviewCounts(items);
   const reviewId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const d1 = getD1();
 
   await d1.batch([
     d1.prepare(`
@@ -310,7 +347,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     INSERT INTO contract_document_reviews (
       id, contract_id, document_stage, submitted_count, missing_count, check_count, response_id, warning, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(reviewId, contractId, stage, counts.submittedCount, counts.missingCount, counts.checkCount, criteriaResponseId, warning, now).run();
+  `).bind(reviewId, contractId, stage, counts.submittedCount, counts.missingCount, counts.checkCount, criteriaResponseId || classificationResponseIds[0] || null, warning, now).run();
   for (let start = 0; start < items.length; start += 75) {
     const statements = items.slice(start, start + 75).map((item) => d1.prepare(`
       INSERT INTO contract_document_review_items (
