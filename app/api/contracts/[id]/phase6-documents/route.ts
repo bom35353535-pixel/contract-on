@@ -14,7 +14,7 @@ import {
 } from "@/lib/contract-document-review";
 import { findRequiredDocumentCriteria, getVectorStoreId } from "@/lib/openai-knowledge";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
-import { classifySubmittedDocumentName } from "@/lib/submitted-document-classifier";
+import { findLocalRequiredDocumentCriteria } from "@/lib/required-document-markdown";
 import { classifySubmittedDocumentContents, decodeDetectedTypes, encodeDetectedTypes } from "@/lib/submitted-document-content-classifier";
 import { CONTRACT_STAGES, isContractStage } from "@/lib/workflow";
 
@@ -63,19 +63,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   let metadataSaved = false;
   try {
     const classified: Array<Awaited<ReturnType<typeof classifySubmittedDocumentContents>>> = [];
-    for (const file of files) {
-      if (stage === "NARA_CONTRACT") {
-        classified.push(await classifySubmittedDocumentContents(file, stage));
-      } else {
-        const result = classifySubmittedDocumentName(file.name, stage);
-        classified.push({
-          detectedTypes: result.detectedType ? [result.detectedType] : [],
-          detectionStatus: result.detectionStatus,
-          summary: result.summary,
-          responseId: null,
-        });
-      }
-    }
+    for (const file of files) classified.push(await classifySubmittedDocumentContents(file, stage));
 
     for (const file of files) {
       const id = crypto.randomUUID();
@@ -118,13 +106,23 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       originalName: knowledgeDocuments.originalName,
       openaiFileId: knowledgeDocuments.openaiFileId,
       year: knowledgeDocuments.year,
+      storageKey: knowledgeDocuments.storageKey,
+      sizeBytes: knowledgeDocuments.sizeBytes,
     }).from(knowledgeDocuments).where(eq(knowledgeDocuments.status, "READY"));
 
     let criteria: RequiredDocumentCriterion[] = [];
     let criteriaResponseId: string | null = null;
     let rawCandidates: unknown[] = [];
     let warning: string | null = null;
-    const vectorStoreId = readyDocuments.length ? await getVectorStoreId() : null;
+    const localKnowledge = (await Promise.all(readyDocuments.map(async (document) => {
+      if (!/\.(?:md|txt|csv)$/i.test(document.originalName) || document.sizeBytes > 3 * 1024 * 1024) return null;
+      const stored = await env.FILES.get(document.storageKey);
+      if (!stored) return null;
+      return { ...document, text: await stored.text() };
+    }))).filter((document): document is NonNullable<typeof document> => Boolean(document));
+    criteria = findLocalRequiredDocumentCriteria(stage, localKnowledge);
+
+    const vectorStoreId = criteria.length ? null : readyDocuments.length ? await getVectorStoreId() : null;
     if (vectorStoreId) {
       try {
         const evidence = await findRequiredDocumentCriteria({
@@ -140,7 +138,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         console.error("Required document evidence lookup failed", error);
         warning = "등록자료 검색에 실패해 제출 기준을 확정하지 못했습니다. 잠시 후 다시 분석해 주세요.";
       }
-    } else {
+    } else if (!criteria.length) {
       warning = "검색 가능한 등록 지식자료가 없어 필수 제출서류 기준을 제시하지 않았습니다.";
     }
 
@@ -180,7 +178,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     `).bind(
       crypto.randomUUID(), contractId, stage === "COMPLETION" ? "PHASE7_COMPLETION_DOCUMENT_REVIEW" : "PHASE6_DOCUMENT_REVIEW",
       files.map((file) => file.name).join(", "), JSON.stringify(classification.documents),
-      JSON.stringify({ method: stage === "NARA_CONTRACT" ? "FULL_FILE_CONTENT_CLASSIFICATION" : "LOCAL_FILENAME_RULES", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
+      JSON.stringify({ method: "FULL_FILE_CONTENT_CLASSIFICATION", criteriaSource: criteria.length ? "REGISTERED_KNOWLEDGE" : "NONE", knowledgeCandidates: rawCandidates }), JSON.stringify({ counts, items }), now,
     ).run();
 
     return Response.json({ reviewId, counts, warning, preUploaded: currentStageIndex < documentStageIndex }, { status: 201 });

@@ -98,3 +98,47 @@ test("future construction documents can be prepared without being mislabeled com
   assert.match(route, /currentStageIndex > documentStageIndex/);
   assert.match(route, /preUploaded: currentStageIndex < documentStageIndex/);
 });
+
+test("construction checklist comes from the registered construction markdown stage table", async () => {
+  const { findLocalRequiredDocumentCriteria } = await import(new URL("../lib/required-document-markdown.ts", import.meta.url).href);
+  const text = `### 5. 착공 단계
+| 서류명 | 법적 / 규정 근거 | 비고 및 세부 기준 |
+| :--- | :--- | :--- |
+| **착공신고서 (착공계)** | - | 1천만원 미만 생략 가능 |
+| **현장기술자 지정신고서** | - | 현장대리인계, 재직증명서, 자격증 사본 포함 |
+| **공사공정예정표** | - | 예정공정표 |
+| **착공 전 현장사진** | - | 준공사진으로 대체 가능 |
+| **직접시공계획서** | 법령 | 조건부 제출 |
+| **전기, 수도료 납부 합의서**<br>(또는 미사용 각서) | 지침 | 조건부 제출 |
+| **노무비 구분관리 및 지급확인제 합의서** | 집행기준 | 조건부 제출 |
+| **공사(용역) 안전·보건 체크리스트** | 지침 | 제출 |
+
+### 6. 준공 단계
+| 서류명 | 근거 |
+| 준공계 | - |`;
+  const criteria = findLocalRequiredDocumentCriteria("PRE_CONSTRUCTION", [{ id: "K1", documentName: "계약구비서류_공사", originalName: "계약구비서류_공사.md", year: 2026, text }]);
+  assert.deepEqual(criteria.map((item) => item.requiredName), [
+    "착공계", "현장기술자 지정신고서", "공사공정예정표", "직접시공계획서",
+    "전기, 수도료 납부 합의서", "노무비 구분관리 및 지급확인제 합의서", "공사(용역) 안전·보건 체크리스트",
+  ]);
+  assert.ok(criteria.find((item) => item.requiredName === "현장기술자 지정신고서")?.aliases.includes("현장대리인계"));
+  assert.ok(criteria.find((item) => item.requiredName === "공사공정예정표")?.aliases.includes("예정공정표"));
+  assert.ok(!criteria.some((item) => item.requiredName.includes("현장사진")));
+  assert.ok(!criteria.some((item) => item.requiredName.includes("장비투입")));
+  assert.ok(!criteria.some((item) => item.requiredName.includes("품질관리계획")));
+});
+
+test("construction PDFs use full-file classification and only registered checklist document types", async () => {
+  const classifier = await import(new URL("../lib/submitted-document-classifier.ts", import.meta.url).href);
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
+  const contentClassifier = await readFile(new URL("../lib/submitted-document-content-classifier.ts", import.meta.url), "utf8");
+  const options = classifier.submittedDocumentTypeOptions("PRE_CONSTRUCTION");
+  assert.ok(options.includes("현장대리인계"));
+  assert.ok(options.includes("공사공정예정표"));
+  assert.ok(!options.includes("안전관리계획서"));
+  assert.doesNotMatch(route, /LOCAL_FILENAME_RULES/);
+  assert.match(route, /for \(const file of files\) classified\.push\(await classifySubmittedDocumentContents\(file, stage\)\)/);
+  assert.match(route, /findLocalRequiredDocumentCriteria/);
+  assert.match(contentClassifier, /공정별 인력·장비투입계획서/);
+  assert.match(contentClassifier, /착공 전 현장사진은 선택 가능한 문서 종류가 아니므로 결과에 포함하지 마세요/);
+});

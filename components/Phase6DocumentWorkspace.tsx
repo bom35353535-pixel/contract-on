@@ -127,7 +127,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       setSelected([]);
       setPrivacyStates([]);
       if (inputRef.current) inputRef.current.value = "";
-      setMessage(isContract ? "마스킹 사본의 전체 페이지를 읽어 포함된 계약서류 종류를 확인했습니다." : "서류명 확인과 등록자료 기준 비교를 완료했습니다.");
+      setMessage(isContract ? "마스킹 사본의 전체 페이지를 읽어 포함된 계약서류 종류를 확인했습니다." : "파일의 전체 페이지를 읽고 등록자료 기준과 비교했습니다.");
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "서류를 분석하지 못했습니다.");
@@ -160,7 +160,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   return <>
     <section className="phase6-workspace-head">
-      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>{isContract ? "묶음 파일의 전체 페이지를 읽어 포함된 여러 계약서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다." : "파일명으로 문서 종류를 확인하고 등록된 지식자료의 제출 기준과 비교합니다."}</p></div>
+      <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>묶음 파일의 전체 페이지를 읽어 포함된 여러 서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
 
