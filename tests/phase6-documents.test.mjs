@@ -215,3 +215,12 @@ test("reviewing stored files rereads the saved PDF before rebuilding the checkli
   assert.match(route, /UPDATE contract_document_files/);
   assert.match(route, /encodeDetectedTypes\(classification\.detectedTypes\)/);
 });
+
+test("contract and commitment completion navigate to the newly active work stage", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const advance = await readFile(new URL("../components/AdvanceStageButton.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /result\.nextStage === "COMMITMENT"/);
+  assert.match(workspace, /window\.location\.assign\(`\/contracts\/\$\{contractId\}`\)/);
+  assert.match(advance, /body\.nextStage === "PRE_CONSTRUCTION"/);
+  assert.match(advance, /window\.location\.assign\(`\/contracts\/\$\{contractId\}\?tab=construction-documents`\)/);
+});

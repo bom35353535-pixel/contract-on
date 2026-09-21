@@ -157,10 +157,17 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       const response = await fetch(`/api/contracts/${contractId}/phase6-documents`, {
         method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ documentStage }),
       });
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; nextStage?: string };
       if (!response.ok) throw new Error(result.error || "단계를 변경하지 못했습니다.");
-      setMessage("담당자 확인과 업무단계 변경을 저장했습니다.");
-      router.refresh();
+      if (result.nextStage === "COMMITMENT") {
+        window.location.assign(`/contracts/${contractId}`);
+      } else if (result.nextStage === "IN_CONSTRUCTION") {
+        window.location.assign(`/contracts/${contractId}?tab=construction`);
+      } else if (result.nextStage === "INSPECTION") {
+        window.location.assign(`/contracts/${contractId}?tab=inspection`);
+      } else {
+        window.location.reload();
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "단계를 변경하지 못했습니다.");
     } finally {

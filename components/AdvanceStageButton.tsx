@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function AdvanceStageButton({ contractId, label }: { contractId: string; label: string }) {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -14,9 +12,13 @@ export function AdvanceStageButton({ contractId, label }: { contractId: string; 
     setError("");
     try {
       const response = await fetch(`/api/contracts/${contractId}/advance`, { method: "POST" });
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json()) as { error?: string; nextStage?: string };
       if (!response.ok) throw new Error(body.error || "단계를 변경하지 못했습니다.");
-      router.refresh();
+      if (body.nextStage === "PRE_CONSTRUCTION") {
+        window.location.assign(`/contracts/${contractId}?tab=construction-documents`);
+      } else {
+        window.location.assign(`/contracts/${contractId}`);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "단계를 변경하지 못했습니다.");
     } finally {
