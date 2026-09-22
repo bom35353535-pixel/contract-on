@@ -6,8 +6,11 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "
 
 test("the header and metadata use the Contract ON product name", () => {
   const shell = read("components/AppShell.tsx");
-  assert.match(shell, /className="brand-mark">계약ON<\/span>/);
+  assert.match(shell, /className="brand-mark" aria-label="계약ON"/);
+  assert.match(shell, /className="brand-contract">계약<\/span>/);
+  assert.match(shell, /className="brand-on">ON<\/span>/);
   assert.match(shell, /<strong>AI기반 학교 공사계약 도우미<\/strong>/);
+  assert.doesNotMatch(shell, /className="user-card"|계약업무 담당자|교육행정 · 담당자/);
   assert.doesNotMatch(shell, /공[첵책]!/);
   assert.match(read("app/layout.tsx"), /계약ON \| AI기반 학교 공사계약 도우미/);
 });
