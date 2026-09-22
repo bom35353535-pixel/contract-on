@@ -40,7 +40,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     finally { setBusy(""); }
   }
   const finished = currentStage === "FINISHED";
-  const button = (action: CompletionAction, enabled: boolean, done: boolean) => <button type="button" disabled={!!busy || !enabled || done} onClick={() => setPendingAction(action)}>{busy === action ? "저장 중…" : done ? "완료됨" : `${ACTION_LABELS[action]} 완료`}</button>;
+  const button = (action: CompletionAction, enabled: boolean, done: boolean) => <button type="button" disabled={!!busy || !enabled || done} onClick={() => setPendingAction(action)}>{busy === action ? "저장 중…" : done ? "완료됨" : action === "complete-finish" ? "공사완료 처리" : `${ACTION_LABELS[action]} 완료`}</button>;
 
   return <>
     <AppDialog open={pendingAction !== null} title={`${pendingAction ? ACTION_LABELS[pendingAction] : "업무"} 처리를 완료하셨나요?`} confirmLabel="완료 확인" busy={!!busy} onCancel={() => setPendingAction(null)} onConfirm={() => pendingAction && void act(pendingAction)}><p>완료일이 오늘 날짜로 저장됩니다.</p></AppDialog>
