@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const title = "AI기반 학교 공사계약 도우미";
+const title = "계약ON | AI기반 학교 공사계약 도우미";
 const description = "견적서부터 하자관리까지 연결하는 교육행정 공사계약 업무시스템";
 
 export async function generateMetadata(): Promise<Metadata> {

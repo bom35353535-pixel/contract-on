@@ -4,12 +4,12 @@ import test from "node:test";
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("the header uses the Gongchaek product name", () => {
+test("the header and metadata use the Contract ON product name", () => {
   const shell = read("components/AppShell.tsx");
-  assert.match(shell, /className="brand-mark">공첵!<\/span>/);
+  assert.match(shell, /className="brand-mark">계약ON<\/span>/);
   assert.match(shell, /<strong>AI기반 학교 공사계약 도우미<\/strong>/);
-  assert.doesNotMatch(shell, /공책! 공사계약 통합지원/);
-  assert.match(read("app/layout.tsx"), /AI기반 학교 공사계약 도우미/);
+  assert.doesNotMatch(shell, /공[첵책]!/);
+  assert.match(read("app/layout.tsx"), /계약ON \| AI기반 학교 공사계약 도우미/);
 });
 
 test("fixed sample contracts are removed and never seeded again", () => {

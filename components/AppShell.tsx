@@ -7,7 +7,7 @@ export function AppShell({ children, active, contractCount }: { children: ReactN
     <div className="app-shell">
       <header className="global-header">
         <div className="brand">
-          <span className="brand-mark">공첵!</span>
+          <span className="brand-mark">계약ON</span>
           <span><strong>AI기반 학교 공사계약 도우미</strong><small>교육행정 업무시스템</small></span>
         </div>
         <nav className="primary-tabs" aria-label="주요 업무">
