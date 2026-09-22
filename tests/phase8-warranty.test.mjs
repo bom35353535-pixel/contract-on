@@ -30,6 +30,7 @@ test("Phase 8 prioritizes the specific interior work criterion over the broad bu
     { id:"W06", category:"건축·설비", workName:"실내의장·미장·타일·도장·창호·보링·기타 건물 내 설비·건축물 조립·판금·보일러 설치·기타 토목공사", warrantyYears:1, bondRate:.03, sourceName:"하자기간.pdf", sourcePage:"p.155", sourceExcerpt:"" },
   ];
   assert.equal(suggestWarrantyCriterion(criteria, "교실 내부 도장공사", "건축공사")?.id, "W06");
+  assert.equal(suggestWarrantyCriterion(criteria, "00과 환경개선 공사", "건축공사")?.id, "W06");
   assert.equal(suggestWarrantyCriterion(criteria, "본관 내력벽 보강공사", "건축공사")?.id, "W03");
 });
 
