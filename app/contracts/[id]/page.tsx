@@ -106,6 +106,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         ddayLabel={constructionDday} isStartDay={isStartDay}
       /> : tab === "construction-progress" ? <Phase7ConstructionWorkspace
         contractId={id} currentStage={currentStage} run={constructionChecklist.run} items={constructionChecklist.items}
+        history={constructionChecklist.history}
         ddayLabel={completionDday} isCompletionDay={isCompletionDay}
       /> : tab === "completion-documents" ? <Phase6DocumentWorkspace
         contractId={id} currentStage={currentStage} documentStage="COMPLETION"

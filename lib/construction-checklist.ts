@@ -1,8 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { ensureDatabase } from "@/db/init";
 import { constructionChecklistItems, constructionChecklistRuns } from "@/db/schema";
 import type { DocumentEvidenceSearchResult, ReadyKnowledgeDocument } from "./contract-document-review";
+import { parseFieldChecklistDetail } from "./construction-field-checklist";
 
 export type ConstructionChecklistCandidate = {
   title: string;
@@ -58,12 +59,19 @@ export function verifyConstructionChecklist(
 export async function getConstructionChecklist(contractId: string) {
   await ensureDatabase();
   const db = getDb();
-  const [run] = await db.select().from(constructionChecklistRuns)
+  const runs = await db.select().from(constructionChecklistRuns)
     .where(eq(constructionChecklistRuns.contractId, contractId))
-    .orderBy(desc(constructionChecklistRuns.createdAt)).limit(1);
-  if (!run) return { run: null, items: [] };
-  const items = await db.select().from(constructionChecklistItems)
-    .where(and(eq(constructionChecklistItems.contractId, contractId), eq(constructionChecklistItems.runId, run.id)))
-    .orderBy(constructionChecklistItems.status, constructionChecklistItems.title);
-  return { run, items };
+    .orderBy(desc(constructionChecklistRuns.createdAt)).limit(20);
+  if (!runs.length) return { run: null, items: [], history: [] };
+  const allItems = await db.select().from(constructionChecklistItems)
+    .where(eq(constructionChecklistItems.contractId, contractId));
+  const byRun = new Map<string, typeof allItems>();
+  for (const item of allItems) byRun.set(item.runId, [...(byRun.get(item.runId) || []), item]);
+  for (const items of byRun.values()) items.sort((a, b) => parseFieldChecklistDetail(a.detail).order - parseFieldChecklistDetail(b.detail).order);
+  const [run, ...pastRuns] = runs;
+  return {
+    run,
+    items: byRun.get(run.id) || [],
+    history: pastRuns.map((pastRun) => ({ run: pastRun, items: byRun.get(pastRun.id) || [] })),
+  };
 }

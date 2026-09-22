@@ -868,10 +868,46 @@ a { color: inherit; text-decoration: none; }
 .construction-check-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; border:1px solid #e2e9e5; border-left:5px solid #d7dfda; border-radius:16px; padding:18px; }
 .construction-check-item.completed { border-left-color:#30966b; background:#f7fcf9; }
 .construction-check-item.not_applicable { border-left-color:#9aa49f; background:#fafafa; }
+.construction-check-item.normal { border-left-color:#30966b; background:#f7fcf9; }
+.construction-check-item.needs_review { border-left-color:#d68a22; background:#fffaf1; }
+.construction-check-item.high-importance.needs_review { border-color:#e7b25d; border-left-color:#c86b1f; }
 .construction-check-item > div:first-child > strong { display:block; color:#1d3e31; margin-bottom:5px; }
 .construction-check-item p { margin:0; color:#617169; font-size:14px; line-height:1.55; }
 .construction-check-item details { margin-top:10px; }
 .construction-check-item summary { cursor:pointer; color:#547065; font-size:12px; font-weight:800; }
+.field-check-summary { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+.field-check-summary span { min-width:112px; padding:11px 14px; border:1px solid #dfe8e3; border-radius:12px; background:#f8fbf9; color:#52675d; }
+.field-check-summary strong { color:#1d4735; font-size:18px; margin-left:5px; }
+.field-check-summary .review { border-color:#ecc988; background:#fff9ed; color:#965a12; }
+.review-items-summary { margin-bottom:18px; padding:13px 15px; border:1px solid #edc780; border-radius:13px; background:#fff9ec; }
+.review-items-summary summary { cursor:pointer; font-weight:900; color:#8b5312; }
+.review-items-summary ul { margin:10px 0 0; padding-left:20px; color:#6e552f; }
+.field-check-sections { display:grid; gap:20px; }
+.field-check-category > h4 { margin:0 0 10px; color:#173e2e; font-size:18px; }
+.field-check-group { margin-bottom:9px; border:1px solid #dde7e1; border-radius:14px; background:#fbfdfc; overflow:hidden; }
+.field-check-group > summary { display:flex; justify-content:space-between; cursor:pointer; padding:14px 16px; font-weight:900; color:#345b49; }
+.field-check-group > summary span { color:#7b8d84; font-size:13px; }
+.field-check-group > .construction-check-list { padding:0 12px 12px; }
+.field-check-main { min-width:0; }
+.field-check-warning { margin:10px 0; padding:11px 13px; border:1px solid #e8bd73; border-radius:11px; background:#fff5df; }
+.field-check-warning strong { color:#9a5310 !important; }
+.field-check-warning p { margin-top:4px; color:#785d36; }
+.field-check-detail { display:grid; gap:11px; margin-top:14px; padding-top:14px; border-top:1px dashed #dacaa9; }
+.field-check-detail > label { display:grid; gap:6px; font-size:13px; font-weight:800; color:#5a4b31; }
+.field-check-detail textarea { width:100%; min-height:76px; resize:vertical; border:1px solid #d9d0bd; border-radius:10px; padding:10px 12px; background:#fff; color:#263b31; font:inherit; }
+.field-check-detail-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.field-check-detail-actions button,.photo-attach { min-height:40px; border:1px solid #bacdc3; border-radius:10px; padding:9px 13px; background:#f5faf7; color:#285540; font-weight:800; cursor:pointer; }
+.photo-attach input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.resolved-check { display:flex !important; grid-template-columns:auto 1fr; align-items:center; gap:7px !important; padding:8px 10px; }
+.resolved-check input { width:18px; height:18px; }
+.field-photo-list { display:flex; flex-wrap:wrap; gap:7px; margin:0; padding:0; list-style:none; }
+.field-photo-list a { display:inline-block; padding:6px 9px; border-radius:8px; background:#edf5f1; color:#256047; font-size:13px; font-weight:700; }
+.field-check-history { margin-top:18px; padding:22px; border:1px solid #dde6e1; border-radius:18px; background:#fff; }
+.field-check-history h3 { margin:0 0 12px; color:#173e2e; }
+.field-check-history > details { border-top:1px solid #e5ebe7; }
+.field-check-history > details > summary { display:flex; justify-content:space-between; cursor:pointer; padding:13px 2px; color:#4d665a; }
+.history-check-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px 14px; padding:11px 4px; border-top:1px dashed #e3e9e5; }
+.history-check-item p,.history-check-item ul { grid-column:1/-1; margin:0; }
 .check-status-actions { display:flex; gap:6px; }
 .check-status-actions button { border:1px solid #d5dfda; background:#fff; color:#67736d; border-radius:10px; padding:8px 10px; font-size:12px; font-weight:800; cursor:pointer; }
 .check-status-actions button.active { background:#1f5b44; border-color:#1f5b44; color:#fff; }
@@ -902,6 +938,10 @@ a { color: inherit; text-decoration: none; }
   .warranty-layout,.ledger-actions { grid-template-columns:1fr; }
   .phase7-head,.completion-day-card { flex-direction:column; }
   .construction-check-item { grid-template-columns:1fr; }
+  .field-check-summary span { flex:1 1 calc(50% - 10px); min-width:0; }
+  .field-check-detail-actions { align-items:stretch; }
+  .field-check-detail-actions > * { flex:1 1 140px; justify-content:center; }
+  .history-check-item { grid-template-columns:1fr; }
   .check-status-actions { flex-wrap:wrap; }
   .inspection-flow article { grid-template-columns:42px 1fr; }
   .inspection-flow article button { grid-column:1 / -1; }

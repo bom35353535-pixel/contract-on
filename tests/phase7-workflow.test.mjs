@@ -21,14 +21,31 @@ test("Phase 7 completion documents reuse evidence-limited document review", asyn
   assert.match(workspace, /준공서류 확인 완료/);
 });
 
-test("Phase 7 construction checklist only accepts direct registered evidence", async () => {
-  const checklist = await readFile(new URL("../lib/construction-checklist.ts", import.meta.url), "utf8");
-  const openai = await readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8");
+test("Phase 7 construction checklist combines common and inferred trade checks without another menu", async () => {
+  const { getApplicableFieldChecklist } = await import(new URL("../lib/construction-field-checklist.ts", import.meta.url).href);
+  const bathroom = getApplicableFieldChecklist("건축공사", "화장실 환경개선공사");
+  assert.ok(bathroom.categories.includes("건축·인테리어"));
+  assert.ok(bathroom.categories.includes("기계·설비"));
+  assert.ok(bathroom.categories.includes("전기"));
+  assert.ok(bathroom.items.some((item) => item.group === "공정"));
+  assert.equal(new Set(bathroom.items.map((item) => item.title.replace(/[^0-9a-z가-힣]/gi, ""))).size, bathroom.items.length);
+  const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(detail, /tab=field-inspection|tab=site-inspection/);
+});
+
+test("Phase 7 field checks provide three states, detail records, photos, summaries, and history", async () => {
   const component = await readFile(new URL("../components/Phase7ConstructionWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(checklist, /candidate\.matchStatus !== "EXACT"/);
-  assert.match(checklist, /!normalize\(result\.text\)\.includes\(key\)/);
-  assert.match(openai, /일반지식, 기억, 추정, 관행, 인터넷 지식은 사용하지 마세요/);
-  assert.match(component, /PENDING: "미완료", COMPLETED: "완료", NOT_APPLICABLE: "해당없음"/);
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase7-construction-checklist/route.ts", import.meta.url), "utf8");
+  assert.match(component, /NORMAL: "정상"/);
+  assert.match(component, /NEEDS_REVIEW: "확인 필요"/);
+  assert.match(component, /NOT_APPLICABLE: "해당 없음"/);
+  assert.match(component, /메모/);
+  assert.match(component, /사진 첨부/);
+  assert.match(component, /조치사항/);
+  assert.match(component, /조치완료/);
+  assert.match(component, /점검 이력/);
+  assert.match(route, /construction-checklist\/\$\{contractId\}/);
+  assert.doesNotMatch(route, /findConstructionChecklistCriteria|getVectorStoreId|isOpenAIConfigured/);
 });
 
 test("Phase 7 records inspection and payment as separate user confirmations", async () => {
