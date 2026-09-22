@@ -129,6 +129,32 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
     } finally { setBusy(""); }
   }
 
+  function printChecklist() {
+    const source = document.querySelector<HTMLElement>(".construction-check-card");
+    if (!source) {
+      setError("인쇄할 체크리스트를 준비하지 못했습니다.");
+      return;
+    }
+    const printable = source.cloneNode(true) as HTMLElement;
+    printable.querySelectorAll(".phase6-card-heading,.field-check-summary,.review-items-summary,.field-check-warning,.field-check-detail").forEach((element) => element.remove());
+    printable.querySelectorAll("details").forEach((details) => { details.open = true; });
+    const printTitle = projectName.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character] || character);
+    const printWindow = window.open("", "contract-on-checklist-print", "width=1050,height=820");
+    if (!printWindow) {
+      setError("인쇄용 화면을 열지 못했습니다. 브라우저의 팝업 허용 상태를 확인해 주세요.");
+      return;
+    }
+    printWindow.opener = null;
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${printTitle} 현장 확인 체크리스트</title><style>
+      @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;color:#111;background:#fff;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:12px}.print-toolbar{position:sticky;top:0;display:flex;justify-content:flex-end;padding:12px;background:#eef5f1;border-bottom:1px solid #cbd8d1;z-index:2}.print-toolbar button{border:0;border-radius:9px;padding:10px 18px;background:#1f5b44;color:#fff;font-weight:800;cursor:pointer}.construction-check-card{max-width:190mm;margin:0 auto;padding:10mm 0;border:0}.field-check-print-header{display:block;margin-bottom:8mm}.field-check-print-header h1{margin:0 0 5mm;text-align:center;font-size:22px}.field-check-print-header dl{display:grid;grid-template-columns:1fr 1fr;margin:0;border-top:1px solid #555;border-left:1px solid #555}.field-check-print-header dl>div{display:grid;grid-template-columns:28mm 1fr;min-height:10mm;border-right:1px solid #555;border-bottom:1px solid #555}.field-check-print-header dt,.field-check-print-header dd{display:flex;align-items:center;margin:0;padding:2mm 3mm}.field-check-print-header dt{justify-content:center;border-right:1px solid #777;background:#f1f1f1;font-weight:800}.field-check-category>h4{margin:5mm 0 2mm;padding-bottom:1.5mm;border-bottom:2px solid #333;font-size:16px}.field-check-group{display:block;margin-bottom:3mm;border:1px solid #777;break-inside:auto}.field-check-group>summary{display:flex;justify-content:space-between;padding:2.5mm 3mm;background:#eee;font-size:13px;font-weight:800;list-style:none}.construction-check-list{display:grid!important}.construction-check-item{padding:2.5mm 3mm;border-top:1px solid #aaa;break-inside:avoid}.field-check-main>strong{display:block;margin-bottom:2mm;line-height:1.45}.check-status-actions{display:flex;gap:5mm}.check-status-actions button{position:relative;padding:0 0 0 5mm;border:0;background:transparent;color:#111}.check-status-actions button:before{content:"□";position:absolute;left:0;top:-1px;font-size:14px}.check-status-actions button.active:before{content:"☑";font-weight:900}.print-check-note{display:block;height:8mm;margin-top:2mm;border-bottom:1px dotted #888;color:#555;font-size:10px}@media print{.print-toolbar{display:none}.construction-check-card{padding:0}}
+    </style></head><body><div class="print-toolbar"><button type="button" id="print-now">인쇄하기</button></div>${printable.outerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.document.getElementById("print-now")?.addEventListener("click", () => printWindow.print());
+    printWindow.focus();
+    printWindow.setTimeout(() => printWindow.print(), 250);
+  }
+
   return <div className="phase7-print-scope">
     <AppDialog open={completionConfirmOpen} title="준공계를 접수하고 공사중 확인을 마쳤나요?" confirmLabel="준공 단계로 이동" busy={busy === "complete"} onCancel={() => setCompletionConfirmOpen(false)} onConfirm={() => void completeConstruction()}><p>{items.some((item) => item.status === "PENDING") ? `미선택 항목 ${items.filter((item) => item.status === "PENDING").length}건이 있습니다. ` : ""}확인하면 준공 단계로 이동합니다.</p></AppDialog>
     <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 공사중 관리</span><h2>공사중 확인사항</h2><p>학교 현장에서 계약내용, 자재, 기록과 안전 상태를 빠르게 확인합니다.</p></div><span className="human-check-badge">담당자 상태확인</span></section>
@@ -137,7 +163,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
     {error && <div className="document-message error" role="alert">{error}</div>}
     <section className="construction-check-card">
       <div className="field-check-print-header"><h1>공사 현장 확인 체크리스트</h1><dl><div><dt>공사명</dt><dd>{projectName}</dd></div><div><dt>계약업체</dt><dd>{companyName}</dd></div><div><dt>공사종류</dt><dd>{constructionType}</dd></div><div><dt>점검일</dt><dd>　　　　년　　　월　　　일</dd></div><div><dt>학교 확인자</dt><dd></dd></div><div><dt>업체 확인자</dt><dd></dd></div></dl></div>
-      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">현장 확인</span><h3>현재 확인할 항목</h3></div></div><div className="field-check-heading-actions"><button className="checklist-print-button" type="button" disabled={needsInitialChecklist} onClick={() => window.print()}>체크리스트 출력</button>{editable && <button className="checklist-reload" type="button" disabled={!!busy} onClick={() => loadChecklist(false)}>{busy === "load" ? "준비 중…" : run ? "새 점검 시작" : "현장 확인 시작"}</button>}</div></div>
+      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">현장 확인</span><h3>현재 확인할 항목</h3></div></div><div className="field-check-heading-actions"><button className="checklist-print-button" type="button" disabled={needsInitialChecklist} onClick={printChecklist}>체크리스트 출력</button>{editable && <button className="checklist-reload" type="button" disabled={!!busy} onClick={() => loadChecklist(false)}>{busy === "load" ? "준비 중…" : run ? "새 점검 시작" : "현장 확인 시작"}</button>}</div></div>
       {needsInitialChecklist ? <div className="phase7-empty">{editable ? "공종에 맞는 현장 확인사항을 준비하고 있습니다." : "공사중 단계에서 현장 확인사항을 사용할 수 있습니다."}</div> : <>
         <div className="field-check-summary"><span>전체 <strong>{counts.total}</strong></span><span>정상 <strong>{counts.normal}</strong></span><span className="review">확인 필요 <strong>{counts.review}</strong></span><span>해당 없음 <strong>{counts.na}</strong></span></div>
         {reviewItems.length > 0 && <details className="review-items-summary" open><summary>확인 필요 {reviewItems.length}건</summary><ul>{reviewItems.map((item) => <li key={item.id}>{item.title}</li>)}</ul></details>}
