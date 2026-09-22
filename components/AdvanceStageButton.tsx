@@ -12,9 +12,10 @@ export function AdvanceStageButton({ contractId, label }: { contractId: string; 
     setError("");
     try {
       const response = await fetch(`/api/contracts/${contractId}/advance`, { method: "POST" });
-      const body = (await response.json()) as { error?: string; nextStage?: string };
+      const body = (await response.json()) as { error?: string; nextStage?: string; transition?: { nextStage?: string } };
       if (!response.ok) throw new Error(body.error || "단계를 변경하지 못했습니다.");
-      if (body.nextStage === "PRE_CONSTRUCTION") {
+      const nextStage = body.nextStage ?? body.transition?.nextStage;
+      if (nextStage === "PRE_CONSTRUCTION") {
         window.location.assign(`/contracts/${contractId}?tab=construction-documents`);
       } else {
         window.location.assign(`/contracts/${contractId}`);

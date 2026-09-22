@@ -219,8 +219,15 @@ test("reviewing stored files rereads the saved PDF before rebuilding the checkli
 test("contract and commitment completion navigate to the newly active work stage", async () => {
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   const advance = await readFile(new URL("../components/AdvanceStageButton.tsx", import.meta.url), "utf8");
+  const commitment = await readFile(new URL("../components/CommitmentWorkspace.tsx", import.meta.url), "utf8");
+  const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   assert.match(workspace, /result\.nextStage === "COMMITMENT"/);
-  assert.match(workspace, /window\.location\.assign\(`\/contracts\/\$\{contractId\}`\)/);
-  assert.match(advance, /body\.nextStage === "PRE_CONSTRUCTION"/);
+  assert.match(workspace, /\?tab=commitment/);
+  assert.match(workspace, /\(!review && !isContract\)/);
+  assert.match(route, /!workspace\.review && body\.documentStage !== "NARA_CONTRACT"/);
+  assert.match(detail, /tab === "commitment"/);
+  assert.match(commitment, /원인행위 완료 확인/);
+  assert.match(advance, /body\.nextStage \?\? body\.transition\?\.nextStage/);
   assert.match(advance, /window\.location\.assign\(`\/contracts\/\$\{contractId\}\?tab=construction-documents`\)/);
 });
