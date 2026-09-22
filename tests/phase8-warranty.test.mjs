@@ -9,7 +9,8 @@ test("Phase 8 requires user confirmation before scheduling warranty inspections"
   assert.match(source, /contract\.stage !== "FINISHED"/);
   assert.match(source, /calculateWarrantyEnd\(startDate, criterion\.warrantyYears\)/);
   assert.match(source, /addMonths\(startDate, n \* 6\)/);
-  assert.match(component, /이 기준으로 확정하시겠습니까/);
+  assert.match(component, /기준으로 확정하시겠습니까/);
+  assert.doesNotMatch(component, /window\.confirm/);
   assert.match(component, /자동 확정하지 않습니다/);
 });
 

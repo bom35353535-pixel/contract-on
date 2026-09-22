@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { documentNameFromFileName } from "@/lib/file-name";
 import { LARGE_KNOWLEDGE_MAX_FILE_SIZE, PROTOTYPE_MAX_FILE_SIZE } from "@/lib/knowledge-constants";
+import { AppDialog } from "./AppDialog";
 
 type KnowledgeDocument = {
   id: string;
@@ -48,6 +49,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [indexingDocumentId, setIndexingDocumentId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ title: string; message?: string } | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingForceId, setPendingForceId] = useState<string | null>(null);
 
   function chooseFile(next: File | null) {
     if (next && next.size > LARGE_KNOWLEDGE_MAX_FILE_SIZE) {
@@ -126,7 +130,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
       setDocumentName("");
       formElement.reset();
       setUploadMessage(completionMessage);
-      window.alert(completionMessage);
+      setNotice({ title: completionMessage });
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "자료를 등록하지 못했습니다.");
     } finally {
@@ -136,15 +140,13 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   }
 
   async function remove(documentId: string) {
-    if (!window.confirm("이 자료를 지식검색에서 삭제할까요?")) return;
     const response = await fetch(`/api/knowledge/${documentId}`, { method: "DELETE" });
     const payload = await response.json() as { error?: string };
-    if (!response.ok) return window.alert(payload.error || "자료를 삭제하지 못했습니다.");
+    if (!response.ok) return setNotice({ title: "자료를 삭제하지 못했습니다.", message: payload.error });
     setDocuments((current) => current.filter((document) => document.id !== documentId));
   }
 
   async function retry(documentId: string, force = false) {
-    if (force && !window.confirm("기존 검색 색인을 새 표 구조로 교체할까요? OpenAI 사용량이 발생할 수 있습니다.")) return;
     setIndexingDocumentId(documentId);
     try {
       const response = await fetch(`/api/knowledge/${documentId}/retry`, {
@@ -153,9 +155,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
         body: JSON.stringify({ force }),
       });
       const payload = await response.json() as { document?: KnowledgeDocument; error?: string };
-      if (!response.ok || !payload.document) return window.alert(payload.error || "색인을 다시 시도하지 못했습니다.");
+      if (!response.ok || !payload.document) return setNotice({ title: "색인을 다시 시도하지 못했습니다.", message: payload.error });
       setDocuments((current) => current.map((document) => document.id === documentId ? payload.document! : document));
-      if (force) window.alert(payload.document.status === "READY" ? "새 표 구조로 다시 색인했습니다." : "다시 색인을 시작했습니다. 잠시 후 검색 상태를 확인해 주세요.");
+      if (force) setNotice({ title: payload.document.status === "READY" ? "새 표 구조로 다시 색인했습니다." : "다시 색인을 시작했습니다.", message: payload.document.status === "READY" ? undefined : "잠시 후 검색 상태를 확인해 주세요." });
     } finally {
       setIndexingDocumentId(null);
     }
@@ -186,6 +188,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
 
   return (
     <>
+      <AppDialog open={notice !== null} title={notice?.title || "안내"} onConfirm={() => setNotice(null)}>{notice?.message && <p>{notice.message}</p>}</AppDialog>
+      <AppDialog open={pendingDeleteId !== null} title="이 자료를 지식검색에서 삭제할까요?" confirmLabel="삭제" danger busy={indexingDocumentId === pendingDeleteId} onCancel={() => setPendingDeleteId(null)} onConfirm={() => { const id = pendingDeleteId; setPendingDeleteId(null); if (id) void remove(id); }}><p>{documents.find((document) => document.id === pendingDeleteId)?.documentName}</p></AppDialog>
+      <AppDialog open={pendingForceId !== null} title="기존 검색 색인을 새 표 구조로 교체할까요?" confirmLabel="다시 색인" busy={indexingDocumentId === pendingForceId} onCancel={() => setPendingForceId(null)} onConfirm={() => { const id = pendingForceId; setPendingForceId(null); if (id) void retry(id, true); }}><p>OpenAI 사용량이 발생할 수 있습니다.</p></AppDialog>
       <header className="page-header knowledge-header">
         <div>
           <span className="section-kicker">PHASE 2 · 승인된 자료만 근거로 사용</span>
@@ -276,9 +281,9 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
                 <span><span className={`index-status status-${document.status.toLowerCase()}`}>{statusLabel[document.status] || document.status}</span>{document.errorMessage && <small className="row-error">{document.errorMessage}</small>}</span>
                 <span className="uploaded-cell">{new Date(document.uploadedAt).toLocaleDateString("ko-KR")}</span>
                 <span className="row-actions">
-                  {document.status === "READY" && <button type="button" className="retry-button" disabled={indexingDocumentId === document.id} onClick={() => retry(document.id, true)}>{indexingDocumentId === document.id ? "색인 중…" : "다시 색인"}</button>}
+                  {document.status === "READY" && <button type="button" className="retry-button" disabled={indexingDocumentId === document.id} onClick={() => setPendingForceId(document.id)}>{indexingDocumentId === document.id ? "색인 중…" : "다시 색인"}</button>}
                   {document.status !== "READY" && document.status !== "LARGE_FILE_STORED" && <button type="button" className="retry-button" disabled={indexingDocumentId === document.id} onClick={() => retry(document.id)}>{indexingDocumentId === document.id ? "색인 중…" : "재시도"}</button>}
-                  <button type="button" className="delete-button" onClick={() => remove(document.id)} aria-label={`${document.documentName} 삭제`}>삭제</button>
+                  <button type="button" className="delete-button" onClick={() => setPendingDeleteId(document.id)} aria-label={`${document.documentName} 삭제`}>삭제</button>
                 </span>
               </div>
             ))}

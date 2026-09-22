@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ConstructionChecklistItemRecord, ConstructionChecklistRunRecord } from "@/db/schema";
 import { FIELD_CHECKLIST_TEMPLATE_VERSION, getReviewGuidance, parseFieldChecklistDetail, type FieldCheckStatus } from "@/lib/construction-field-checklist";
+import { AppDialog } from "./AppDialog";
 
 type HistoryEntry = { run: ConstructionChecklistRunRecord; items: ConstructionChecklistItemRecord[] };
 type Props = {
@@ -43,6 +44,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const editable = currentStage === "IN_CONSTRUCTION";
   const counts = statusCounts(items);
@@ -113,8 +115,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
   }
 
   async function completeConstruction() {
-    const pending = items.filter((item) => item.status === "PENDING").length;
-    if (!window.confirm(`준공계를 접수하고 공사중 확인을 마쳤나요?${pending ? `\n미선택 항목 ${pending}건이 있습니다.` : ""}\n확인하면 준공 단계로 이동합니다.`)) return;
+    setCompletionConfirmOpen(false);
     setBusy("complete"); setError(""); setMessage("");
     try {
       const response = await fetch(`/api/contracts/${contractId}/phase7-actions`, {
@@ -129,6 +130,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
   }
 
   return <div className="phase7-print-scope">
+    <AppDialog open={completionConfirmOpen} title="준공계를 접수하고 공사중 확인을 마쳤나요?" confirmLabel="준공 단계로 이동" busy={busy === "complete"} onCancel={() => setCompletionConfirmOpen(false)} onConfirm={() => void completeConstruction()}><p>{items.some((item) => item.status === "PENDING") ? `미선택 항목 ${items.filter((item) => item.status === "PENDING").length}건이 있습니다. ` : ""}확인하면 준공 단계로 이동합니다.</p></AppDialog>
     <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 공사중 관리</span><h2>공사중 확인사항</h2><p>학교 현장에서 계약내용, 자재, 기록과 안전 상태를 빠르게 확인합니다.</p></div><span className="human-check-badge">담당자 상태확인</span></section>
     <section className={`completion-day-card ${isCompletionDay ? "today" : ""}`}><div><span>준공 일정</span><strong>{ddayLabel}</strong></div><p>{isCompletionDay ? "오늘은 계약상 준공일입니다. 준공계 송부 여부를 확인해 주세요." : "준공예정일과 준공계 접수 일정을 확인해 주세요."}</p></section>
     {message && <div className="document-message success" role="status">{message}</div>}
@@ -155,6 +157,6 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
       </>}
     </section>
     {history.length > 0 && <section className="field-check-history"><h3>점검 이력</h3>{history.map((entry) => { const pastCounts = statusCounts(entry.items); return <details key={entry.run.id}><summary><span>{formatInspectionDate(entry.run.createdAt)}</span><strong>{pastCounts.review ? `확인 필요 ${pastCounts.review}건` : pastCounts.normal === pastCounts.total ? "전체 정상" : `정상 ${pastCounts.normal}건`}</strong></summary><div>{entry.items.map((item) => { const detail = parseFieldChecklistDetail(item.detail); return <article className="history-check-item" key={item.id}><strong>{item.title}</strong><span>{STATUS_LABEL[item.status as FieldCheckStatus] || "미선택"}{detail.resolved ? " · 조치완료" : ""}</span>{detail.memo && <p>메모: {detail.memo}</p>}{detail.actionNote && <p>조치사항: {detail.actionNote}</p>}{detail.photos.length > 0 && <ul className="field-photo-list">{detail.photos.map((photo) => <li key={photo.id}><a href={`/api/contracts/${contractId}/phase7-construction-checklist?photo=${photo.id}`} target="_blank" rel="noreferrer">{photo.name}</a></li>)}</ul>}</article>; })}</div></details>; })}</section>}
-    {editable && <section className="phase6-confirm-bar"><div><strong>준공계를 접수하고 공사중 확인을 마쳤나요?</strong><small>체크상태를 확인한 뒤 담당자 승인으로만 준공 단계로 이동합니다.</small></div><button type="button" disabled={!!busy || needsInitialChecklist} onClick={completeConstruction}>{busy === "complete" ? "단계 변경 중…" : "준공 접수 확인"}</button></section>}
+    {editable && <section className="phase6-confirm-bar"><div><strong>준공계를 접수하고 공사중 확인을 마쳤나요?</strong><small>체크상태를 확인한 뒤 담당자 승인으로만 준공 단계로 이동합니다.</small></div><button type="button" disabled={!!busy || needsInitialChecklist} onClick={() => setCompletionConfirmOpen(true)}>{busy === "complete" ? "단계 변경 중…" : "준공 접수 확인"}</button></section>}
   </div>;
 }

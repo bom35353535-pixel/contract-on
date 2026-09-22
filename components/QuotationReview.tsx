@@ -9,6 +9,7 @@ import { SupplierSanctionCheck } from "./SupplierSanctionCheck";
 import { buildEvidenceTargets, type ReviewItem } from "@/lib/quotation-review";
 import { selectRelevantAuditCases, type AuditCase } from "@/lib/audit-cases";
 import { RelatedAuditCases } from "./RelatedAuditCases";
+import { AppDialog } from "./AppDialog";
 
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
 type Props = {
@@ -80,6 +81,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
   const [constructionTypeManuallyEdited, setConstructionTypeManuallyEdited] = useState(false);
   const [analysisCompleteOpen, setAnalysisCompleteOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reanalyzeConfirmOpen, setReanalyzeConfirmOpen] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [reviewFresh, setReviewFresh] = useState(Boolean(review));
@@ -167,7 +169,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
 
   async function reanalyze() {
     if (busy) return;
-    if (!window.confirm("원본 견적서를 다시 분석하면 현재 화면에서 수정한 값이 초기화됩니다. 다시 분석하시겠습니까?")) return;
+    setReanalyzeConfirmOpen(false);
     setBusy("reanalyze"); setError("");
     try {
       const response = await fetch(`/api/estimates/${analysisId}/reanalyze`, { method: "POST" });
@@ -209,9 +211,12 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           <div className="action-confirm-actions"><button type="button" onClick={() => setConfirmOpen(false)}>취소</button><button className="primary" type="button" autoFocus onClick={() => { setConfirmOpen(false); void confirm(); }}>현황판 등록</button></div>
         </section>
       </div>}
+      <AppDialog open={reanalyzeConfirmOpen} title="견적서를 다시 분석하시겠습니까?" confirmLabel="다시 분석" busy={busy === "reanalyze"} onCancel={() => setReanalyzeConfirmOpen(false)} onConfirm={() => void reanalyze()}>
+        <p>원본 견적서를 다시 분석하면 현재 화면에서 수정한 값이 초기화됩니다.</p>
+      </AppDialog>
       <section className="review-notice">
         <div><span className="section-kicker">AI 추출 완료</span><h2>견적서에서 다음과 같이 읽었습니다.</h2><p><strong>{originalName}</strong> · 문서에 없거나 읽지 못한 값은 비워두었습니다.</p></div>
-        <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={reanalyze}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>
+        <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={() => setReanalyzeConfirmOpen(true)}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>
       </section>
 
       <section className={`knowledge-first-review ${knowledgeReadyCount ? "ready" : "needs"}`}>
