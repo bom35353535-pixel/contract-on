@@ -9,6 +9,9 @@ type HistoryEntry = { run: ConstructionChecklistRunRecord; items: ConstructionCh
 type Props = {
   contractId: string;
   currentStage: string;
+  projectName: string;
+  companyName: string;
+  constructionType: string;
   run: ConstructionChecklistRunRecord | null;
   items: ConstructionChecklistItemRecord[];
   history: HistoryEntry[];
@@ -34,7 +37,7 @@ function statusCounts(items: ConstructionChecklistItemRecord[]) {
   };
 }
 
-export function Phase7ConstructionWorkspace({ contractId, currentStage, run, items, history, ddayLabel, isCompletionDay }: Props) {
+export function Phase7ConstructionWorkspace({ contractId, currentStage, projectName, companyName, constructionType, run, items, history, ddayLabel, isCompletionDay }: Props) {
   const router = useRouter();
   const autoStarted = useRef(false);
   const [busy, setBusy] = useState("");
@@ -125,13 +128,14 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, run, ite
     } finally { setBusy(""); }
   }
 
-  return <>
+  return <div className="phase7-print-scope">
     <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 공사중 관리</span><h2>공사중 확인사항</h2><p>학교 현장에서 계약내용, 자재, 기록과 안전 상태를 빠르게 확인합니다.</p></div><span className="human-check-badge">담당자 상태확인</span></section>
     <section className={`completion-day-card ${isCompletionDay ? "today" : ""}`}><div><span>준공 일정</span><strong>{ddayLabel}</strong></div><p>{isCompletionDay ? "오늘은 계약상 준공일입니다. 준공계 송부 여부를 확인해 주세요." : "준공예정일과 준공계 접수 일정을 확인해 주세요."}</p></section>
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
     <section className="construction-check-card">
-      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">현장 확인</span><h3>현재 확인할 항목</h3></div></div>{editable && <button className="checklist-reload" type="button" disabled={!!busy} onClick={() => loadChecklist(false)}>{busy === "load" ? "준비 중…" : run ? "새 점검 시작" : "현장 확인 시작"}</button>}</div>
+      <div className="field-check-print-header"><h1>공사 현장 확인 체크리스트</h1><dl><div><dt>공사명</dt><dd>{projectName}</dd></div><div><dt>계약업체</dt><dd>{companyName}</dd></div><div><dt>공사종류</dt><dd>{constructionType}</dd></div><div><dt>점검일</dt><dd>　　　　년　　　월　　　일</dd></div><div><dt>학교 확인자</dt><dd></dd></div><div><dt>업체 확인자</dt><dd></dd></div></dl></div>
+      <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">현장 확인</span><h3>현재 확인할 항목</h3></div></div><div className="field-check-heading-actions"><button className="checklist-print-button" type="button" disabled={needsInitialChecklist} onClick={() => window.print()}>체크리스트 출력</button>{editable && <button className="checklist-reload" type="button" disabled={!!busy} onClick={() => loadChecklist(false)}>{busy === "load" ? "준비 중…" : run ? "새 점검 시작" : "현장 확인 시작"}</button>}</div></div>
       {needsInitialChecklist ? <div className="phase7-empty">{editable ? "공종에 맞는 현장 확인사항을 준비하고 있습니다." : "공사중 단계에서 현장 확인사항을 사용할 수 있습니다."}</div> : <>
         <div className="field-check-summary"><span>전체 <strong>{counts.total}</strong></span><span>정상 <strong>{counts.normal}</strong></span><span className="review">확인 필요 <strong>{counts.review}</strong></span><span>해당 없음 <strong>{counts.na}</strong></span></div>
         {reviewItems.length > 0 && <details className="review-items-summary" open><summary>확인 필요 {reviewItems.length}건</summary><ul>{reviewItems.map((item) => <li key={item.id}>{item.title}</li>)}</ul></details>}
@@ -143,6 +147,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, run, ite
           return <article className={`construction-check-item ${item.status.toLowerCase()} ${detail.importance === "high" ? "high-importance" : ""}`} key={item.id}>
             <div className="field-check-main"><strong>{item.title}</strong>{item.status === "NEEDS_REVIEW" && detail.importance === "high" && <div className="field-check-warning"><strong>⚠️ {guidance.title}</strong><p>{guidance.body}</p></div>}
               <div className="check-status-actions" role="group" aria-label={`${item.title} 상태`}>{SELECTABLE_STATUSES.map((status) => <button type="button" key={status} disabled={!editable || !!busy} className={item.status === status ? "active" : ""} onClick={() => patchItem(item.id, { status })}>{STATUS_LABEL[status]}</button>)}</div>
+              <div className="print-check-note">확인내용:</div>
               {item.status === "NEEDS_REVIEW" && <div className="field-check-detail"><label>메모<textarea value={draft.memo} onChange={(event) => updateDraft(item.id, initial, { memo: event.target.value })} placeholder="확인이 필요한 내용을 기록하세요." /></label><label>조치사항<textarea value={draft.actionNote} onChange={(event) => updateDraft(item.id, initial, { actionNote: event.target.value })} placeholder="업체 요청 또는 확인 내용을 기록하세요." /></label><div className="field-check-detail-actions"><label className="photo-attach">사진 첨부<input type="file" accept="image/*" disabled={!editable || !!busy} onChange={(event) => { void uploadPhoto(item.id, event.target.files?.[0]); event.currentTarget.value = ""; }} /></label><label className="resolved-check"><input type="checkbox" checked={draft.resolved} disabled={!editable || !!busy} onChange={(event) => updateDraft(item.id, initial, { resolved: event.target.checked })} /> 조치완료</label><button type="button" disabled={!editable || !!busy} onClick={() => patchItem(item.id, draft)}>상세기록 저장</button></div>{detail.photos.length > 0 && <ul className="field-photo-list">{detail.photos.map((photo) => <li key={photo.id}><a href={`/api/contracts/${contractId}/phase7-construction-checklist?photo=${photo.id}`} target="_blank" rel="noreferrer">{photo.name}</a></li>)}</ul>}</div>}
             </div>
           </article>;
@@ -151,5 +156,5 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, run, ite
     </section>
     {history.length > 0 && <section className="field-check-history"><h3>점검 이력</h3>{history.map((entry) => { const pastCounts = statusCounts(entry.items); return <details key={entry.run.id}><summary><span>{formatInspectionDate(entry.run.createdAt)}</span><strong>{pastCounts.review ? `확인 필요 ${pastCounts.review}건` : pastCounts.normal === pastCounts.total ? "전체 정상" : `정상 ${pastCounts.normal}건`}</strong></summary><div>{entry.items.map((item) => { const detail = parseFieldChecklistDetail(item.detail); return <article className="history-check-item" key={item.id}><strong>{item.title}</strong><span>{STATUS_LABEL[item.status as FieldCheckStatus] || "미선택"}{detail.resolved ? " · 조치완료" : ""}</span>{detail.memo && <p>메모: {detail.memo}</p>}{detail.actionNote && <p>조치사항: {detail.actionNote}</p>}{detail.photos.length > 0 && <ul className="field-photo-list">{detail.photos.map((photo) => <li key={photo.id}><a href={`/api/contracts/${contractId}/phase7-construction-checklist?photo=${photo.id}`} target="_blank" rel="noreferrer">{photo.name}</a></li>)}</ul>}</article>; })}</div></details>; })}</section>}
     {editable && <section className="phase6-confirm-bar"><div><strong>준공계를 접수하고 공사중 확인을 마쳤나요?</strong><small>체크상태를 확인한 뒤 담당자 승인으로만 준공 단계로 이동합니다.</small></div><button type="button" disabled={!!busy || needsInitialChecklist} onClick={completeConstruction}>{busy === "complete" ? "단계 변경 중…" : "준공 접수 확인"}</button></section>}
-  </>;
+  </div>;
 }

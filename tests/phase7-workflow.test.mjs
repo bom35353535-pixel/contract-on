@@ -49,6 +49,10 @@ test("Phase 7 field checks provide three states, detail records, photos, summari
   assert.match(component, /조치완료/);
   assert.match(component, /점검 이력/);
   assert.match(component, /field-check-group tone-/);
+  assert.match(component, /체크리스트 출력/);
+  assert.match(component, /window\.print\(\)/);
+  assert.match(component, /공사 현장 확인 체크리스트/);
+  assert.match(component, /업체 확인자/);
   assert.match(route, /construction-checklist\/\$\{contractId\}/);
   assert.doesNotMatch(route, /findConstructionChecklistCriteria|getVectorStoreId|isOpenAIConfigured/);
 });
