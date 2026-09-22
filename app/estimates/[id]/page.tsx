@@ -6,6 +6,7 @@ import { listContracts } from "@/lib/contracts";
 import type { QuotationExtraction } from "@/lib/estimate";
 import { listKnowledgeDocuments } from "@/lib/knowledge";
 import { getLatestQuotationReviewByAnalysis, getQuotationAnalysis } from "@/lib/quotations";
+import { loadRegisteredAuditCases } from "@/lib/audit-case-source";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
       rateReferenceText = null;
     }
   }
+  const auditLibrary = await loadRegisteredAuditCases(knowledgeDocuments);
   return <AppShell active="home" contractCount={contracts.length}><a className="back-link" href="/">← 새 견적서 선택으로</a><QuotationReview
     analysisId={id}
     originalName={record.analysis.originalName}
@@ -53,5 +55,7 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     knowledgePendingCount={knowledgePendingCount}
     rateReferenceDocumentName={rateReferenceDocument?.documentName ?? null}
     rateReferenceText={rateReferenceText}
+    auditCases={auditLibrary.cases}
+    auditSourceStatus={auditLibrary.status}
   /></AppShell>;
 }

@@ -18,6 +18,9 @@ import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
 import { getConstructionChecklist } from "@/lib/construction-checklist";
 import { getWarrantyWorkspace } from "@/lib/warranty";
 import { formatKoreanDate, getDdayLabel, getKoreanToday, getNextStage, isContractStage, STAGE_INFO } from "@/lib/workflow";
+import { listKnowledgeDocuments } from "@/lib/knowledge";
+import { loadRegisteredAuditCases } from "@/lib/audit-case-source";
+import { selectRelevantAuditCases } from "@/lib/audit-cases";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +46,11 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const requestedTab = (await searchParams)?.tab;
   const availableTabs = ["estimate", "documents", "contract-documents", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
-  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace] = await Promise.all([
+  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments] = await Promise.all([
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
     getPhase6DocumentWorkspace(id, "NARA_CONTRACT"), getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION"),
     getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id), getWarrantyWorkspace(id),
+    tab === "estimate" ? listKnowledgeDocuments() : Promise.resolve([]),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -57,6 +61,12 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const isStartDay = Boolean(contract.plannedStartDate && contract.plannedStartDate === getKoreanToday());
   const completionDday = getDdayLabel(contract.plannedCompletionDate, "준공", getKoreanToday());
   const isCompletionDay = Boolean(contract.plannedCompletionDate && contract.plannedCompletionDate === getKoreanToday());
+  const auditLibrary = tab === "estimate" ? await loadRegisteredAuditCases(knowledgeDocuments) : { status: "MISSING" as const, cases: [] };
+  const relatedAuditCases = quotation ? selectRelevantAuditCases(auditLibrary.cases, {
+    projectName: quotation.analysis.projectName, constructionType: quotation.analysis.constructionType,
+    totalAmount: quotation.analysis.totalAmount, plannedStartDate: quotation.analysis.plannedStartDate,
+    plannedCompletionDate: quotation.analysis.plannedCompletionDate,
+  }) : [];
   const details = [
     ["공사종류", contract.constructionType], ["공사목적", contract.purpose], ["공사장소", contract.location],
     ["계약방법", contract.contractMethod ?? "[확인 필요]"], ["견적금액", formatWon(contract.estimatedAmount)], ["계약금액", formatWon(contract.contractAmount)],
@@ -88,7 +98,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         <span>AI 업무비서<small>후속</small></span>
       </nav>
 
-      {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
+      {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} auditCases={relatedAuditCases} auditSourceStatus={auditLibrary.status} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
         contractId={id}
         currentStage={currentStage}
         purchaseDefault={buildPurchaseRequestContent(contract)}

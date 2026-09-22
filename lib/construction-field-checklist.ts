@@ -25,12 +25,25 @@ export type FieldChecklistDetail = {
   photos: FieldChecklistPhoto[];
 };
 
-export const FIELD_CHECKLIST_TEMPLATE_VERSION = 2;
+export const FIELD_CHECKLIST_TEMPLATE_VERSION = 3;
 
 const HIGH_RISK_TERMS = ["계약내용과", "계약내역 및 설계내용", "추가 작업", "임의", "변경이 필요한", "규격이 계약내용", "수량", "공법"];
 
 function toPoliteChecklistTitle(title: string) {
-  return title.endsWith("가") ? `${title.slice(0, -1)}지 확인해 주세요.` : title;
+  if (title.endsWith("확인해 주세요.")) return title;
+  return title
+    .replace(/있지는 않은가$/, "있지는 않나요?")
+    .replace(/있지 않은가$/, "있지 않나요?")
+    .replace(/있는가$/, "있나요?")
+    .replace(/않았는가$/, "않았나요?")
+    .replace(/않은가$/, "않나요?")
+    .replace(/없는가$/, "없나요?")
+    .replace(/했는가$/, "했나요?")
+    .replace(/되었는가$/, "되었나요?")
+    .replace(/하는가$/, "하나요?")
+    .replace(/한가$/, "한가요?")
+    .replace(/인가$/, "인가요?")
+    .replace(/는가$/, "나요?");
 }
 
 function section(prefix: string, category: string, group: string, titles: string[], keywords: string[] = []) {
@@ -66,8 +79,8 @@ export const COMMON_FIELD_CHECKLIST: FieldChecklistDefinition[] = [
     "계약내용과 다른 자재로 임의 대체하지 않았는가",
   ]),
   ...section("COMMON_QUALITY", "공통", "품질 및 환경", [
-    "디자인과 색상이 학교 공간 및 사용 목적에 적합한지 확인해 주세요.",
-    "사용된 자재가 친환경 자재인지 관련 표시·인증자료를 확인해 주세요.",
+    "디자인과 색상이 학교 공간 및 사용 목적에 적합한가",
+    "사용된 자재가 친환경 자재이며 관련 표시·인증자료가 있는가",
   ]),
   ...section("COMMON_RECORD", "공통", "기록", [
     "주요 공정의 작업 전·중·후 사진을 촬영하고 있는가",
@@ -82,7 +95,7 @@ export const COMMON_FIELD_CHECKLIST: FieldChecklistDefinition[] = [
     "소음·분진·악취 등이 학교 운영에 미치는 영향을 최소화하고 있는가",
     "작업 후 현장 정리 및 청소가 적절히 이루어지고 있는가",
     "폐기물 및 철거 잔재가 안전하게 보관·반출되고 있는가",
-    "모서리·돌출부·단차 등 학생이 다칠 수 있는 위험요소가 없는지 확인해 주세요.",
+    "모서리·돌출부·단차 등 학생이 다칠 수 있는 위험요소가 없는가",
   ]),
 ];
 

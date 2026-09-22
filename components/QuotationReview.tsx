@@ -7,6 +7,8 @@ import { CurrentRateReference } from "./CurrentRateReference";
 import { PreConfirmationReviewResults } from "./PreConfirmationReviewResults";
 import { SupplierSanctionCheck } from "./SupplierSanctionCheck";
 import { buildEvidenceTargets, type ReviewItem } from "@/lib/quotation-review";
+import { selectRelevantAuditCases, type AuditCase } from "@/lib/audit-cases";
+import { RelatedAuditCases } from "./RelatedAuditCases";
 
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
 type Props = {
@@ -19,6 +21,8 @@ type Props = {
   knowledgePendingCount: number;
   rateReferenceDocumentName: string | null;
   rateReferenceText: string | null;
+  auditCases: AuditCase[];
+  auditSourceStatus: "READY" | "MISSING" | "INVALID";
 };
 
 const mainFields = [
@@ -66,7 +70,7 @@ function parseMoney(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
 }
 
-export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText }: Props) {
+export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText, auditCases, auditSourceStatus }: Props) {
   const [data, setData] = useState(() => ({
     ...initial,
     constructionType: constructionTypeFromProjectName(initial.projectName),
@@ -185,6 +189,10 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     .filter((target) => target.section === "LABOR")
     .map((target) => ({ section: "LABOR", targetKey: target.targetKey, label: target.label, status: "CHECK", quotedValue: target.quotedValue, expectedValue: null, difference: null, differenceRate: null, calculation: null, detail: "견적검토를 실행하면 등록 노임단가와 비교합니다.", evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null }));
   const displayedReview = review ? { ...review, items: review.items.some((item) => item.section === "LABOR") ? review.items : [...review.items, ...laborPreview] } : { review: { warning: null }, items: laborPreview };
+  const relatedAuditCases = selectRelevantAuditCases(auditCases, {
+    projectName: data.projectName, constructionType: data.constructionType, totalAmount: data.totalAmount,
+    plannedStartDate: data.plannedStartDate, plannedCompletionDate: data.plannedCompletionDate,
+  });
 
   return (
     <>
@@ -245,6 +253,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <button className="run-review-action" type="button" disabled={!!busy || emptyCount > 0} onClick={runReview}>{busy === "review" ? "견적검토 중…" : "견적검토"}</button>
       </section>
       <PreConfirmationReviewResults result={displayedReview} />
+      {review && reviewFresh && <RelatedAuditCases cases={relatedAuditCases} sourceStatus={auditSourceStatus} />}
 
       {error && <p className="estimate-action-error" role="alert">{error}</p>}
       <div className="estimate-actions-space" aria-hidden="true" />

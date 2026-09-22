@@ -2,6 +2,8 @@ import type { QuotationAnalysisRecord, QuotationItemRecord, QuotationReviewItemR
 import { formatWon } from "@/lib/contracts";
 import { RunQuotationReviewButton } from "./RunQuotationReviewButton";
 import { LaborReviewRow } from "./LaborReviewRow";
+import { RelatedAuditCases } from "./RelatedAuditCases";
+import type { AuditCase } from "@/lib/audit-cases";
 
 const statusInfo = {
   NORMAL: { icon: "✓", label: "정상", className: "normal" },
@@ -17,7 +19,7 @@ type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[
 
 function shownMoney(value: number | null) { return value === null ? "[확인 필요]" : formatWon(Math.round(value)); }
 
-export function QuotationReviewDashboard({ contractId, quotation, review }: { contractId: string; quotation: Quotation; review: Review }) {
+export function QuotationReviewDashboard({ contractId, quotation, review, auditCases, auditSourceStatus }: { contractId: string; quotation: Quotation; review: Review; auditCases: AuditCase[]; auditSourceStatus: "READY" | "MISSING" | "INVALID" }) {
   if (!review) return <section className="review-start-card"><span className="review-start-icon">⌕</span><h2>등록자료 기반 견적검토를 시작하세요.</h2><p>수량×단가와 합계는 코드로 다시 계산하고, 직종별 노임과 제비율은 지식관리에 등록된 자료에서 확인합니다.</p><RunQuotationReviewButton contractId={contractId} /></section>;
 
   const summary = [
@@ -46,6 +48,7 @@ export function QuotationReviewDashboard({ contractId, quotation, review }: { co
         })}</div></article>;
       })}
     </section>
+    <RelatedAuditCases cases={auditCases} sourceStatus={auditSourceStatus} />
     <details className="confirmed-quotation-details"><summary>담당자가 확정한 견적서 추출정보 보기</summary><div className="review-card contract-estimate-card"><p className="estimate-source">원본: {quotation.analysis.originalName} · {quotation.analysis.confirmedAt?.slice(0, 10)} 확정</p><dl className="info-list">{[["총액", quotation.analysis.totalAmount], ["공급가액", quotation.analysis.supplyAmount], ["부가가치세", quotation.analysis.vatAmount], ["재료비", quotation.analysis.materialCost], ["직접노무비", quotation.analysis.directLaborCost], ["경비", quotation.analysis.expenses]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{shownMoney(value as number | null)}</dd></div>)}</dl></div></details>
   </>;
 }
