@@ -6,6 +6,7 @@ export type AuditCase = {
   relatedRegulations: string;
   actualCase: string;
   sourceText: string;
+  matchReason?: string;
 };
 
 export type AuditCaseContext = {
@@ -136,6 +137,37 @@ function amountScore(item: AuditCase, context: AuditCaseContext) {
   return 0;
 }
 
+function buildMatchReason(item: AuditCase, context: AuditCaseContext, matchedTokens: string[]) {
+  const title = normalize(item.title);
+  const amount = context.totalAmount;
+  const exceedsTwoTenMillionEstimatedPrice =
+    (context.supplyAmount !== null && context.supplyAmount !== undefined && context.supplyAmount > 20_000_000)
+    || (amount !== null && amount >= 22_000_000);
+
+  if (exceedsTwoTenMillionEstimatedPrice && /시설공사설계계약업무처리소홀/.test(title)) {
+    return "현재 공사금액이 추정가격 2천만 원 초과 여부를 확인해야 하는 구간이므로 계약방법과 원가계산 검토에 참고할 사례입니다.";
+  }
+  if (/철거/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`)) && /건설폐기물/.test(title)) {
+    return "현재 공사명에 철거 작업이 포함되어 있어 건설폐기물 처리와 정산 과정에서 발생한 지적사례를 안내합니다.";
+  }
+  if (/전기|조명|배선/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`)) && /전기.*분리발주/.test(title)) {
+    return "현재 공사에 전기·조명·배선 작업이 포함되어 있어 전기공사 분리발주 여부를 확인할 때 참고할 사례입니다.";
+  }
+  if (/소방|감지기|스프링클러|유도등/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`)) && /하자담보|분리발주/.test(title)) {
+    return "현재 공사에 소방 관련 작업이 포함되어 있어 분리발주 또는 하자담보 기준을 확인할 때 참고할 사례입니다.";
+  }
+  if (/인테리어|환경개선|교실개선|도서실개선|화장실개선|실내공사/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`))) {
+    return "현재 공사가 실내 환경개선 성격이므로 설계·업체선정·계약절차에서 발생한 유사 지적사례를 안내합니다.";
+  }
+  if (matchedTokens.length > 0) {
+    return `현재 공사명·공종의 핵심어(${matchedTokens.slice(0, 2).join(", ")})가 이 사례의 공사내용과 일치하여 안내합니다.`;
+  }
+  if (amountScore(item, context) > 0) {
+    return "현재 공사금액이 이 감사사례에서 다루는 계약·정산 기준과 관련되어 있어 안내합니다.";
+  }
+  return "현재 공사의 공종과 업무단계가 이 감사사례의 지적내용과 관련되어 있어 참고 사례로 안내합니다.";
+}
+
 export function selectRelevantAuditCases(cases: AuditCase[], context: AuditCaseContext, limit = 5) {
   const projectText = normalize(`${context.projectName || ""} ${context.constructionType || ""}`);
   const tokens = [`${context.projectName || ""}`, `${context.constructionType || ""}`]
@@ -144,8 +176,12 @@ export function selectRelevantAuditCases(cases: AuditCase[], context: AuditCaseC
   return cases.map((item) => {
     const haystack = normalize(`${item.title} ${item.sourceText}`);
     let score = curatedScore(normalize(item.title), projectText) + amountScore(item, context);
-    for (const token of tokens) if (haystack.includes(token)) score += item.title.includes(token) ? 6 : 2;
+    const matchedTokens = tokens.filter((token) => haystack.includes(token));
+    for (const token of matchedTokens) score += normalize(item.title).includes(token) ? 6 : 2;
     if (days !== null && /공사기간|준공기한|지연/.test(item.sourceText) && /기간|준공|지연/.test(projectText)) score += 3;
-    return { item, score };
-  }).filter(({ score }) => score >= 6).sort((a, b) => b.score - a.score || a.item.sourceCaseNumber - b.item.sourceCaseNumber).slice(0, Math.max(1, Math.min(limit, 5))).map(({ item }) => item);
+    return { item, score, matchedTokens };
+  }).filter(({ score }) => score >= 6).sort((a, b) => b.score - a.score || a.item.sourceCaseNumber - b.item.sourceCaseNumber).slice(0, Math.max(1, Math.min(limit, 5))).map(({ item, matchedTokens }) => ({
+    ...item,
+    matchReason: buildMatchReason(item, context, matchedTokens),
+  }));
 }

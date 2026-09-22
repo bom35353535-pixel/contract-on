@@ -22,6 +22,8 @@ test("quotation review adds only a compact related-audit section", async () => {
   assert.match(dashboard, /RelatedAuditCases/);
   assert.match(component, /관련 감사사례/);
   assert.match(component, /현재 공사정보와 직접 관련된 감사사례가 없습니다/);
+  assert.match(component, /이 사례를 보여주는 이유/);
+  assert.doesNotMatch(component, /<p>{item\.summary}<\/p>/);
   assert.match(component, /관련 규정/);
   assert.match(component, /실제 감사사례/);
   assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_감사사례만\.md/);
@@ -48,4 +50,5 @@ test("22 million won contract prioritizes the design and contracting audit case"
     plannedStartDate: null, plannedCompletionDate: null,
   });
   assert.equal(selected[0].title, "시설공사 설계 계약업무 처리 소홀");
+  assert.match(selected[0].matchReason, /공사금액|추정가격/);
 });
