@@ -231,3 +231,11 @@ test("contract and commitment completion navigate to the newly active work stage
   assert.match(advance, /body\.nextStage \?\? body\.transition\?\.nextStage/);
   assert.match(advance, /window\.location\.assign\(`\/contracts\/\$\{contractId\}\?tab=construction-documents`\)/);
 });
+
+test("contract completion uses an app dialog without the site-address prefix", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /completionConfirmOpen/);
+  assert.match(workspace, /role="alertdialog"/);
+  assert.match(workspace, /phase6-complete-confirm-title/);
+  assert.doesNotMatch(workspace, /window\.confirm/);
+});
