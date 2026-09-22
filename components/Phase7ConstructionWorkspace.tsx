@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ConstructionChecklistItemRecord, ConstructionChecklistRunRecord } from "@/db/schema";
-import { getReviewGuidance, parseFieldChecklistDetail, type FieldCheckStatus } from "@/lib/construction-field-checklist";
+import { FIELD_CHECKLIST_TEMPLATE_VERSION, getReviewGuidance, parseFieldChecklistDetail, type FieldCheckStatus } from "@/lib/construction-field-checklist";
 
 type HistoryEntry = { run: ConstructionChecklistRunRecord; items: ConstructionChecklistItemRecord[] };
 type Props = {
@@ -44,7 +44,10 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, run, ite
   const editable = currentStage === "IN_CONSTRUCTION";
   const counts = statusCounts(items);
   const reviewItems = items.filter((item) => item.status === "NEEDS_REVIEW");
-  const needsInitialChecklist = !run || items.length === 0 || items.every((item) => parseFieldChecklistDetail(item.detail).templateId === "LEGACY");
+  const needsInitialChecklist = !run || items.length === 0 || items.some((item) => {
+    const detail = parseFieldChecklistDetail(item.detail);
+    return detail.templateId === "LEGACY" || detail.templateVersion !== FIELD_CHECKLIST_TEMPLATE_VERSION;
+  });
 
   const grouped = new Map<string, Map<string, ConstructionChecklistItemRecord[]>>();
   for (const item of items) {

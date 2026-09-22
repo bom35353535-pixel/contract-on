@@ -28,6 +28,10 @@ test("Phase 7 construction checklist combines common and inferred trade checks w
   assert.ok(bathroom.categories.includes("기계·설비"));
   assert.ok(bathroom.categories.includes("전기"));
   assert.ok(bathroom.items.some((item) => item.group === "공정"));
+  assert.ok(bathroom.items.some((item) => item.title.includes("학생이 다칠 수 있는 위험요소")));
+  assert.ok(bathroom.items.some((item) => item.title.includes("디자인과 색상")));
+  assert.ok(bathroom.items.some((item) => item.title.includes("친환경 자재")));
+  assert.ok(bathroom.items.every((item) => item.title.endsWith("확인해 주세요.")));
   assert.equal(new Set(bathroom.items.map((item) => item.title.replace(/[^0-9a-z가-힣]/gi, ""))).size, bathroom.items.length);
   const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(detail, /tab=field-inspection|tab=site-inspection/);

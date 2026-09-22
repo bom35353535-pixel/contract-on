@@ -14,6 +14,7 @@ export type FieldChecklistDefinition = {
 export type FieldChecklistPhoto = { id: string; name: string; storageKey: string };
 export type FieldChecklistDetail = {
   templateId: string;
+  templateVersion: number;
   category: string;
   group: string;
   importance: FieldCheckImportance;
@@ -24,10 +25,18 @@ export type FieldChecklistDetail = {
   photos: FieldChecklistPhoto[];
 };
 
+export const FIELD_CHECKLIST_TEMPLATE_VERSION = 2;
+
 const HIGH_RISK_TERMS = ["계약내용과", "계약내역 및 설계내용", "추가 작업", "임의", "변경이 필요한", "규격이 계약내용", "수량", "공법"];
 
+function toPoliteChecklistTitle(title: string) {
+  return title.endsWith("가") ? `${title.slice(0, -1)}지 확인해 주세요.` : title;
+}
+
 function section(prefix: string, category: string, group: string, titles: string[], keywords: string[] = []) {
-  return titles.map((title, index): FieldChecklistDefinition => ({
+  return titles.map((sourceTitle, index): FieldChecklistDefinition => {
+    const title = toPoliteChecklistTitle(sourceTitle);
+    return ({
     id: `${prefix}_${String(index + 1).padStart(3, "0")}`,
     category,
     group,
@@ -35,7 +44,8 @@ function section(prefix: string, category: string, group: string, titles: string
     importance: HIGH_RISK_TERMS.some((term) => title.includes(term)) ? "high" : "normal",
     keywords,
     enabled: true,
-  }));
+    });
+  });
 }
 
 export const COMMON_FIELD_CHECKLIST: FieldChecklistDefinition[] = [
@@ -55,6 +65,10 @@ export const COMMON_FIELD_CHECKLIST: FieldChecklistDefinition[] = [
     "현장에 반입된 주요 자재의 규격 및 수량을 확인했는가",
     "계약내용과 다른 자재로 임의 대체하지 않았는가",
   ]),
+  ...section("COMMON_QUALITY", "공통", "품질 및 환경", [
+    "디자인과 색상이 학교 공간 및 사용 목적에 적합한지 확인해 주세요.",
+    "사용된 자재가 친환경 자재인지 관련 표시·인증자료를 확인해 주세요.",
+  ]),
   ...section("COMMON_RECORD", "공통", "기록", [
     "주요 공정의 작업 전·중·후 사진을 촬영하고 있는가",
     "천장 내부, 벽체 내부, 배관, 배선 등 마감 후 확인하기 어려운 부분을 시공 전에 사진으로 남겼는가",
@@ -68,6 +82,7 @@ export const COMMON_FIELD_CHECKLIST: FieldChecklistDefinition[] = [
     "소음·분진·악취 등이 학교 운영에 미치는 영향을 최소화하고 있는가",
     "작업 후 현장 정리 및 청소가 적절히 이루어지고 있는가",
     "폐기물 및 철거 잔재가 안전하게 보관·반출되고 있는가",
+    "모서리·돌출부·단차 등 학생이 다칠 수 있는 위험요소가 없는지 확인해 주세요.",
   ]),
 ];
 
@@ -163,19 +178,19 @@ export function getApplicableFieldChecklist(constructionType: string, projectNam
 }
 
 export function createFieldChecklistDetail(item: FieldChecklistDefinition, order: number): FieldChecklistDetail {
-  return { templateId: item.id, category: item.category, group: item.group, importance: item.importance, order, memo: "", actionNote: "", resolved: false, photos: [] };
+  return { templateId: item.id, templateVersion: FIELD_CHECKLIST_TEMPLATE_VERSION, category: item.category, group: item.group, importance: item.importance, order, memo: "", actionNote: "", resolved: false, photos: [] };
 }
 
 export function parseFieldChecklistDetail(value: string): FieldChecklistDetail {
   try {
     const parsed = JSON.parse(value) as Partial<FieldChecklistDetail>;
     return {
-      templateId: parsed.templateId || "LEGACY", category: parsed.category || "공통", group: parsed.group || "기타",
+      templateId: parsed.templateId || "LEGACY", templateVersion: Number(parsed.templateVersion || 1), category: parsed.category || "공통", group: parsed.group || "기타",
       importance: parsed.importance === "high" ? "high" : "normal", order: Number(parsed.order || 0), memo: parsed.memo || "",
       actionNote: parsed.actionNote || "", resolved: Boolean(parsed.resolved), photos: Array.isArray(parsed.photos) ? parsed.photos : [],
     };
   } catch {
-    return { templateId: "LEGACY", category: "공통", group: "기타", importance: "normal", order: 0, memo: value, actionNote: "", resolved: false, photos: [] };
+    return { templateId: "LEGACY", templateVersion: 1, category: "공통", group: "기타", importance: "normal", order: 0, memo: value, actionNote: "", resolved: false, photos: [] };
   }
 }
 
