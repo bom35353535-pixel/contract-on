@@ -21,7 +21,8 @@ export async function confirmWarranty(contractId: string, criterionId: string, s
   await ensureDatabase(); const d1 = getD1();
   const contract = await d1.prepare("SELECT current_stage AS stage FROM contracts WHERE id = ?").bind(contractId).first<{ stage: string }>();
   if (!contract) throw new Error("계약 정보를 찾을 수 없습니다.");
-  if (contract.stage !== "FINISHED") throw new Error("공사완료 계약에서만 하자기간을 확정할 수 있습니다.");
+  const existingWarranty = await d1.prepare("SELECT contract_id FROM contract_warranties WHERE contract_id = ?").bind(contractId).first<{ contract_id: string }>();
+  if (contract.stage !== "FINISHED" && !existingWarranty) throw new Error("공사완료 계약에서만 하자기간을 확정할 수 있습니다.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) throw new Error("하자담보 시작일을 확인해 주세요.");
   const criterion = await d1.prepare("SELECT work_name AS workName, warranty_years AS warrantyYears, bond_rate AS bondRate FROM warranty_criteria WHERE id = ?").bind(criterionId).first<{ workName: string; warrantyYears: number; bondRate: number | null }>();
   if (!criterion) throw new Error("하자기간 기준을 선택해 주세요.");

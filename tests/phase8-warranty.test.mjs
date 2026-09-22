@@ -33,6 +33,13 @@ test("Phase 8 prioritizes the specific interior work criterion over the broad bu
   assert.equal(suggestWarrantyCriterion(criteria, "본관 내력벽 보강공사", "건축공사")?.id, "W03");
 });
 
+test("Phase 8 replaces a stale structural criterion and allows an existing warranty to be corrected", async () => {
+  const component = await readFile(new URL("../components/Phase8WarrantyWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(component, /storedCriterionId==="W03"&&suggested\?\.id==="W06"/);
+  assert.match(component, /currentStage==="FINISHED"\|\|!!warranty/);
+  assert.match(component, /실내의장·마감공사 기준/);
+});
+
 test("Phase 8 ledger templates retain their VBA projects", async () => {
   for (const name of ["공사대장.xlsm", "하자대장.xlsm"]) {
     const bytes = await readFile(new URL(`../public/templates/${name}`, import.meta.url));
