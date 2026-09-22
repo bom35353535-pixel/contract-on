@@ -192,7 +192,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     .map((target) => ({ section: "LABOR", targetKey: target.targetKey, label: target.label, status: "CHECK", quotedValue: target.quotedValue, expectedValue: null, difference: null, differenceRate: null, calculation: null, detail: "견적검토를 실행하면 등록 노임단가와 비교합니다.", evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null }));
   const displayedReview = review ? { ...review, items: review.items.some((item) => item.section === "LABOR") ? review.items : [...review.items, ...laborPreview] } : { review: { warning: null }, items: laborPreview };
   const relatedAuditCases = selectRelevantAuditCases(auditCases, {
-    projectName: data.projectName, constructionType: data.constructionType, totalAmount: data.totalAmount,
+    projectName: data.projectName, constructionType: data.constructionType, totalAmount: data.totalAmount, supplyAmount: data.supplyAmount,
     plannedStartDate: data.plannedStartDate, plannedCompletionDate: data.plannedCompletionDate,
   });
 

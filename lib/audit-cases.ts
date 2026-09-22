@@ -12,6 +12,7 @@ export type AuditCaseContext = {
   projectName: string | null;
   constructionType: string | null;
   totalAmount: number | null;
+  supplyAmount?: number | null;
   plannedStartDate: string | null;
   plannedCompletionDate: string | null;
 };
@@ -113,10 +114,20 @@ function curatedScore(title: string, projectText: string) {
   return score;
 }
 
-function amountScore(item: AuditCase, amount: number | null) {
-  if (!amount) return 0;
+function amountScore(item: AuditCase, context: AuditCaseContext) {
+  const amount = context.totalAmount;
+  if (!amount && !context.supplyAmount) return 0;
   const source = normalize(item.sourceText);
   const title = normalize(item.title);
+  const exceedsTwoTenMillionEstimatedPrice =
+    (context.supplyAmount !== null && context.supplyAmount !== undefined && context.supplyAmount > 20_000_000)
+    || (amount !== null && amount >= 22_000_000);
+  if (
+    exceedsTwoTenMillionEstimatedPrice
+    && /시설공사설계계약업무처리소홀/.test(title)
+    && /(2천만원|20000000)/.test(source)
+  ) return 30;
+  if (!amount) return 0;
   if (amount > 10_000_000 && /인지세/.test(title) && /(1천만원|10000000)/.test(source)) return 7;
   if (amount >= 15_000_000 && /(?:면허|도급자선정)/.test(title) && /(1천5백만원|15000000)/.test(source)) return 7;
   if (amount >= 20_000_000 && /(?:수의계약|산업안전보건관리비)/.test(title) && /(2천만원|20000000)/.test(source)) return 6;
@@ -132,7 +143,7 @@ export function selectRelevantAuditCases(cases: AuditCase[], context: AuditCaseC
   const days = durationDays(context.plannedStartDate, context.plannedCompletionDate);
   return cases.map((item) => {
     const haystack = normalize(`${item.title} ${item.sourceText}`);
-    let score = curatedScore(normalize(item.title), projectText) + amountScore(item, context.totalAmount);
+    let score = curatedScore(normalize(item.title), projectText) + amountScore(item, context);
     for (const token of tokens) if (haystack.includes(token)) score += item.title.includes(token) ? 6 : 2;
     if (days !== null && /공사기간|준공기한|지연/.test(item.sourceText) && /기간|준공|지연/.test(projectText)) score += 3;
     return { item, score };

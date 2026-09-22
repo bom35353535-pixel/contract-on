@@ -27,3 +27,25 @@ test("quotation review adds only a compact related-audit section", async () => {
   assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_감사사례만\.md/);
   assert.doesNotMatch(source, /openai|generate|chat/i);
 });
+
+test("22 million won contract prioritizes the design and contracting audit case", async () => {
+  const { parseAuditCases, selectRelevantAuditCases } = await import(new URL("../lib/audit-cases.ts", import.meta.url).href);
+  const source = `# 1. 시설공사 설계 계약업무 처리 소홀
+## 관련 규정
+추정가격이 2천만 원 이하가 아닌 경우 전자조달시스템을 이용하여 2인 이상으로부터 견적서를 제출받아야 함.
+## 〈사례〉
+설계금액이 23,088,000원임에도 적용률을 줄여 1인 수기견적으로 계약한 사례입니다.
+
+# 16. 설계변경 업무 부적정
+## 관련 규정
+설계변경 관련 규정
+## 〈사례〉
+정식 설계변경 절차 없이 공사를 진행한 사례입니다.`;
+  const cases = parseAuditCases(source);
+  const selected = selectRelevantAuditCases(cases, {
+    projectName: "교실 환경개선공사", constructionType: "건축공사",
+    totalAmount: 22_000_000, supplyAmount: 20_000_000,
+    plannedStartDate: null, plannedCompletionDate: null,
+  });
+  assert.equal(selected[0].title, "시설공사 설계 계약업무 처리 소홀");
+});

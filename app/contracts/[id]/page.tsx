@@ -64,7 +64,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const auditLibrary = tab === "estimate" ? await loadRegisteredAuditCases(knowledgeDocuments) : { status: "MISSING" as const, cases: [] };
   const relatedAuditCases = quotation ? selectRelevantAuditCases(auditLibrary.cases, {
     projectName: quotation.analysis.projectName, constructionType: quotation.analysis.constructionType,
-    totalAmount: quotation.analysis.totalAmount, plannedStartDate: quotation.analysis.plannedStartDate,
+    totalAmount: quotation.analysis.totalAmount, supplyAmount: quotation.analysis.supplyAmount, plannedStartDate: quotation.analysis.plannedStartDate,
     plannedCompletionDate: quotation.analysis.plannedCompletionDate,
   }) : [];
   const details = [
