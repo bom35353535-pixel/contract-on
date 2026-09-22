@@ -156,6 +156,15 @@ function buildMatchReason(item: AuditCase, context: AuditCaseContext, matchedTok
   if (/소방|감지기|스프링클러|유도등/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`)) && /하자담보|분리발주/.test(title)) {
     return "현재 공사에 소방 관련 작업이 포함되어 있어 분리발주 또는 하자담보 기준을 확인할 때 참고할 사례입니다.";
   }
+  if (/분할수의계약/.test(title)) {
+    return "현재 공사와 같은 시기·장소에 유사 공사를 별도로 계약할 경우 분할계약 여부를 점검하기 위한 참고 사례입니다. 현재 공사가 분할계약이라는 의미는 아닙니다.";
+  }
+  if (/도급자선정부적정/.test(title)) {
+    return "현재 공종에 필요한 업종·면허와 계약업체의 자격이 맞는지 확인할 때 참고할 사례입니다.";
+  }
+  if (/설계변경/.test(title)) {
+    return "공사 중 범위·수량·금액이 달라질 경우 정식 설계변경 절차가 필요한지 확인할 때 참고할 사례입니다.";
+  }
   if (/인테리어|환경개선|교실개선|도서실개선|화장실개선|실내공사/.test(normalize(`${context.projectName || ""} ${context.constructionType || ""}`))) {
     return "현재 공사가 실내 환경개선 성격이므로 설계·업체선정·계약절차에서 발생한 유사 지적사례를 안내합니다.";
   }
