@@ -30,11 +30,14 @@ test("Phase 5 creates reusable purchase request text from the contract record", 
 
 test("Phase 5 builds the construction plan from the registered Markdown template", async () => {
   const { buildConstructionPlanContent } = await import(moduleUrl.href);
-  const content = buildConstructionPlanContent(contract, "# 공사계획 수립\n\n- 공사명: {{공사명}}\n- 공사금액: {{공사금액}}\n**검토사항**");
-  assert.match(content, /공사계획 수립/);
+  const reference = "수신: 내부결재\n(경유)\n제목: 예시 공사 추진 계획(안)\n보충설명\n작성 시 참고사항";
+  const content = buildConstructionPlanContent(contract, reference);
+  assert.match(content, /^제목: 본관 옥상 방수공사 추진 계획\(안\)/);
   assert.match(content, /본관 옥상 방수공사/);
   assert.match(content, /11,000,000원/);
-  assert.doesNotMatch(content, /\*\*|^#/m);
+  assert.match(content, /1\. 공 사 명:/);
+  assert.match(content, /6\. 계약업체:/);
+  assert.doesNotMatch(content, /수신|경유|보충설명|작성 시 참고사항|\*\*|^#/m);
 });
 
 test("Phase 5 exposes a source-backed editable construction plan without advancing the workflow", async () => {
