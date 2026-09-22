@@ -11,7 +11,7 @@ import { Phase7InspectionWorkspace } from "@/components/Phase7InspectionWorkspac
 import { Phase8WarrantyWorkspace } from "@/components/Phase8WarrantyWorkspace";
 import { StageTimeline } from "@/components/StageTimeline";
 import { formatWon, getContract, getContractHistory, getDeadlineForContract, listContracts } from "@/lib/contracts";
-import { buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
+import { buildConstructionPlanContent, buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
 import { getAdministrativeDocuments } from "@/lib/administrative-documents";
 import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
 import { getPhase6DocumentWorkspace } from "@/lib/phase6-documents";
@@ -21,6 +21,7 @@ import { formatKoreanDate, getDdayLabel, getKoreanToday, getNextStage, isContrac
 import { listKnowledgeDocuments } from "@/lib/knowledge";
 import { loadRegisteredAuditCases } from "@/lib/audit-case-source";
 import { selectRelevantAuditCases } from "@/lib/audit-cases";
+import { loadRegisteredConstructionPlanTemplate } from "@/lib/construction-plan-source";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
     getPhase6DocumentWorkspace(id, "NARA_CONTRACT"), getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION"),
     getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id), getWarrantyWorkspace(id),
-    tab === "estimate" ? listKnowledgeDocuments() : Promise.resolve([]),
+    tab === "estimate" || tab === "documents" ? listKnowledgeDocuments() : Promise.resolve([]),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -62,6 +63,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const completionDday = getDdayLabel(contract.plannedCompletionDate, "준공", getKoreanToday());
   const isCompletionDay = Boolean(contract.plannedCompletionDate && contract.plannedCompletionDate === getKoreanToday());
   const auditLibrary = tab === "estimate" ? await loadRegisteredAuditCases(knowledgeDocuments) : { status: "MISSING" as const, cases: [] };
+  const planTemplate = tab === "documents" ? await loadRegisteredConstructionPlanTemplate(knowledgeDocuments) : { status: "MISSING" as const, text: "", documentName: null };
   const relatedAuditCases = quotation ? selectRelevantAuditCases(auditLibrary.cases, {
     projectName: quotation.analysis.projectName, constructionType: quotation.analysis.constructionType,
     totalAmount: quotation.analysis.totalAmount, supplyAmount: quotation.analysis.supplyAmount, plannedStartDate: quotation.analysis.plannedStartDate,
@@ -101,6 +103,9 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
       {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} auditCases={relatedAuditCases} auditSourceStatus={auditLibrary.status} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
         contractId={id}
         currentStage={currentStage}
+        planDefault={buildConstructionPlanContent(contract, planTemplate.text)}
+        planSourceName={planTemplate.documentName}
+        planSourceStatus={planTemplate.status}
         purchaseDefault={buildPurchaseRequestContent(contract)}
         internalDefault={buildInternalApprovalContent(contract)}
         documents={administrativeDocuments}
@@ -126,7 +131,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
       /> : tab === "inspection" ? <Phase7InspectionWorkspace
         contractId={id} currentStage={currentStage} inspectionDate={contract.inspectionDate} paymentDate={contract.paymentDate}
       /> : tab === "warranty" ? <Phase8WarrantyWorkspace
-        contractId={id} currentStage={currentStage} constructionType={contract.constructionType}
+        contractId={id} currentStage={currentStage} projectName={contract.projectName} constructionType={contract.constructionType}
         defaultStartDate={contract.inspectionDate ?? contract.actualCompletionDate}
         criteria={warrantyWorkspace.criteria} warranty={warrantyWorkspace.warranty} inspections={warrantyWorkspace.inspections}
       /> : <section className="detail-grid">

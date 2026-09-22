@@ -2,10 +2,11 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppDialog } from "./AppDialog";
+import { suggestWarrantyCriterion } from "@/lib/warranty-selection";
 type Criterion={id:string;category:string;workName:string;warrantyYears:number;bondRate:number|null;sourceName:string;sourcePage:string;sourceExcerpt:string};
 type Inspection={id:number;sequence:number;scheduledDate:string;status:string;inspectedAt:string|null};
-export function Phase8WarrantyWorkspace({contractId,currentStage,constructionType,defaultStartDate,criteria,warranty,inspections}:{contractId:string;currentStage:string;constructionType:string;defaultStartDate:string|null;criteria:Criterion[];warranty:Record<string,unknown>|null;inspections:Inspection[]}){
- const router=useRouter(); const suggested=useMemo(()=>criteria.find(c=>c.workName.includes(constructionType)||constructionType.includes(c.category)),[criteria,constructionType]);
+export function Phase8WarrantyWorkspace({contractId,currentStage,projectName,constructionType,defaultStartDate,criteria,warranty,inspections}:{contractId:string;currentStage:string;projectName:string;constructionType:string;defaultStartDate:string|null;criteria:Criterion[];warranty:Record<string,unknown>|null;inspections:Inspection[]}){
+ const router=useRouter(); const suggested=useMemo(()=>suggestWarrantyCriterion(criteria,projectName,constructionType),[criteria,projectName,constructionType]);
  const [criterionId,setCriterionId]=useState(String(warranty?.criterionId??suggested?.id??criteria[0]?.id??"")); const [startDate,setStartDate]=useState(String(warranty?.warrantyStartDate??defaultStartDate??"")); const [busy,setBusy]=useState(""); const [error,setError]=useState(""); const [confirmOpen,setConfirmOpen]=useState(false); const selected=criteria.find(c=>c.id===criterionId);
  async function act(body:Record<string,unknown>,key:string){setBusy(key);setError("");try{const response=await fetch(`/api/contracts/${contractId}/warranty`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||"저장하지 못했습니다.");router.refresh();}catch(reason){setError(reason instanceof Error?reason.message:"저장하지 못했습니다.");}finally{setBusy("");}}
  function requestConfirm(){if(!selected)return setError("하자기간 기준을 선택해 주세요.");setConfirmOpen(true);}

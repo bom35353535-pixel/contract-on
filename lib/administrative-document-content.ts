@@ -21,6 +21,32 @@ function shownPeriod(contract: Pick<ContractDraftSource, "plannedStartDate" | "p
   return `${shownDate(contract.plannedStartDate)} ~ ${shownDate(contract.plannedCompletionDate)}`;
 }
 
+function editableMarkdown(value: string) {
+  return value
+    .replace(/```[^\n]*\n?/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/^\s*---+\s*$/gm, "")
+    .replace(/\\\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function buildConstructionPlanContent(contract: ContractDraftSource, registeredTemplate: string) {
+  const template = editableMarkdown(registeredTemplate);
+  if (!template) return "";
+  const replacements: Array<[RegExp, string]> = [
+    [/\{\{\s*공사명\s*\}\}|\[\[\s*공사명\s*\]\]/g, contract.projectName],
+    [/\{\{\s*공사목적\s*\}\}|\[\[\s*공사목적\s*\]\]/g, contract.purpose],
+    [/\{\{\s*공사장소\s*\}\}|\[\[\s*공사장소\s*\]\]/g, contract.location],
+    [/\{\{\s*공사기간\s*\}\}|\[\[\s*공사기간\s*\]\]/g, shownPeriod(contract)],
+    [/\{\{\s*공사금액\s*\}\}|\[\[\s*공사금액\s*\]\]/g, shownMoney(contract.contractAmount)],
+    [/\{\{\s*계약업체\s*\}\}|\[\[\s*계약업체\s*\]\]/g, contract.companyName],
+  ];
+  return replacements.reduce((content, [pattern, replacement]) => content.replace(pattern, replacement), template);
+}
+
 export function buildPurchaseRequestContent(contract: ContractDraftSource) {
   return [
     `${contract.projectName} 공사를 다음과 같이 시행하고자 합니다.`,

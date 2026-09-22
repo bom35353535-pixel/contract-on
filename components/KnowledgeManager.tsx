@@ -52,6 +52,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
   const [notice, setNotice] = useState<{ title: string; message?: string } | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [pendingForceId, setPendingForceId] = useState<string | null>(null);
+  const orderedDocuments = [...documents].sort((left, right) => left.documentName.localeCompare(right.documentName, "ko-KR", { numeric: true, sensitivity: "base" }) || left.originalName.localeCompare(right.originalName, "ko-KR", { numeric: true, sensitivity: "base" }));
 
   function chooseFile(next: File | null) {
     if (next && next.size > LARGE_KNOWLEDGE_MAX_FILE_SIZE) {
@@ -273,7 +274,7 @@ export function KnowledgeManager({ initialDocuments, configured }: { initialDocu
         ) : (
           <div className="knowledge-table">
             <div className="knowledge-table-head"><span>문서</span><span>분류</span><span>기준/적용기간</span><span>검색 상태</span><span>등록일</span><span /></div>
-            {documents.map((document) => (
+            {orderedDocuments.map((document) => (
               <div className="knowledge-table-row" key={document.id}>
                 <span className="document-cell"><strong>{document.documentName}</strong><small>{document.originalName} · {(document.sizeBytes / 1024).toFixed(1)}KB</small></span>
                 <span><span className="category-pill">{document.category}</span></span>

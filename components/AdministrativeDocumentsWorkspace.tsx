@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AdministrativeDocumentRecord } from "@/db/schema";
 
-type AdministrativeDocumentType = "PURCHASE_REQUEST" | "INTERNAL_APPROVAL";
+type AdministrativeDocumentType = "CONSTRUCTION_PLAN" | "PURCHASE_REQUEST" | "INTERNAL_APPROVAL";
 
 function replaceContractMethod(content: string, contractMethod: string) {
   const value = contractMethod.trim() || "[담당자 확인 필요]";
@@ -16,6 +16,9 @@ function replaceContractMethod(content: string, contractMethod: string) {
 type Props = {
   contractId: string;
   currentStage: string;
+  planDefault: string;
+  planSourceName: string | null;
+  planSourceStatus: "READY" | "MISSING" | "INVALID";
   purchaseDefault: string;
   internalDefault: string;
   documents: AdministrativeDocumentRecord[];
@@ -52,10 +55,12 @@ function RecommendationContent({ text }: { text: string }) {
   })}</div>;
 }
 
-export function AdministrativeDocumentsWorkspace({ contractId, currentStage, purchaseDefault, internalDefault, documents, initialContractMethod }: Props) {
+export function AdministrativeDocumentsWorkspace({ contractId, currentStage, planDefault, planSourceName, planSourceStatus, purchaseDefault, internalDefault, documents, initialContractMethod }: Props) {
   const router = useRouter();
+  const planRecord = documents.find((document) => document.documentType === "CONSTRUCTION_PLAN");
   const purchaseRecord = documents.find((document) => document.documentType === "PURCHASE_REQUEST");
   const internalRecord = documents.find((document) => document.documentType === "INTERNAL_APPROVAL");
+  const [planContent, setPlanContent] = useState(planRecord?.content || planDefault);
   const [purchaseContent, setPurchaseContent] = useState(purchaseRecord?.content || purchaseDefault);
   const defaultContractMethod = internalRecord?.contractMethod || initialContractMethod || "나라장터 전자계약";
   const [internalContent, setInternalContent] = useState(() => replaceContractMethod(internalRecord?.content || internalDefault, defaultContractMethod));
@@ -83,19 +88,20 @@ export function AdministrativeDocumentsWorkspace({ contractId, currentStage, pur
   }
 
   async function saveDocument(documentType: AdministrativeDocumentType, confirm: boolean) {
+    const isPlan = documentType === "CONSTRUCTION_PLAN";
     const isPurchase = documentType === "PURCHASE_REQUEST";
-    const content = isPurchase ? purchaseContent : internalContent;
+    const content = isPlan ? planContent : isPurchase ? purchaseContent : internalContent;
     if (!content.trim()) { setError("문서 내용을 입력해 주세요."); return; }
     if (!isPurchase && confirm && !contractMethod.trim()) { setError("최종 계약방법을 담당자가 입력해 주세요."); return; }
     setBusy(`${documentType}:${confirm ? "confirm" : "save"}`); setError(""); setMessage("");
     try {
       const response = await fetch(`/api/contracts/${contractId}/administrative-documents`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ documentType, content, contractMethod: isPurchase ? null : contractMethod, confirm }),
+        body: JSON.stringify({ documentType, content, contractMethod: isPlan || isPurchase ? null : contractMethod, confirm }),
       });
       const result = await response.json() as ApiResult;
       if (!response.ok) throw new Error(result.error || "문서를 저장하지 못했습니다.");
-      setMessage(confirm ? "완료 확인과 업무단계 변경을 저장했습니다." : "작성 중인 내용을 저장했습니다.");
+      setMessage(confirm ? "완료 확인과 업무단계 변경을 저장했습니다." : `${isPlan ? "공사계획서" : "작성 중인 내용"}을 저장했습니다.`);
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "문서를 저장하지 못했습니다.");
@@ -144,20 +150,29 @@ export function AdministrativeDocumentsWorkspace({ contractId, currentStage, pur
       </section>
     </div>}
     <section className="administrative-workspace-head">
-      <div><span className="section-kicker">Phase 5 · 품의/내부기안</span><h2>계약정보를 다시 입력하지 않고 행정문안을 만듭니다.</h2><p>문안을 수정하고 복사한 뒤, 실제 행정처리를 마친 경우에만 완료 버튼을 눌러주세요.</p></div>
+      <div><span className="section-kicker">Phase 5 · 계획서/품의/내부기안</span><h2>계약정보를 다시 입력하지 않고 행정문안을 만듭니다.</h2><p>등록된 계획서 양식과 계약정보를 활용해 문안을 수정하고 복사할 수 있습니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
 
+    <section className="administrative-document-card plan-document-card">
+      <div className="document-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">등록양식 활용</span><h3>공사계획서</h3></div></div><span className={`document-status ${planSourceStatus === "READY" ? "current" : "waiting"}`}>{planSourceStatus === "READY" ? "작성 가능" : "양식 확인 필요"}</span></div>
+      {planSourceStatus === "READY" ? <>
+        <div className="plan-source-note"><strong>양식 근거</strong><span>{planSourceName || "공사계약 Q&A 및 사례연습(2025. 6.)_공사계획수립 내부기안문.md"}</span></div>
+        <textarea className="administrative-editor plan-editor" value={planContent} onChange={(event) => setPlanContent(event.target.value)} aria-label="공사계획서" />
+        <div className="document-actions"><button type="button" className="copy-document-button" onClick={() => copyText(planContent, "공사계획서")}>공사계획서 복사</button><button type="button" className="save-draft-button" disabled={!!busy} onClick={() => saveDocument("CONSTRUCTION_PLAN", false)}>{busy === "CONSTRUCTION_PLAN:save" ? "저장 중…" : "작성내용 저장"}</button></div>
+      </> : <div className="locked-document-note">[확인 필요] 지식관리에서 등록된 공사계획서 MD 양식을 불러오지 못했습니다.</div>}
+    </section>
+
     <section className="administrative-document-card">
-      <div className="document-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">에듀파인 복사용</span><h3>품의내용</h3></div></div><span className={`document-status ${purchaseRecord?.status === "CONFIRMED" ? "confirmed" : purchaseEditable ? "current" : "waiting"}`}>{purchaseRecord?.status === "CONFIRMED" ? "품의 완료" : purchaseEditable ? "작성 가능" : "대기"}</span></div>
+      <div className="document-card-heading"><div><span className="document-step">02</span><div><span className="section-kicker">에듀파인 복사용</span><h3>품의내용</h3></div></div><span className={`document-status ${purchaseRecord?.status === "CONFIRMED" ? "confirmed" : purchaseEditable ? "current" : "waiting"}`}>{purchaseRecord?.status === "CONFIRMED" ? "품의 완료" : purchaseEditable ? "작성 가능" : "대기"}</span></div>
       <textarea className="administrative-editor" value={purchaseContent} readOnly={!purchaseEditable} onChange={(event) => setPurchaseContent(event.target.value)} aria-label="에듀파인 품의내용" />
       <div className="document-actions"><button type="button" className="copy-document-button" onClick={() => copyText(purchaseContent, "품의내용")}>에듀파인 품의내용 복사</button>{purchaseEditable && <><button type="button" className="save-draft-button" disabled={!!busy} onClick={() => saveDocument("PURCHASE_REQUEST", false)}>작성내용 저장</button><button type="button" className="complete-document-button" disabled={!!busy} onClick={() => requestCompletion("PURCHASE_REQUEST")}>{busy === "PURCHASE_REQUEST:confirm" ? "처리 중…" : "품의 완료"}</button></>}</div>
     </section>
 
     <section className={`administrative-document-card ${currentStage === "PURCHASE_REQUEST" ? "locked" : ""}`}>
-      <div className="document-card-heading"><div><span className="document-step">02</span><div><span className="section-kicker">내부결재 복사용</span><h3>내부기안문</h3></div></div><span className={`document-status ${internalRecord?.status === "CONFIRMED" ? "confirmed" : internalEditable ? "current" : "waiting"}`}>{internalRecord?.status === "CONFIRMED" ? "내부기안 완료" : internalEditable ? "작성 가능" : "품의 완료 후"}</span></div>
+      <div className="document-card-heading"><div><span className="document-step">03</span><div><span className="section-kicker">내부결재 복사용</span><h3>내부기안문</h3></div></div><span className={`document-status ${internalRecord?.status === "CONFIRMED" ? "confirmed" : internalEditable ? "current" : "waiting"}`}>{internalRecord?.status === "CONFIRMED" ? "내부기안 완료" : internalEditable ? "작성 가능" : "품의 완료 후"}</span></div>
       {currentStage === "PURCHASE_REQUEST" ? <div className="locked-document-note">품의 완료 확인 후 내부기안문 작성과 계약방법 근거검색이 열립니다.</div> : <>
         <div className="contract-method-panel">
           <div className="contract-method-heading"><div><span className="section-kicker">등록자료 근거검색</span><h4>계약방법 추천</h4><p>AI는 등록된 지식자료에서 후보만 찾습니다. 최종 계약방법은 담당자가 결정합니다.</p></div>{internalEditable && <button type="button" onClick={findContractMethod} disabled={!!busy}>{busy === "recommend" ? "검색 중…" : "계약방법 근거 찾기"}</button>}</div>

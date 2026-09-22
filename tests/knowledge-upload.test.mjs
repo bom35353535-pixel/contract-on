@@ -57,3 +57,10 @@ test("knowledge upload fills the title and appends the saved document", async ()
   assert.match(completeRoute, /upload\.complete/);
   assert.match(completeRoute, /LARGE_FILE_STORED/);
 });
+
+test("knowledge library displays documents in Korean alphabetical order", async () => {
+  const manager = await readFile(new URL("../components/KnowledgeManager.tsx", import.meta.url), "utf8");
+  assert.match(manager, /orderedDocuments/);
+  assert.match(manager, /localeCompare\(right\.documentName, "ko-KR"/);
+  assert.match(manager, /orderedDocuments\.map/);
+});

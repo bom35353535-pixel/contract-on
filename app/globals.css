@@ -572,6 +572,10 @@ a { color: inherit; text-decoration: none; }
 .private-document-notice span { color: #5d766e; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .administrative-document-card { margin-top: 13px; padding: 21px; border: 1px solid var(--line); border-radius: 15px; background: white; box-shadow: 0 10px 30px rgba(25, 61, 82, .04); }
+.plan-document-card { border-color:#c9dfd5; background:linear-gradient(135deg,#f4fbf8 0,#fff 42%); }
+.plan-source-note { display:flex; align-items:center; gap:9px; margin:15px 0 0; padding:10px 12px; border:1px solid #d7e9e1; border-radius:9px; background:#edf7f3; color:#3f5e51; font-size:14px; }
+.plan-source-note strong { color:#176846; font-weight:900; }
+.plan-editor { min-height:420px; }
 .administrative-document-card.locked { background: #fafbfb; }
 .document-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .document-card-heading > div { display: flex; align-items: center; gap: 11px; }

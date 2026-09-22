@@ -28,6 +28,25 @@ test("Phase 5 creates reusable purchase request text from the contract record", 
   assert.match(content, /푸른건설/);
 });
 
+test("Phase 5 builds the construction plan from the registered Markdown template", async () => {
+  const { buildConstructionPlanContent } = await import(moduleUrl.href);
+  const content = buildConstructionPlanContent(contract, "# 공사계획 수립\n\n- 공사명: {{공사명}}\n- 공사금액: {{공사금액}}\n**검토사항**");
+  assert.match(content, /공사계획 수립/);
+  assert.match(content, /본관 옥상 방수공사/);
+  assert.match(content, /11,000,000원/);
+  assert.doesNotMatch(content, /\*\*|^#/m);
+});
+
+test("Phase 5 exposes a source-backed editable construction plan without advancing the workflow", async () => {
+  const component = await readFile(new URL("../components/AdministrativeDocumentsWorkspace.tsx", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/contracts/[id]/administrative-documents/route.ts", import.meta.url), "utf8");
+  const source = await readFile(new URL("../lib/construction-plan-source.ts", import.meta.url), "utf8");
+  assert.match(component, /공사계획서/);
+  assert.match(component, /CONSTRUCTION_PLAN/);
+  assert.match(route, /공사계획서는 작성내용 저장만 가능합니다/);
+  assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_공사계획수립 내부기안문\.md/);
+});
+
 test("Phase 5 keeps the final contract method as a user-editable decision", async () => {
   const { buildInternalApprovalContent, replaceContractMethod } = await import(moduleUrl.href);
   const draft = buildInternalApprovalContent(contract);

@@ -53,7 +53,8 @@ test("Phase 7 field checks provide three states, detail records, photos, summari
   assert.match(component, /체크리스트 출력/);
   assert.match(component, /window\.open\("", "contract-on-checklist-print"/);
   assert.match(component, /인쇄용 화면을 열지 못했습니다/);
-  assert.match(component, /printWindow\.setTimeout\(\(\) => printWindow\.print\(\), 250\)/);
+  assert.match(component, /onclick="window\.focus\(\); window\.print\(\);"/);
+  assert.doesNotMatch(component, /setTimeout\(\(\) => printWindow\.print/);
   assert.match(component, /공사 현장 확인 체크리스트/);
   assert.match(component, /업체 확인자/);
   assert.match(route, /construction-checklist\/\$\{contractId\}/);

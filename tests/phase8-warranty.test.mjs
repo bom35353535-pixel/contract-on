@@ -23,6 +23,16 @@ test("Phase 8 stores source-backed warranty criteria and D-Day schedules", async
   assert.match(migration, /CREATE TABLE `warranty_inspections`/);
 });
 
+test("Phase 8 prioritizes the specific interior work criterion over the broad building category", async () => {
+  const { suggestWarrantyCriterion } = await import(new URL("../lib/warranty-selection.ts", import.meta.url).href);
+  const criteria = [
+    { id:"W03", category:"건축", workName:"건축물의 기둥·내력벽 등 주요 구조부", warrantyYears:5, bondRate:.03, sourceName:"하자기간.pdf", sourcePage:"p.155", sourceExcerpt:"" },
+    { id:"W06", category:"건축·설비", workName:"실내의장·미장·타일·도장·창호·보링·기타 건물 내 설비·건축물 조립·판금·보일러 설치·기타 토목공사", warrantyYears:1, bondRate:.03, sourceName:"하자기간.pdf", sourcePage:"p.155", sourceExcerpt:"" },
+  ];
+  assert.equal(suggestWarrantyCriterion(criteria, "교실 내부 도장공사", "건축공사")?.id, "W06");
+  assert.equal(suggestWarrantyCriterion(criteria, "본관 내력벽 보강공사", "건축공사")?.id, "W03");
+});
+
 test("Phase 8 ledger templates retain their VBA projects", async () => {
   for (const name of ["공사대장.xlsm", "하자대장.xlsm"]) {
     const bytes = await readFile(new URL(`../public/templates/${name}`, import.meta.url));

@@ -6,13 +6,13 @@ import type { AdministrativeDocumentType } from "@/lib/administrative-documents"
 
 export const runtime = "edge";
 
-const nextStageByDocument: Record<AdministrativeDocumentType, "INTERNAL_APPROVAL" | "NARA_CONTRACT"> = {
+const nextStageByDocument: Record<Exclude<AdministrativeDocumentType, "CONSTRUCTION_PLAN">, "INTERNAL_APPROVAL" | "NARA_CONTRACT"> = {
   PURCHASE_REQUEST: "INTERNAL_APPROVAL",
   INTERNAL_APPROVAL: "NARA_CONTRACT",
 };
 
 function isDocumentType(value: unknown): value is AdministrativeDocumentType {
-  return value === "PURCHASE_REQUEST" || value === "INTERNAL_APPROVAL";
+  return value === "CONSTRUCTION_PLAN" || value === "PURCHASE_REQUEST" || value === "INTERNAL_APPROVAL";
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -30,6 +30,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const contract = await getContract(contractId);
   if (!contract) return Response.json({ error: "계약 정보를 찾을 수 없습니다." }, { status: 404 });
+  if (documentType === "CONSTRUCTION_PLAN") {
+    if (confirm) return Response.json({ error: "공사계획서는 작성내용 저장만 가능합니다." }, { status: 400 });
+    const now = new Date().toISOString();
+    await getD1().prepare(`
+      INSERT INTO administrative_documents (
+        id, contract_id, document_type, content, contract_method, sources_json, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, NULL, '[]', 'DRAFT', ?, ?)
+      ON CONFLICT(contract_id, document_type) DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at
+    `).bind(crypto.randomUUID(), contractId, documentType, content, now, now).run();
+    return Response.json({ status: "DRAFT" });
+  }
   if (contract.currentStage !== documentType) return Response.json({ error: "현재 업무단계에서 작성 또는 완료할 수 있는 문서가 아닙니다." }, { status: 409 });
 
   const d1 = getD1();
