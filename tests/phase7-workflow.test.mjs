@@ -61,12 +61,20 @@ test("Phase 7 field checks provide three states, detail records, photos, summari
   assert.doesNotMatch(route, /findConstructionChecklistCriteria|getVectorStoreId|isOpenAIConfigured/);
 });
 
-test("Phase 7 records inspection and payment as separate user confirmations", async () => {
+test("Phase 7 records inspection, utility notice, payment, and finish as separate confirmations", async () => {
   const actions = await readFile(new URL("../app/api/contracts/[id]/phase7-actions/route.ts", import.meta.url), "utf8");
   const contracts = await readFile(new URL("../lib/contracts.ts", import.meta.url), "utf8");
-  assert.ok(actions.indexOf('body.action === "complete-inspection"') < actions.indexOf('body.action === "complete-payment"'));
-  assert.match(contracts, /if \(!contract\.inspectionDate\) throw new Error\("먼저 검사·검수 완료를 확인해 주세요\."\)/);
-  assert.match(contracts, /payment_date = \?/);
+  const workspace = await readFile(new URL("../components/Phase7InspectionWorkspace.tsx", import.meta.url), "utf8");
+  assert.ok(actions.indexOf('body.action === "complete-inspection"') < actions.indexOf('body.action === "complete-utility-notice"'));
+  assert.ok(actions.indexOf('body.action === "complete-utility-notice"') < actions.indexOf('body.action === "complete-payment"'));
+  assert.ok(actions.indexOf('body.action === "complete-payment"') < actions.indexOf('body.action === "complete-finish"'));
+  assert.match(contracts, /먼저 에듀파인 검사·검수 완료를 확인해 주세요/);
+  assert.match(contracts, /먼저 수도광열비 안내공문 발송 완료를 확인해 주세요/);
+  assert.match(contracts, /payment_date\s*=\s*\?/);
   assert.match(contracts, /current_stage = 'FINISHED'/);
+  assert.match(workspace, /에듀파인 검사·검수/);
+  assert.match(workspace, /수도광열비 안내공문 발송/);
+  assert.match(workspace, /대금지급/);
+  assert.match(workspace, /공사완료/);
   assert.match(contracts, /source !== "phase7"/);
 });

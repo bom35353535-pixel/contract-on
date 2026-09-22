@@ -1,6 +1,6 @@
 import { getD1 } from "@/db";
 import { ensureDatabase } from "@/db/init";
-import { advanceContractStage, finishContractAfterPayment, getContract } from "@/lib/contracts";
+import { advanceContractStage, completeContractPayment, completeUtilityNotice, finishContractAfterPayment, getContract } from "@/lib/contracts";
 import { getConstructionChecklist } from "@/lib/construction-checklist";
 import { getKoreanToday } from "@/lib/workflow";
 
@@ -28,14 +28,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (contract.inspectionDate) return Response.json({ inspectionDate: contract.inspectionDate });
       const today = getKoreanToday();
       const now = new Date().toISOString();
-      const result = await getD1().prepare(`UPDATE contracts SET inspection_date = ?, next_task = '대금지급 완료', attention = '검사·검수 완료를 확인했습니다. 대금지급 완료 여부를 확인해 주세요.', updated_at = ? WHERE id = ? AND current_stage = 'INSPECTION' AND inspection_date IS NULL`)
+      const result = await getD1().prepare(`UPDATE contracts SET inspection_date = ?, next_task = '수도광열비 안내공문 발송', attention = '에듀파인 검사·검수 완료를 확인했습니다. 수도광열비를 계산하고 안내공문을 발송해 주세요.', updated_at = ? WHERE id = ? AND current_stage = 'INSPECTION' AND inspection_date IS NULL`)
         .bind(today, now, contractId).run();
       if ((result.meta.changes ?? 0) !== 1) return errorResponse("검사·검수 완료일을 저장하지 못했습니다.", 409);
-      await getD1().prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, 'INSPECTION', 'INSPECTION', '검사·검수 완료', '담당자', ?)")
+      await getD1().prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, 'INSPECTION', 'INSPECTION', '에듀파인 검사·검수 완료', '담당자', ?)")
         .bind(contractId, now).run();
       return Response.json({ inspectionDate: today });
     }
-    if (body.action === "complete-payment") return Response.json(await finishContractAfterPayment(contractId));
+    if (body.action === "complete-utility-notice") return Response.json(await completeUtilityNotice(contractId));
+    if (body.action === "complete-payment") return Response.json(await completeContractPayment(contractId));
+    if (body.action === "complete-finish") return Response.json(await finishContractAfterPayment(contractId));
     return errorResponse("처리할 업무를 확인해 주세요.");
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "업무를 완료하지 못했습니다.", 409);

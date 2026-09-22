@@ -49,6 +49,15 @@ const CREATE_HISTORY = `
   )
 `;
 
+const CREATE_PHASE7_COMPLETION_ACTIONS = `
+  CREATE TABLE IF NOT EXISTS phase7_completion_actions (
+    contract_id TEXT PRIMARY KEY NOT NULL,
+    utility_notice_date TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  )
+`;
+
 const CREATE_ADMINISTRATIVE_DOCUMENTS = `
   CREATE TABLE IF NOT EXISTS administrative_documents (
     id TEXT PRIMARY KEY NOT NULL,
@@ -347,6 +356,7 @@ async function initialize() {
   await d1.batch([
     d1.prepare(CREATE_CONTRACTS),
     d1.prepare(CREATE_HISTORY),
+    d1.prepare(CREATE_PHASE7_COMPLETION_ACTIONS),
     d1.prepare(CREATE_ADMINISTRATIVE_DOCUMENTS),
     d1.prepare(CREATE_KNOWLEDGE_DOCUMENTS),
     d1.prepare(CREATE_KNOWLEDGE_SETTINGS),

@@ -10,7 +10,7 @@ import { Phase7ConstructionWorkspace } from "@/components/Phase7ConstructionWork
 import { Phase7InspectionWorkspace } from "@/components/Phase7InspectionWorkspace";
 import { Phase8WarrantyWorkspace } from "@/components/Phase8WarrantyWorkspace";
 import { StageTimeline } from "@/components/StageTimeline";
-import { formatWon, getContract, getContractHistory, getDeadlineForContract, listContracts } from "@/lib/contracts";
+import { formatWon, getContract, getContractHistory, getDeadlineForContract, getPhase7CompletionStatus, listContracts } from "@/lib/contracts";
 import { buildConstructionPlanContent, buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
 import { getAdministrativeDocuments } from "@/lib/administrative-documents";
 import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
@@ -47,11 +47,11 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const requestedTab = (await searchParams)?.tab;
   const availableTabs = ["estimate", "documents", "contract-documents", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
-  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments] = await Promise.all([
+  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments, phase7Completion] = await Promise.all([
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
     getPhase6DocumentWorkspace(id, "NARA_CONTRACT"), getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION"),
     getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id), getWarrantyWorkspace(id),
-    tab === "estimate" || tab === "documents" ? listKnowledgeDocuments() : Promise.resolve([]),
+    tab === "estimate" || tab === "documents" ? listKnowledgeDocuments() : Promise.resolve([]), getPhase7CompletionStatus(id),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -129,7 +129,10 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         files={completionDocuments.files} review={completionDocuments.review} items={completionDocuments.items}
         ddayLabel={completionDday} isStartDay={isCompletionDay}
       /> : tab === "inspection" ? <Phase7InspectionWorkspace
-        contractId={id} currentStage={currentStage} inspectionDate={contract.inspectionDate} paymentDate={contract.paymentDate}
+        contractId={id} currentStage={currentStage} inspectionDate={contract.inspectionDate} utilityNoticeDate={phase7Completion.utilityNoticeDate} paymentDate={contract.paymentDate}
+        projectName={contract.projectName} constructionType={contract.constructionType} contractAmount={contract.contractAmount}
+        supplyAmount={quotation?.analysis.supplyAmount ?? null} materialCost={quotation?.analysis.materialCost ?? null} directLaborCost={quotation?.analysis.directLaborCost ?? null}
+        plannedStartDate={contract.plannedStartDate} plannedCompletionDate={contract.plannedCompletionDate}
       /> : tab === "warranty" ? <Phase8WarrantyWorkspace
         contractId={id} currentStage={currentStage} projectName={contract.projectName} constructionType={contract.constructionType}
         defaultStartDate={contract.inspectionDate ?? contract.actualCompletionDate}
