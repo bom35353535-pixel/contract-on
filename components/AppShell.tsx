@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FloatingKnowledgeChat } from "@/components/FloatingKnowledgeChat";
 
 type ActiveSection = "home" | "contracts" | "knowledge";
 
@@ -20,6 +21,7 @@ export function AppShell({ children, active, contractCount }: { children: ReactN
         </nav>
       </header>
       <main className="main-content">{children}</main>
+      <FloatingKnowledgeChat />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import test from "node:test";
 test("AI 업무비서 provides the official workflow and registered-knowledge-only chatbot", async () => {
   const page = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   const component = await readFile(new URL("../components/AiWorkAssistant.tsx", import.meta.url), "utf8");
+  const floating = await readFile(new URL("../components/FloatingKnowledgeChat.tsx", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../components/AppShell.tsx", import.meta.url), "utf8");
   const knowledge = await readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8");
   assert.match(page, /tab=assistant/);
   assert.match(page, /AI 업무비서/);
@@ -18,6 +20,12 @@ test("AI 업무비서 provides the official workflow and registered-knowledge-on
   assert.match(component, /MI000000000000000326/);
   assert.match(component, /MI000000000000000327/);
   assert.match(component, /MI000000000000000328/);
+  assert.match(component, /event\.key === "Enter" && !event\.shiftKey/);
+  assert.match(floating, /\/api\/knowledge\/query/);
+  assert.match(floating, /플로팅 지식자료 챗봇/);
+  assert.match(floating, /event\.currentTarget\.form\?\.requestSubmit\(\)/);
+  assert.match(floating, /Enter 전송 · Shift\+Enter 줄바꿈/);
+  assert.match(shell, /<FloatingKnowledgeChat \/>/);
   assert.match(knowledge, /동의어·유사 표현·행정용어/);
   assert.match(knowledge, /일반 지식, 추론, 추정, 외부 지식은 사용하지 마세요/);
 });
