@@ -40,11 +40,12 @@ export function inferUtilityAmountBand(amountExVat: number): UtilityAmountBand |
 }
 
 function roundDownTen(value: number) { return Math.floor(value / 10) * 10; }
+export function normalizeUtilityBase(value: number) { return Math.floor(Math.max(0, value) / 1_000) * 1_000; }
 
 export function calculateUtilityCost(input: { kind: UtilityCostKind; trade: UtilityTrade; duration: UtilityDuration; amountExVat: number; directMaterial: number; directLabor: number }) {
   const amountBand = inferUtilityAmountBand(input.amountExVat);
   if (!amountBand) return { electricity: null, water: null, total: null, amountBand: null, reason: "공사규모 1,000억 원 이상 요율은 원본 표에서 확인할 수 없습니다." };
-  const base = Math.max(0, input.directMaterial) + Math.max(0, input.directLabor);
+  const base = normalizeUtilityBase(input.directMaterial) + normalizeUtilityBase(input.directLabor);
   const calculate = (group: typeof RATES.electricity | typeof RATES.water) => {
     const amountRate = group.amount[amountBand];
     const rates = { trade: group.trade[input.trade], duration: group.duration[input.duration], amount: amountRate };

@@ -3,7 +3,7 @@ import test from "node:test";
 
 test("수도·전기료는 제공된 산출내역의 건축·6개월 이하·5억원 미만 요율로 10원 단위 절사한다", async () => {
   const { calculateUtilityCost } = await import(new URL("../lib/utility-cost.ts", import.meta.url).href);
-  const result = calculateUtilityCost({ kind: "BOTH", trade: "BUILDING", duration: "UP_TO_6", amountExVat: 26_469_000, directMaterial: 7_915_000, directLabor: 11_421_000 });
+  const result = calculateUtilityCost({ kind: "BOTH", trade: "BUILDING", duration: "UP_TO_6", amountExVat: 26_469_000, directMaterial: 7_915_000, directLabor: 11_421_438 });
   assert.equal(result.electricity?.amount, 40_600);
   assert.equal(result.water?.amount, 71_340);
   assert.equal(result.total, 111_940);

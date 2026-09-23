@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppDialog } from "./AppDialog";
-import { buildUtilityNoticeDraft, calculateUtilityCost, inferUtilityDuration, inferUtilityTrade, type UtilityCostKind, type UtilityDuration, type UtilityTrade } from "@/lib/utility-cost";
+import { buildUtilityNoticeDraft, calculateUtilityCost, inferUtilityDuration, inferUtilityTrade, normalizeUtilityBase, type UtilityCostKind, type UtilityDuration, type UtilityTrade } from "@/lib/utility-cost";
 
 type CompletionAction = "complete-inspection" | "complete-utility-notice" | "complete-payment" | "complete-finish";
 const ACTION_LABELS: Record<CompletionAction, string> = {
@@ -29,7 +29,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
   const [directLabor, setDirectLabor] = useState(String(directLaborCost ?? 0));
   const utility = useMemo(() => calculateUtilityCost({ kind, trade, duration, amountExVat: numberValue(amountExVat), directMaterial: numberValue(directMaterial), directLabor: numberValue(directLabor) }), [kind, trade, duration, amountExVat, directMaterial, directLabor]);
   const utilityDraft = useMemo(() => buildUtilityNoticeDraft({
-    projectName, companyName, directMaterial: numberValue(directMaterial), directLabor: numberValue(directLabor),
+    projectName, companyName, directMaterial: normalizeUtilityBase(numberValue(directMaterial)), directLabor: normalizeUtilityBase(numberValue(directLabor)),
     electricity: utility.electricity?.amount ?? null, water: utility.water?.amount ?? null, total: utility.total,
   }), [projectName, companyName, directMaterial, directLabor, utility]);
 
@@ -74,7 +74,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
           </div>
           <div className="utility-result-grid"><div><span>전기료</span><strong>{formatWon(utility.electricity?.amount ?? null)}</strong></div><div><span>수도료</span><strong>{formatWon(utility.water?.amount ?? null)}</strong></div><div className="total"><span>합계</span><strong>{formatWon(utility.total)}</strong></div></div>
           {utility.reason && <p className="utility-warning">[확인 필요] {utility.reason}</p>}
-          <p className="utility-formula">계산식: (직접재료비 + 직접노무비) × (공종별 요율 + 공사기간별 요율 + 공사금액별 요율) ÷ 3, 10원 단위 절사</p>
+          <p className="utility-formula">계산식: (직접재료비 + 직접노무비) × (공종별 요율 + 공사기간별 요율 + 공사금액별 요율) ÷ 3. 재료비·노무비는 천원 단위, 산출금액은 10원 단위로 절사합니다.</p>
           <small className="utility-source">원본 표 기준: 2023년도 완성공사 원가통계(대한건설협회, 2024.9 발표). 공사종류의 전기·통신·소방·전문공사는 건축요율을 적용합니다.</small>
           <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>현재 계산 결과를 반영한 복사용 문안입니다. 납부계좌와 납부기한의 000을 수정해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
         </section>
