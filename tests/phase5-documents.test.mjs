@@ -32,11 +32,18 @@ test("Phase 5 builds the construction plan from the registered Markdown template
   const { buildConstructionPlanContent } = await import(moduleUrl.href);
   const reference = "수신: 내부결재\n(경유)\n제목: 예시 공사 추진 계획(안)\n보충설명\n작성 시 참고사항";
   const content = buildConstructionPlanContent(contract, reference);
-  assert.match(content, /^제목: 본관 옥상 방수공사 추진 계획\(안\)/);
-  assert.match(content, /본관 옥상 방수공사/);
-  assert.match(content, /11,000,000원/);
-  assert.match(content, /1\. 공 사 명:/);
-  assert.match(content, /6\. 계약업체:/);
+  assert.match(content, /^제목: 본관 옥상 방수 사업 추진 계획\(안\)/);
+  assert.match(content, /1\. 관련: 000/);
+  assert.match(content, /2\. 우리학교 본관 옥상 방수 사업계획을 다음과 같이 수립하고자 합니다\./);
+  assert.match(content, /가\. 사 업 명: 본관 옥상 방수공사/);
+  assert.match(content, /나\. 예 산 액: 금11,000,000원/);
+  assert.match(content, /1\. 공 사 비: 금11,000,000원/);
+  assert.match(content, /2\. 일반수용비: 금000원/);
+  assert.match(content, /3\. 비 품 비: 금000원/);
+  assert.match(content, /다\. 사업내용/);
+  assert.match(content, /1\. \(공사\) 옥상 누수 방지/);
+  assert.match(content, /2\. \(물품\) 000/);
+  assert.match(content, /붙임  성립전예산요구서 1부\.  끝\./);
   assert.doesNotMatch(content, /수신|경유|보충설명|작성 시 참고사항|\*\*|^#/m);
 });
 
@@ -46,6 +53,7 @@ test("Phase 5 exposes a source-backed editable construction plan without advanci
   const source = await readFile(new URL("../lib/construction-plan-source.ts", import.meta.url), "utf8");
   assert.match(component, /공사계획서/);
   assert.match(component, /CONSTRUCTION_PLAN/);
+  assert.match(component, /isLegacyConstructionPlan/);
   assert.match(route, /공사계획서는 작성내용 저장만 가능합니다/);
   assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_공사계획수립 내부기안문\.md/);
 });

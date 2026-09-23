@@ -41,6 +41,10 @@ function isReferenceMaterial(value: string) {
   return /문서 정보|목차 \(Table of Contents\)|보충설명|계약방법결정|\[기안문 예시\]/.test(value);
 }
 
+function isLegacyConstructionPlan(value: string) {
+  return /공사목적:/.test(value) && /계약업체:/.test(value) && !/예\s*산\s*액:/.test(value);
+}
+
 function RecommendationContent({ text }: { text: string }) {
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   return <div className="recommendation-readable">{lines.map((line, index) => {
@@ -64,7 +68,7 @@ export function AdministrativeDocumentsWorkspace({ contractId, currentStage, pla
   const planRecord = documents.find((document) => document.documentType === "CONSTRUCTION_PLAN");
   const purchaseRecord = documents.find((document) => document.documentType === "PURCHASE_REQUEST");
   const internalRecord = documents.find((document) => document.documentType === "INTERNAL_APPROVAL");
-  const [planContent, setPlanContent] = useState(() => planRecord?.content && !isReferenceMaterial(planRecord.content) ? planRecord.content : planDefault);
+  const [planContent, setPlanContent] = useState(() => planRecord?.content && !isReferenceMaterial(planRecord.content) && !isLegacyConstructionPlan(planRecord.content) ? planRecord.content : planDefault);
   const [purchaseContent, setPurchaseContent] = useState(purchaseRecord?.content || purchaseDefault);
   const defaultContractMethod = internalRecord?.contractMethod || initialContractMethod || "나라장터 전자계약";
   const [internalContent, setInternalContent] = useState(() => replaceContractMethod(internalRecord?.content || internalDefault, defaultContractMethod));
