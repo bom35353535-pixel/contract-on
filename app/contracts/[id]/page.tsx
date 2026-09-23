@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdvanceStageButton } from "@/components/AdvanceStageButton";
 import { AdministrativeDocumentsWorkspace } from "@/components/AdministrativeDocumentsWorkspace";
-import { AiWorkAssistant } from "@/components/AiWorkAssistant";
 import { AppShell } from "@/components/AppShell";
 import { CommitmentWorkspace } from "@/components/CommitmentWorkspace";
 import { QuotationReviewDashboard } from "@/components/QuotationReviewDashboard";
@@ -46,7 +45,7 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 export default async function ContractDetailPage({ params, searchParams }: DetailProps) {
   const { id } = await params;
   const requestedTab = (await searchParams)?.tab;
-  const availableTabs = ["estimate", "documents", "contract-documents", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty", "assistant"];
+  const availableTabs = ["estimate", "documents", "contract-documents", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
   const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments, phase7Completion] = await Promise.all([
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
@@ -98,7 +97,6 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         <a className={tab === "completion-documents" ? "active" : ""} href={`/contracts/${id}?tab=completion-documents`}>준공서류</a>
         <a className={tab === "inspection" ? "active" : ""} href={`/contracts/${id}?tab=inspection`}>검사검수</a>
         <a className={tab === "warranty" ? "active" : ""} href={`/contracts/${id}?tab=warranty`}>하자관리</a>
-        <a className={tab === "assistant" ? "active" : ""} href={`/contracts/${id}?tab=assistant`}>AI 업무비서</a>
       </nav>
 
       {tab === "estimate" && quotation ? <QuotationReviewDashboard contractId={id} quotation={quotation} review={quotationReview} auditCases={relatedAuditCases} auditSourceStatus={auditLibrary.status} /> : tab === "documents" ? <AdministrativeDocumentsWorkspace
@@ -138,7 +136,6 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         contractId={id} currentStage={currentStage} projectName={contract.projectName} constructionType={contract.constructionType}
         defaultStartDate={contract.inspectionDate ?? contract.actualCompletionDate}
         criteria={warrantyWorkspace.criteria} warranty={warrantyWorkspace.warranty} inspections={warrantyWorkspace.inspections}
-      /> : tab === "assistant" ? <AiWorkAssistant projectName={contract.projectName} currentStage={currentStage}
       /> : <section className="detail-grid">
         <article className="info-card">
           <div className="card-title"><div><span className="section-kicker">기준정보</span><h2>계약 기본정보</h2></div><span className="read-once-badge">한 번 입력 · 계속 사용</span></div>

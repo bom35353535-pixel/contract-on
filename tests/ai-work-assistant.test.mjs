@@ -3,13 +3,17 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("AI 업무비서 provides the official workflow and registered-knowledge-only chatbot", async () => {
-  const page = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../app/assistant/page.tsx", import.meta.url), "utf8");
+  const contractPage = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   const component = await readFile(new URL("../components/AiWorkAssistant.tsx", import.meta.url), "utf8");
   const floating = await readFile(new URL("../components/FloatingKnowledgeChat.tsx", import.meta.url), "utf8");
   const shell = await readFile(new URL("../components/AppShell.tsx", import.meta.url), "utf8");
   const knowledge = await readFile(new URL("../lib/openai-knowledge.ts", import.meta.url), "utf8");
-  assert.match(page, /tab=assistant/);
+  assert.match(page, /<AiWorkAssistant \/>/);
   assert.match(page, /AI 업무비서/);
+  assert.match(shell, /href="\/assistant"/);
+  assert.match(shell, />AI 업무비서<\/a>/);
+  assert.doesNotMatch(contractPage, /tab=assistant/);
   assert.match(component, /전체 업무흐름도/);
   assert.match(component, /계약 의뢰 전/);
   assert.match(component, /계약 체결/);

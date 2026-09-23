@@ -18,13 +18,13 @@ function currentFlow(stage: string) {
   return 4;
 }
 
-export function AiWorkAssistant({ projectName, currentStage }: { projectName: string; currentStage: string }) {
+export function AiWorkAssistant({ projectName, currentStage }: { projectName?: string; currentStage?: string }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const activeFlow = currentFlow(currentStage);
+  const activeFlow = currentStage ? currentFlow(currentStage) : 0;
 
   async function ask(event: React.FormEvent) {
     event.preventDefault();
@@ -41,7 +41,7 @@ export function AiWorkAssistant({ projectName, currentStage }: { projectName: st
   }
 
   return <section className="assistant-workspace">
-    <header className="assistant-head"><div><span className="section-kicker">AI 업무비서</span><h2>업무흐름을 보고, 등록된 지식에 질문하세요.</h2><p><strong>{projectName}</strong>의 현재 단계와 전체 계약업무 흐름을 함께 확인할 수 있습니다.</p></div><span className="assistant-guard">등록 지식만 답변</span></header>
+    <header className="assistant-head"><div><span className="section-kicker">AI 업무비서</span><h2>업무흐름을 보고, 등록된 지식에 질문하세요.</h2><p>{projectName ? <><strong>{projectName}</strong>의 현재 단계와 전체 계약업무 흐름을 함께 확인할 수 있습니다.</> : "학교 공사계약의 전체 업무흐름을 확인하고 지식자료에 질문할 수 있습니다."}</p></div><span className="assistant-guard">등록 지식만 답변</span></header>
 
     <section className="workflow-guide-card">
       <div className="assistant-section-title"><div><span>01</span><div><strong>전체 업무흐름도</strong><small>서울특별시교육청 계약길잡이 기준</small></div></div><em>현재 구간 표시</em></div>
