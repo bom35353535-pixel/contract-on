@@ -118,10 +118,14 @@ export async function askRegisteredKnowledge(question: string, vectorStoreId: st
   return openai("/responses", {
     method: "POST",
     body: JSON.stringify({
-      model: env.OPENAI_MODEL || "gpt-5.6",
-      instructions: "당신은 교육행정 공사계약 지식 검증기입니다. 사용자의 자연어 질문 의도를 해석하고 동의어·유사 표현·행정용어를 고려해 file_search로 등록 자료를 검색하세요. 단, 제공된 등록 자료에 질문의 직접적인 답이 명시된 경우에만 한국어로 간결하게 답하세요. 일반 지식, 추론, 추정, 외부 지식은 사용하지 마세요. 직접 근거가 없으면 오직 NO_EVIDENCE만 출력하세요. 답변에는 근거 파일 인용이 반드시 포함되어야 합니다.",
+      model: env.OPENAI_CHAT_MODEL || "gpt-5.6-luna",
+      reasoning: { effort: "low" },
+      max_output_tokens: 600,
+      max_tool_calls: 1,
+      prompt_cache_key: "contract-knowledge-chat-v1",
+      instructions: "당신은 교육행정 공사계약 지식 검증기입니다. 사용자의 자연어 질문 의도를 해석하고 동의어·유사 표현·행정용어를 고려해 file_search로 등록 자료를 검색하세요. 제공된 등록 자료에 질문의 직접적인 답이 명시된 경우에만 한국어 3~6문장으로 간결하게 답하세요. 일반 지식, 추론, 추정, 외부 지식은 사용하지 마세요. 직접 근거가 없으면 오직 NO_EVIDENCE만 출력하세요. 답변에는 근거 파일 인용이 반드시 포함되어야 합니다.",
       input: question,
-      tools: [{ type: "file_search", vector_store_ids: [vectorStoreId], max_num_results: 5 }],
+      tools: [{ type: "file_search", vector_store_ids: [vectorStoreId], max_num_results: 3 }],
       include: ["file_search_call.results"],
     }),
   }) as Promise<OpenAIKnowledgeResponse>;

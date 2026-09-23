@@ -24,18 +24,20 @@ export function AiWorkAssistant({ projectName, currentStage }: { projectName?: s
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [durationMs, setDurationMs] = useState<number | null>(null);
   const activeFlow = currentStage ? currentFlow(currentStage) : 0;
 
   async function ask(event: React.FormEvent) {
     event.preventDefault();
     if (!question.trim() || busy) return;
-    setBusy(true); setError(""); setAnswer(""); setSources([]);
+    setBusy(true); setError(""); setAnswer(""); setSources([]); setDurationMs(null);
     try {
       const response = await fetch("/api/knowledge/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: question.trim() }) });
-      const payload = await response.json() as { answer?: string; sources?: Source[]; error?: string };
+      const payload = await response.json() as { answer?: string; sources?: Source[]; error?: string; durationMs?: number };
       if (!response.ok) throw new Error(payload.error || "등록 지식자료를 검색하지 못했습니다.");
       setAnswer(payload.answer || "등록된 지식자료에서 답변을 확인하지 못했습니다.");
       setSources(payload.sources || []);
+      setDurationMs(typeof payload.durationMs === "number" ? payload.durationMs : null);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "등록 지식자료를 검색하지 못했습니다."); }
     finally { setBusy(false); }
   }
@@ -58,7 +60,7 @@ export function AiWorkAssistant({ projectName, currentStage }: { projectName?: s
       <div className="chat-suggestions">{["착공 단계에서 받아야 할 서류는?", "하자담보기간 기준을 알려줘", "공사 계약방법은 어떻게 정해?"].map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}</div>
       <form className="assistant-question" onSubmit={ask}><label htmlFor="assistant-question">질문</label><textarea id="assistant-question" rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="예: 소규모 공사 착공계는 생략할 수 있어?" /><button disabled={busy || !question.trim()}>{busy ? "등록자료 검색 중…" : "지식자료에서 답변 찾기"}</button><small className="assistant-enter-hint">Enter 전송 · Shift+Enter 줄바꿈</small></form>
       {error && <div className="document-message error" role="alert">{error}</div>}
-      <div className={`assistant-answer ${answer ? "visible" : ""}`}><span>AI 답변</span><p>{answer || "질문하면 답변과 근거 파일이 여기에 표시됩니다."}</p>{sources.length > 0 && <div className="assistant-source-list"><strong>답변 근거</strong>{sources.map((source) => <span key={source.documentId}>{source.documentName}<small>{source.filename}</small></span>)}</div>}</div>
+      <div className={`assistant-answer ${answer ? "visible" : ""}`}><span>AI 답변{durationMs !== null ? ` · ${(durationMs / 1000).toFixed(1)}초` : ""}</span><p>{answer || "질문하면 답변과 근거 파일이 여기에 표시됩니다."}</p>{sources.length > 0 && <div className="assistant-source-list"><strong>답변 근거</strong>{sources.map((source) => <span key={source.documentId}>{source.documentName}<small>{source.filename}</small></span>)}</div>}</div>
     </section>
   </section>;
 }

@@ -32,6 +32,11 @@ test("AI 업무비서 provides the official workflow and registered-knowledge-on
   assert.match(shell, /<FloatingKnowledgeChat \/>/);
   assert.match(knowledge, /동의어·유사 표현·행정용어/);
   assert.match(knowledge, /일반 지식, 추론, 추정, 외부 지식은 사용하지 마세요/);
+  assert.match(knowledge, /env\.OPENAI_CHAT_MODEL \|\| "gpt-5\.6-luna"/);
+  assert.match(knowledge, /reasoning: \{ effort: "low" \}/);
+  assert.match(knowledge, /max_output_tokens: 600/);
+  assert.match(knowledge, /max_tool_calls: 1/);
+  assert.match(knowledge, /max_num_results: 3/);
 });
 
 test("completion documents require browser privacy masking before upload", async () => {

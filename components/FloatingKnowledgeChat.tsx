@@ -12,6 +12,7 @@ export function FloatingKnowledgeChat() {
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [durationMs, setDurationMs] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -27,16 +28,18 @@ export function FloatingKnowledgeChat() {
     setAskedQuestion(nextQuestion);
     setAnswer("");
     setSources([]);
+    setDurationMs(null);
     try {
       const response = await fetch("/api/knowledge/query", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: nextQuestion }),
       });
-      const payload = await response.json() as { answer?: string; sources?: Source[]; error?: string };
+      const payload = await response.json() as { answer?: string; sources?: Source[]; error?: string; durationMs?: number };
       if (!response.ok) throw new Error(payload.error || "등록 지식자료를 검색하지 못했습니다.");
       setAnswer(payload.answer || "등록된 지식자료에서 답변을 확인하지 못했습니다.");
       setSources(payload.sources || []);
+      setDurationMs(typeof payload.durationMs === "number" ? payload.durationMs : null);
       setQuestion("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "등록 지식자료를 검색하지 못했습니다.");
@@ -55,7 +58,7 @@ export function FloatingKnowledgeChat() {
         {!askedQuestion && !busy && <div className="floating-chat-welcome"><strong>무엇이 궁금하신가요?</strong><p>계약·공사 업무를 자연어로 질문해 주세요. 근거가 있는 등록자료만 찾아 답변합니다.</p></div>}
         {askedQuestion && <div className="floating-chat-message user"><span>질문</span><p>{askedQuestion}</p></div>}
         {busy && <div className="floating-chat-message assistant loading"><span>AI 업무비서</span><p>등록된 지식자료에서 근거를 찾고 있습니다…</p></div>}
-        {answer && <div className="floating-chat-message assistant"><span>AI 업무비서</span><p>{answer}</p>{sources.length > 0 && <details><summary>근거 파일 {sources.length}개</summary>{sources.map((source) => <div key={source.documentId}><strong>{source.documentName}</strong><small>{source.filename}</small></div>)}</details>}</div>}
+        {answer && <div className="floating-chat-message assistant"><span>AI 업무비서{durationMs !== null ? ` · ${(durationMs / 1000).toFixed(1)}초` : ""}</span><p>{answer}</p>{sources.length > 0 && <details><summary>근거 파일 {sources.length}개</summary>{sources.map((source) => <div key={source.documentId}><strong>{source.documentName}</strong><small>{source.filename}</small></div>)}</details>}</div>}
         {error && <div className="floating-chat-error" role="alert">{error}</div>}
       </div>
       <form className="floating-chat-form" onSubmit={ask}>
