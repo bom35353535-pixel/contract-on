@@ -5,14 +5,14 @@ export type UtilityAmountBand = "UNDER_500M" | "UNDER_3B" | "UNDER_5B" | "UNDER_
 
 const RATES = {
   electricity: {
-    trade: { BUILDING: .515, CIVIL: .346, INDUSTRIAL: .163, LANDSCAPE: .175 },
-    duration: { UP_TO_6: .212, UP_TO_12: .505, UP_TO_36: .715, OVER_36: .132 },
-    amount: { UNDER_500M: .176, UNDER_3B: .269, UNDER_5B: null, UNDER_30B: .448, UNDER_100B: .506 },
+    trade: { BUILDING: .364, CIVIL: .337, INDUSTRIAL: .081, LANDSCAPE: .315 },
+    duration: { UP_TO_6: .151, UP_TO_12: .237, UP_TO_36: .432, OVER_36: .347 },
+    amount: { UNDER_500M: .115, UNDER_3B: .164, UNDER_5B: .246, UNDER_30B: .471, UNDER_100B: .460 },
   },
   water: {
-    trade: { BUILDING: .479, CIVIL: .597, INDUSTRIAL: .422, LANDSCAPE: .232 },
-    duration: { UP_TO_6: .410, UP_TO_12: .509, UP_TO_36: .596, OVER_36: .154 },
-    amount: { UNDER_500M: .199, UNDER_3B: .331, UNDER_5B: null, UNDER_30B: .611, UNDER_100B: .726 },
+    trade: { BUILDING: .670, CIVIL: .642, INDUSTRIAL: .242, LANDSCAPE: .420 },
+    duration: { UP_TO_6: .276, UP_TO_12: .389, UP_TO_36: .718, OVER_36: .835 },
+    amount: { UNDER_500M: .161, UNDER_3B: .196, UNDER_5B: .425, UNDER_30B: .592, UNDER_100B: 1.009 },
   },
 } as const;
 
@@ -47,12 +47,41 @@ export function calculateUtilityCost(input: { kind: UtilityCostKind; trade: Util
   const base = Math.max(0, input.directMaterial) + Math.max(0, input.directLabor);
   const calculate = (group: typeof RATES.electricity | typeof RATES.water) => {
     const amountRate = group.amount[amountBand];
-    if (amountRate === null) return null;
     const rates = { trade: group.trade[input.trade], duration: group.duration[input.duration], amount: amountRate };
     return { amount: roundDownTen(base * ((rates.trade + rates.duration + rates.amount) / 3) / 100), rates };
   };
   const electricity = input.kind === "WATER" ? { amount: 0, rates: null } : calculate(RATES.electricity);
   const water = input.kind === "ELECTRICITY" ? { amount: 0, rates: null } : calculate(RATES.water);
-  if (!electricity || !water) return { electricity, water, total: null, amountBand, reason: "30억 이상 50억 미만 요율이 원본 표에 공란으로 되어 있어 계산할 수 없습니다." };
   return { electricity, water, total: electricity.amount + water.amount, amountBand, reason: null };
+}
+
+function shownWon(value: number | null) {
+  return value === null ? "[확인 필요]" : `${value.toLocaleString("ko-KR")}원`;
+}
+
+export function buildUtilityNoticeDraft(input: {
+  projectName: string;
+  companyName: string;
+  directMaterial: number;
+  directLabor: number;
+  electricity: number | null;
+  water: number | null;
+  total: number | null;
+}) {
+  return [
+    `제목: ${input.projectName} 전기·수도료 납부 안내(안)`,
+    "",
+    `1. 관련: ${input.projectName} 계약`,
+    `2. ${input.projectName}와 관련하여 공사 중 사용한 전기·수도료 산출 결과를 다음과 같이 안내하고자 합니다.`,
+    `   가. 공 사 명: ${input.projectName}`,
+    `   나. 업 체 명: ${input.companyName || "000"}`,
+    `   다. 산출기초: 직접재료비 ${shownWon(input.directMaterial)} + 직접노무비 ${shownWon(input.directLabor)}`,
+    `   라. 전 기 료: ${shownWon(input.electricity)}`,
+    `   마. 수 도 료: ${shownWon(input.water)}`,
+    `   바. 납부금액: 금${shownWon(input.total)}`,
+    "   사. 납부계좌: 000",
+    "   아. 납부기한: 000",
+    "",
+    "붙임  전기수도료 산출내역 1부.  끝.",
+  ].join("\n");
 }

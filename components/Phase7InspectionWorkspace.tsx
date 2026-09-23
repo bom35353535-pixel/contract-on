@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppDialog } from "./AppDialog";
-import { calculateUtilityCost, inferUtilityDuration, inferUtilityTrade, type UtilityCostKind, type UtilityDuration, type UtilityTrade } from "@/lib/utility-cost";
+import { buildUtilityNoticeDraft, calculateUtilityCost, inferUtilityDuration, inferUtilityTrade, type UtilityCostKind, type UtilityDuration, type UtilityTrade } from "@/lib/utility-cost";
 
 type CompletionAction = "complete-inspection" | "complete-utility-notice" | "complete-payment" | "complete-finish";
 const ACTION_LABELS: Record<CompletionAction, string> = {
@@ -13,9 +13,9 @@ const ACTION_LABELS: Record<CompletionAction, string> = {
 function numberValue(value: string) { return Math.max(0, Number(value.replaceAll(",", "")) || 0); }
 function formatWon(value: number | null) { return value === null ? "[확인 필요]" : `${value.toLocaleString("ko-KR")}원`; }
 
-export function Phase7InspectionWorkspace({ contractId, currentStage, inspectionDate, utilityNoticeDate, paymentDate, projectName, constructionType, contractAmount, supplyAmount, materialCost, directLaborCost, plannedStartDate, plannedCompletionDate }: {
+export function Phase7InspectionWorkspace({ contractId, currentStage, inspectionDate, utilityNoticeDate, paymentDate, projectName, companyName, constructionType, contractAmount, supplyAmount, materialCost, directLaborCost, plannedStartDate, plannedCompletionDate }: {
   contractId: string; currentStage: string; inspectionDate: string | null; utilityNoticeDate: string | null; paymentDate: string | null;
-  projectName: string; constructionType: string; contractAmount: number; supplyAmount: number | null; materialCost: number | null; directLaborCost: number | null;
+  projectName: string; companyName: string; constructionType: string; contractAmount: number; supplyAmount: number | null; materialCost: number | null; directLaborCost: number | null;
   plannedStartDate: string | null; plannedCompletionDate: string | null;
 }) {
   const router = useRouter();
@@ -28,6 +28,18 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
   const [directMaterial, setDirectMaterial] = useState(String(materialCost ?? 0));
   const [directLabor, setDirectLabor] = useState(String(directLaborCost ?? 0));
   const utility = useMemo(() => calculateUtilityCost({ kind, trade, duration, amountExVat: numberValue(amountExVat), directMaterial: numberValue(directMaterial), directLabor: numberValue(directLabor) }), [kind, trade, duration, amountExVat, directMaterial, directLabor]);
+  const utilityDraft = useMemo(() => buildUtilityNoticeDraft({
+    projectName, companyName, directMaterial: numberValue(directMaterial), directLabor: numberValue(directLabor),
+    electricity: utility.electricity?.amount ?? null, water: utility.water?.amount ?? null, total: utility.total,
+  }), [projectName, companyName, directMaterial, directLabor, utility]);
+
+  async function copyUtilityDraft() {
+    try {
+      await navigator.clipboard.writeText(utilityDraft);
+    } catch {
+      const area = document.createElement("textarea"); area.value = utilityDraft; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+    }
+  }
 
   async function act(action: CompletionAction) {
     const label = ACTION_LABELS[action]; setPendingAction(null); setBusy(action); setError("");
@@ -51,7 +63,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
       <article className={utilityNoticeDate ? "done utility-step" : inspectionDate ? "current utility-step" : "waiting utility-step"}>
         <span>02</span><div><h3>수도광열비 안내공문 발송</h3><p>{utilityNoticeDate ? `${utilityNoticeDate} 완료` : inspectionDate ? "계산 결과를 확인하고 업체에 안내공문을 발송해 주세요." : "에듀파인 검사·검수 완료 후 진행할 수 있습니다."}</p></div>{button("complete-utility-notice", currentStage === "INSPECTION" && Boolean(inspectionDate), Boolean(utilityNoticeDate))}
         <section className="utility-calculator">
-          <div className="utility-calculator-head"><div><strong>수도·전기료 계산</strong><small>{projectName}</small></div><span>첨부 엑셀 31.수도전기료계산식 기준</span></div>
+          <div className="utility-calculator-head"><div><strong>수도·전기료 계산</strong><small>{projectName}</small></div><span>제공된 전기수도료 산출내역 기준</span></div>
           <div className="utility-input-grid">
             <label>사용 구분<select value={kind} onChange={(e) => setKind(e.target.value as UtilityCostKind)}><option value="BOTH">수도·전기 모두 사용</option><option value="ELECTRICITY">전기만 사용</option><option value="WATER">수도만 사용</option></select></label>
             <label>공사 종류<select value={trade} onChange={(e) => setTrade(e.target.value as UtilityTrade)}><option value="BUILDING">건축(전기·통신·소방·전문 포함)</option><option value="CIVIL">토목</option><option value="INDUSTRIAL">산업설비</option><option value="LANDSCAPE">조경</option></select></label>
@@ -63,7 +75,8 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
           <div className="utility-result-grid"><div><span>전기료</span><strong>{formatWon(utility.electricity?.amount ?? null)}</strong></div><div><span>수도료</span><strong>{formatWon(utility.water?.amount ?? null)}</strong></div><div className="total"><span>합계</span><strong>{formatWon(utility.total)}</strong></div></div>
           {utility.reason && <p className="utility-warning">[확인 필요] {utility.reason}</p>}
           <p className="utility-formula">계산식: (직접재료비 + 직접노무비) × (공종별 요율 + 공사기간별 요율 + 공사금액별 요율) ÷ 3, 10원 단위 절사</p>
-          <small className="utility-source">원본 표 기준: 2024년도 완성공사 원가통계(대한건설협회, 2025.9 발표). 입력값과 적용 구간은 담당자가 최종 확인해 주세요.</small>
+          <small className="utility-source">원본 표 기준: 2023년도 완성공사 원가통계(대한건설협회, 2024.9 발표). 공사종류의 전기·통신·소방·전문공사는 건축요율을 적용합니다.</small>
+          <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>현재 계산 결과를 반영한 복사용 문안입니다. 납부계좌와 납부기한의 000을 수정해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
         </section>
       </article>
       <article className={paymentDate ? "done" : utilityNoticeDate ? "current" : "waiting"}><span>03</span><div><h3>대금지급</h3><p>{paymentDate ? `${paymentDate} 완료` : utilityNoticeDate ? "대금지급 처리 후 완료해 주세요." : "수도광열비 안내공문 발송 완료 후 진행할 수 있습니다."}</p></div>{button("complete-payment", currentStage === "INSPECTION" && Boolean(utilityNoticeDate), Boolean(paymentDate))}</article>

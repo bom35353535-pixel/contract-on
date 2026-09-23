@@ -129,7 +129,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         ddayLabel={completionDday} isStartDay={isCompletionDay}
       /> : tab === "inspection" ? <Phase7InspectionWorkspace
         contractId={id} currentStage={currentStage} inspectionDate={contract.inspectionDate} utilityNoticeDate={phase7Completion.utilityNoticeDate} paymentDate={contract.paymentDate}
-        projectName={contract.projectName} constructionType={contract.constructionType} contractAmount={contract.contractAmount}
+        projectName={contract.projectName} companyName={contract.companyName} constructionType={contract.constructionType} contractAmount={contract.contractAmount}
         supplyAmount={quotation?.analysis.supplyAmount ?? null} materialCost={quotation?.analysis.materialCost ?? null} directLaborCost={quotation?.analysis.directLaborCost ?? null}
         plannedStartDate={contract.plannedStartDate} plannedCompletionDate={contract.plannedCompletionDate}
       /> : tab === "warranty" ? <Phase8WarrantyWorkspace
