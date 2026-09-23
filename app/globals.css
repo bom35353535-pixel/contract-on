@@ -1026,6 +1026,27 @@ a { color: inherit; text-decoration: none; }
 .utility-formula,.utility-warning { margin:12px 0 0!important; padding:10px 12px; border-radius:10px; font-size:13px!important; }
 .utility-formula { background:#edf4f0; color:#405d50!important; }.utility-warning { background:#fff2df; color:#7a4b12!important; font-weight:800; }
 .utility-source { display:block; margin-top:9px; color:#6d7d75; }
+.assistant-workspace { display:grid; gap:20px; }
+.assistant-head { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; padding:24px 26px; border:1px solid #dce7e3; border-radius:18px; background:linear-gradient(135deg,#f3faf7 0%,#fff 62%); }
+.assistant-head h2 { margin:6px 0 7px; color:#173c2d; font-size:24px; letter-spacing:-.8px; }.assistant-head p { margin:0; color:#66776f; }.assistant-head p strong { color:#294f40; }
+.assistant-guard { flex:none; padding:8px 11px; border-radius:999px; background:#dff2e9; color:#156246; font-size:13px; font-weight:900; }
+.workflow-guide-card,.knowledge-chat-card { padding:24px 26px; border:1px solid #dee7e3; border-radius:18px; background:#fff; box-shadow:0 10px 28px rgba(31,75,57,.055); }
+.assistant-section-title { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; }
+.assistant-section-title > div { display:flex; align-items:center; gap:12px; }.assistant-section-title > div > span { display:grid; place-items:center; width:36px; height:36px; border-radius:11px; background:#173f56; color:#fff; font-weight:900; }
+.assistant-section-title strong,.assistant-section-title small { display:block; }.assistant-section-title strong { color:#183d2f; font-size:18px; }.assistant-section-title small { margin-top:3px; color:#748179; }
+.assistant-section-title em { padding:6px 9px; border-radius:8px; background:#f0f5f3; color:#627269; font-size:12px; font-style:normal; font-weight:800; }
+.workflow-guide-list { list-style:none; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; padding:0; }
+.workflow-guide-list > li { min-width:0; padding:16px; border:1px solid #e0e8e4; border-radius:14px; background:#fafcfb; }
+.workflow-guide-list > li.active { border-color:#65b697; background:#eef9f4; box-shadow:inset 0 0 0 1px #9dd5bf; }.workflow-guide-list > li.passed { background:#f5f9f7; }
+.workflow-phase-number { display:grid; place-items:center; width:34px; height:34px; margin-bottom:12px; border-radius:50%; background:#e5eeea; color:#4b675a; font-size:12px; font-weight:900; }.workflow-guide-list > li.active .workflow-phase-number { background:#1e7555; color:#fff; }.workflow-guide-list > li.passed .workflow-phase-number { background:#bde1d1; color:#176044; }
+.workflow-phase-heading { min-height:45px; }.workflow-phase-heading strong,.workflow-phase-heading span { display:block; }.workflow-phase-heading strong { color:#173d2e; }.workflow-phase-heading span { margin-top:3px; color:#77877f; font-size:12px; font-weight:800; }
+.workflow-guide-list ul { display:grid; gap:7px; margin:10px 0 0; padding-left:17px; color:#53675d; font-size:14px; line-height:1.5; }
+.workflow-sources { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid #e6ece9; }.workflow-sources span { color:#6c7c74; font-size:12px; font-weight:900; }.workflow-sources a { padding:6px 9px; border-radius:8px; background:#edf4f1; color:#265f49; font-size:12px; font-weight:850; }
+.chat-policy { display:flex; align-items:flex-start; gap:12px; padding:13px 15px; border-left:4px solid #26936d; border-radius:10px; background:#edf8f3; color:#4d665b; }.chat-policy strong { flex:none; color:#176246; }.chat-policy span { line-height:1.5; }
+.chat-suggestions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }.chat-suggestions button { padding:8px 11px; border:1px solid #d3e1da; border-radius:999px; background:#fff; color:#3f6253; font-weight:750; cursor:pointer; }
+.assistant-question { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; margin-top:14px; }.assistant-question label { grid-column:1 / -1; color:#294f40; font-weight:900; }.assistant-question textarea { resize:vertical; min-height:92px; padding:13px 14px; border:1px solid #cad9d1; border-radius:12px; color:#1c3d30; line-height:1.55; }.assistant-question button { align-self:stretch; min-width:180px; padding:12px 16px; border:0; border-radius:12px; background:#173f56; color:#fff; font-weight:900; cursor:pointer; }.assistant-question button:disabled { opacity:.5; cursor:not-allowed; }
+.assistant-answer { margin-top:14px; padding:17px; border:1px solid #e0e8e4; border-radius:13px; background:#f8faf9; }.assistant-answer > span { color:#1e7455; font-size:12px; font-weight:900; }.assistant-answer > p { min-height:24px; margin:8px 0 0; color:#344e42; white-space:pre-wrap; line-height:1.7; }.assistant-answer.visible { border-color:#bed9cd; background:#f2f9f6; }
+.assistant-source-list { display:grid; gap:7px; margin-top:14px; padding-top:13px; border-top:1px solid #d7e5df; }.assistant-source-list > strong { color:#284f3f; }.assistant-source-list > span { display:flex; justify-content:space-between; gap:10px; color:#37614f; font-weight:800; }.assistant-source-list small { color:#7b8982; font-weight:600; }
 .warranty-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; }
 .warranty-field { display:grid; gap:8px; margin:18px 0; color:#345246; font-size:13px; font-weight:900; }
 .warranty-field select,.warranty-field input { width:100%; border:1px solid #ccd9d2; border-radius:12px; padding:12px; background:#fff; color:#1d3e31; font:inherit; font-weight:600; }
@@ -1052,6 +1073,10 @@ a { color: inherit; text-decoration: none; }
   .utility-calculator { grid-column:1 / -1; }
   .utility-input-grid,.utility-result-grid { grid-template-columns:1fr; }
   .utility-calculator-head { flex-direction:column; }
+  .assistant-head,.assistant-section-title { align-items:flex-start; flex-direction:column; }
+  .workflow-guide-list { grid-template-columns:1fr; }
+  .assistant-question { grid-template-columns:1fr; }.assistant-question button { min-height:48px; }
+  .assistant-source-list > span { display:grid; gap:2px; }
 }
 
 /* 행정업무 화면의 본문·입력·표 글자는 확대해 장시간 확인할 때의 피로를 줄인다. */

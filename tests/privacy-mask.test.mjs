@@ -47,6 +47,8 @@ test("contract document UI blocks sensitive originals until masking or manual co
   assert.match(source, /개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요/);
   assert.match(source, /privacyStates\[index\]\?\.file \?\? file/);
   assert.match(source, /form\.set\("privacyConfirmed", "true"\)/);
+  assert.match(source, /const requiresPrivacyMask = isContract \|\| isCompletion/);
+  assert.match(source, /준공서류/);
 });
 
 test("upload UI keeps selection local and sends the masked copy only after analyze", async () => {
