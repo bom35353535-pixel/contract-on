@@ -82,7 +82,9 @@ test("completion documents expose automatic and drag-to-redact privacy controls"
   assert.match(workspace, /개인정보 자동 마스킹/);
   assert.match(workspace, /직접 드래그 마스킹/);
   assert.match(workspace, /ManualPdfRedactor/);
-  assert.match(redactor, /page\.drawRectangle/);
+  assert.match(redactor, /PDFDocument\.create/);
+  assert.match(redactor, /context\.fillRect/);
+  assert.match(redactor, /페이지를 이미지로 평탄화/);
   assert.match(redactor, /마스킹 사본 사용/);
   assert.match(redactor, /원본은 마스킹 확인 전까지|새 PDF 사본만 분석에 사용/);
 });

@@ -112,23 +112,29 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
   }
 
   async function applyMask() {
-    if (!regions.length || busy) return;
+    if (!regions.length || busy || !source) return;
     setBusy(true); setError("");
     try {
-      const { PDFDocument, rgb } = await import("pdf-lib");
-      const document = await PDFDocument.load(await file.arrayBuffer());
-      const pages = document.getPages();
-      for (const region of regions) {
-        const page = pages[region.page - 1];
-        if (!page) continue;
-        const { width, height } = page.getSize();
-        page.drawRectangle({
-          x: region.x * width,
-          y: height - (region.y + region.height) * height,
-          width: region.width * width,
-          height: region.height * height,
-          color: rgb(0, 0, 0),
-        });
+      const { PDFDocument } = await import("pdf-lib");
+      const document = await PDFDocument.create();
+      for (let number = 1; number <= source.numPages; number += 1) {
+        const sourcePage = await source.getPage(number);
+        const base = sourcePage.getViewport({ scale: 1 });
+        const viewport = sourcePage.getViewport({ scale: 2 });
+        const canvas = window.document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) throw new Error("마스킹 사본을 만들 수 없습니다.");
+        await sourcePage.render({ canvas, canvasContext: context, viewport }).promise;
+        context.fillStyle = "#000000";
+        for (const region of regions.filter((value) => value.page === number)) {
+          context.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
+        }
+        const image = await document.embedJpg(canvas.toDataURL("image/jpeg", 0.92));
+        const outputPage = document.addPage([base.width, base.height]);
+        outputPage.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
+        sourcePage.cleanup();
       }
       const bytes = await document.save({ useObjectStreams: true });
       const masked = new File([bytes], file.name, { type: "application/pdf", lastModified: file.lastModified });
@@ -163,7 +169,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
           {busy && <div className="manual-redactor-loading">PDF 처리 중…</div>}
         </div>
       </div>
-      <footer><button type="button" onClick={onCancel}>취소</button><button className="primary" type="button" disabled={!regions.length || busy} onClick={() => void applyMask()}>{busy ? "처리 중…" : "마스킹 사본 사용"}</button></footer>
+      <footer><small>마스킹 사본은 페이지를 이미지로 평탄화하여 가린 원문이 남지 않도록 만듭니다.</small><button type="button" onClick={onCancel}>취소</button><button className="primary" type="button" disabled={!regions.length || busy} onClick={() => void applyMask()}>{busy ? "처리 중…" : "마스킹 사본 사용"}</button></footer>
     </section>
   </div>;
 }

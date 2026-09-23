@@ -732,6 +732,7 @@ a { color: inherit; text-decoration: none; }
 .manual-redactor-layer span { position: absolute; background: #050505; outline: 1px solid rgba(255,255,255,.45); }
 .manual-redactor-loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,.75); color: #314b58; font-size: 14px; font-weight: 850; }
 .manual-redactor-dialog > footer { display: flex; justify-content: flex-end; gap: 9px; padding: 13px 20px; border-top: 1px solid #dce5e8; background: white; }
+.manual-redactor-dialog > footer small { align-self: center; margin-right: auto; color: #60737c; font-size: 11px; }
 .manual-redactor-dialog > footer button.primary { border-color: #1f7463; background: #1f7463; color: white; }
 .privacy-inline-ok { color: #25705f !important; font-weight: 750; }
 .privacy-inline-warning { max-width: 640px; overflow: visible !important; color: #a05826 !important; font-size: 13px; line-height: 1.5; text-overflow: clip !important; white-space: normal !important; }
