@@ -74,3 +74,15 @@ test("PDF auto-redaction requires the user to inspect the generated copy", async
   assert.match(source, /마스킹 결과를 확인했습니다/);
   assert.match(source, /"reviewed"/);
 });
+
+test("completion documents expose automatic and drag-to-redact privacy controls", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const redactor = await readFile(new URL("../components/ManualPdfRedactor.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /isContract \|\| isCompletion/);
+  assert.match(workspace, /개인정보 자동 마스킹/);
+  assert.match(workspace, /직접 드래그 마스킹/);
+  assert.match(workspace, /ManualPdfRedactor/);
+  assert.match(redactor, /page\.drawRectangle/);
+  assert.match(redactor, /마스킹 사본 사용/);
+  assert.match(redactor, /원본은 마스킹 확인 전까지|새 PDF 사본만 분석에 사용/);
+});
