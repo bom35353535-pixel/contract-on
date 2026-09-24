@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppDialog } from "./AppDialog";
 import { buildUtilityNoticeDraft, calculateUtilityCost, inferUtilityDuration, inferUtilityTrade, normalizeUtilityBase, type UtilityCostKind, type UtilityDuration, type UtilityTrade } from "@/lib/utility-cost";
@@ -20,6 +20,10 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(""); const [error, setError] = useState("");
+  const [savedStage, setSavedStage] = useState(currentStage);
+  const [savedInspectionDate, setSavedInspectionDate] = useState(inspectionDate);
+  const [savedUtilityNoticeDate, setSavedUtilityNoticeDate] = useState(utilityNoticeDate);
+  const [savedPaymentDate, setSavedPaymentDate] = useState(paymentDate);
   const [downloadingWorkbook, setDownloadingWorkbook] = useState(false);
   const [pendingAction, setPendingAction] = useState<CompletionAction | null>(null);
   const [kind, setKind] = useState<UtilityCostKind>("BOTH");
@@ -33,6 +37,11 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     projectName, companyName, directMaterial: normalizeUtilityBase(numberValue(directMaterial)), directLabor: normalizeUtilityBase(numberValue(directLabor)),
     electricity: utility.electricity?.amount ?? null, water: utility.water?.amount ?? null, total: utility.total,
   }), [projectName, companyName, directMaterial, directLabor, utility]);
+
+  useEffect(() => { setSavedStage(currentStage); }, [currentStage]);
+  useEffect(() => { setSavedInspectionDate(inspectionDate); }, [inspectionDate]);
+  useEffect(() => { setSavedUtilityNoticeDate(utilityNoticeDate); }, [utilityNoticeDate]);
+  useEffect(() => { setSavedPaymentDate(paymentDate); }, [paymentDate]);
 
   async function copyUtilityDraft() {
     try {
@@ -66,13 +75,17 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     const label = ACTION_LABELS[action]; setPendingAction(null); setBusy(action); setError("");
     try {
       const response = await fetch(`/api/contracts/${contractId}/phase7-actions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action }) });
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; inspectionDate?: string; utilityNoticeDate?: string; paymentDate?: string; currentStage?: string };
       if (!response.ok) throw new Error(result.error || `${label} 완료를 저장하지 못했습니다.`);
+      if (result.inspectionDate) setSavedInspectionDate(result.inspectionDate);
+      if (result.utilityNoticeDate) setSavedUtilityNoticeDate(result.utilityNoticeDate);
+      if (result.paymentDate) setSavedPaymentDate(result.paymentDate);
+      if (result.currentStage) setSavedStage(result.currentStage);
       router.refresh();
     } catch (reason) { setError(reason instanceof Error ? reason.message : `${label} 완료를 저장하지 못했습니다.`); }
     finally { setBusy(""); }
   }
-  const finished = currentStage === "FINISHED";
+  const finished = savedStage === "FINISHED";
   const button = (action: CompletionAction, enabled: boolean, done: boolean) => <button type="button" disabled={!!busy || !enabled || done} onClick={() => setPendingAction(action)}>{busy === action ? "저장 중…" : done ? "완료됨" : action === "complete-finish" ? "공사완료 처리" : `${ACTION_LABELS[action]} 완료`}</button>;
 
   return <>
@@ -80,9 +93,9 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 검사검수·대금지급</span><h2>공사완료 처리</h2><p>각 업무를 실제 처리한 순서대로 완료해 주세요.</p></div><span className="human-check-badge">담당자 완료확인</span></section>
     {error && <div className="document-message error" role="alert">{error}</div>}
     <section className="inspection-flow">
-      <article className={inspectionDate ? "done" : "current"}><span>01</span><div><h3>에듀파인 검사·검수</h3><p>{inspectionDate ? `${inspectionDate} 완료` : "에듀파인에서 검사·검수를 처리한 후 완료해 주세요."}</p></div>{button("complete-inspection", currentStage === "INSPECTION", Boolean(inspectionDate))}</article>
-      <article className={utilityNoticeDate ? "done utility-step" : inspectionDate ? "current utility-step" : "waiting utility-step"}>
-        <span>02</span><div><h3>수도광열비 안내공문 발송</h3><p>{utilityNoticeDate ? `${utilityNoticeDate} 완료` : inspectionDate ? "계산 결과를 확인하고 업체에 안내공문을 발송해 주세요." : "에듀파인 검사·검수 완료 후 진행할 수 있습니다."}</p></div>{button("complete-utility-notice", currentStage === "INSPECTION" && Boolean(inspectionDate), Boolean(utilityNoticeDate))}
+      <article className={savedInspectionDate ? "done" : "current"}><span>01</span><div><h3>에듀파인 검사·검수</h3><p>{savedInspectionDate ? `${savedInspectionDate} 완료` : "에듀파인에서 검사·검수를 처리한 후 완료해 주세요."}</p></div>{button("complete-inspection", savedStage === "INSPECTION", Boolean(savedInspectionDate))}</article>
+      <article className={savedUtilityNoticeDate ? "done utility-step" : savedInspectionDate ? "current utility-step" : "waiting utility-step"}>
+        <span>02</span><div><h3>수도광열비 안내공문 발송</h3><p>{savedUtilityNoticeDate ? `${savedUtilityNoticeDate} 완료` : savedInspectionDate ? "계산 결과를 확인하고 업체에 안내공문을 발송해 주세요." : "에듀파인 검사·검수 완료 후 진행할 수 있습니다."}</p></div>{button("complete-utility-notice", savedStage === "INSPECTION" && Boolean(savedInspectionDate), Boolean(savedUtilityNoticeDate))}
         <section className="utility-calculator">
           <div className="utility-calculator-head"><div><strong>수도·전기료 계산</strong><small>{projectName}</small></div><span>제공된 전기수도료 산출내역 기준</span></div>
           <div className="utility-input-grid">
@@ -101,8 +114,8 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
           <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>산출기초는 제외했으며, 납부기한은 오늘부터 10일 후 날짜로 자동 작성됩니다. 납부계좌만 확인해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
         </section>
       </article>
-      <article className={paymentDate ? "done" : utilityNoticeDate ? "current" : "waiting"}><span>03</span><div><h3>대금지급</h3><p>{paymentDate ? `${paymentDate} 완료` : utilityNoticeDate ? "대금지급 처리 후 완료해 주세요." : "수도광열비 안내공문 발송 완료 후 진행할 수 있습니다."}</p></div>{button("complete-payment", currentStage === "INSPECTION" && Boolean(utilityNoticeDate), Boolean(paymentDate))}</article>
-      <article className={finished ? "done" : paymentDate ? "current" : "waiting"}><span>04</span><div><h3>공사완료</h3><p>{finished ? "공사완료 처리되었습니다. 하자관리 단계로 연결됩니다." : paymentDate ? "모든 선행 업무를 확인한 후 공사완료 처리해 주세요." : "대금지급 완료 후 진행할 수 있습니다."}</p></div>{button("complete-finish", currentStage === "INSPECTION" && Boolean(paymentDate), finished)}</article>
+      <article className={savedPaymentDate ? "done" : savedUtilityNoticeDate ? "current" : "waiting"}><span>03</span><div><h3>대금지급</h3><p>{savedPaymentDate ? `${savedPaymentDate} 완료` : savedUtilityNoticeDate ? "대금지급 처리 후 완료해 주세요." : "수도광열비 안내공문 발송 완료 후 진행할 수 있습니다."}</p></div>{button("complete-payment", savedStage === "INSPECTION" && Boolean(savedUtilityNoticeDate), Boolean(savedPaymentDate))}</article>
+      <article className={finished ? "done" : savedPaymentDate ? "current" : "waiting"}><span>04</span><div><h3>공사완료</h3><p>{finished ? "공사완료 처리되었습니다. 하자관리 단계로 연결됩니다." : savedPaymentDate ? "모든 선행 업무를 확인한 후 공사완료 처리해 주세요." : "대금지급 완료 후 진행할 수 있습니다."}</p></div>{button("complete-finish", savedStage === "INSPECTION" && Boolean(savedPaymentDate), finished)}</article>
     </section>
   </>;
 }

@@ -78,5 +78,9 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   assert.match(workspace, /buildUtilityCostWorkbook/);
   assert.match(workspace, /대금지급/);
   assert.match(workspace, /공사완료/);
+  assert.match(workspace, /setSavedUtilityNoticeDate\(result\.utilityNoticeDate\)/);
+  assert.match(workspace, /setSavedPaymentDate\(result\.paymentDate\)/);
+  assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedUtilityNoticeDate\)/);
+  assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedPaymentDate\)/);
   assert.match(contracts, /source !== "phase7"/);
 });
