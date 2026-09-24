@@ -5,14 +5,14 @@ export type UtilityAmountBand = "UNDER_500M" | "UNDER_3B" | "UNDER_5B" | "UNDER_
 
 const RATES = {
   electricity: {
-    trade: { BUILDING: .364, CIVIL: .337, INDUSTRIAL: .081, LANDSCAPE: .315 },
-    duration: { UP_TO_6: .151, UP_TO_12: .237, UP_TO_36: .432, OVER_36: .347 },
-    amount: { UNDER_500M: .115, UNDER_3B: .164, UNDER_5B: .246, UNDER_30B: .471, UNDER_100B: .460 },
+    trade: { BUILDING: .515, CIVIL: .346, INDUSTRIAL: .163, LANDSCAPE: .370 },
+    duration: { UP_TO_6: .175, UP_TO_12: .212, UP_TO_36: .505, OVER_36: .715 },
+    amount: { UNDER_500M: .132, UNDER_3B: .176, UNDER_5B: .269, UNDER_30B: .448, UNDER_100B: .506 },
   },
   water: {
-    trade: { BUILDING: .670, CIVIL: .642, INDUSTRIAL: .242, LANDSCAPE: .420 },
-    duration: { UP_TO_6: .276, UP_TO_12: .389, UP_TO_36: .718, OVER_36: .835 },
-    amount: { UNDER_500M: .161, UNDER_3B: .196, UNDER_5B: .425, UNDER_30B: .592, UNDER_100B: 1.009 },
+    trade: { BUILDING: .479, CIVIL: .597, INDUSTRIAL: .422, LANDSCAPE: .360 },
+    duration: { UP_TO_6: .232, UP_TO_12: .410, UP_TO_36: .509, OVER_36: .596 },
+    amount: { UNDER_500M: .154, UNDER_3B: .199, UNDER_5B: .331, UNDER_30B: .611, UNDER_100B: .726 },
   },
 } as const;
 
@@ -60,6 +60,13 @@ function shownWon(value: number | null) {
   return value === null ? "[확인 필요]" : `${value.toLocaleString("ko-KR")}원`;
 }
 
+export function utilityPaymentDueDate(today = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(today);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const due = new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day) + 10));
+  return `${due.getUTCFullYear()}. ${due.getUTCMonth() + 1}. ${due.getUTCDate()}.`;
+}
+
 export function buildUtilityNoticeDraft(input: {
   projectName: string;
   companyName: string;
@@ -68,6 +75,7 @@ export function buildUtilityNoticeDraft(input: {
   electricity: number | null;
   water: number | null;
   total: number | null;
+  today?: Date;
 }) {
   return [
     `제목: ${input.projectName} 전기·수도료 납부 안내(안)`,
@@ -76,12 +84,11 @@ export function buildUtilityNoticeDraft(input: {
     `2. ${input.projectName}와 관련하여 공사 중 사용한 전기·수도료 산출 결과를 다음과 같이 안내하고자 합니다.`,
     `   가. 공 사 명: ${input.projectName}`,
     `   나. 업 체 명: ${input.companyName || "000"}`,
-    `   다. 산출기초: 직접재료비 ${shownWon(input.directMaterial)} + 직접노무비 ${shownWon(input.directLabor)}`,
-    `   라. 전 기 료: ${shownWon(input.electricity)}`,
-    `   마. 수 도 료: ${shownWon(input.water)}`,
-    `   바. 납부금액: 금${shownWon(input.total)}`,
-    "   사. 납부계좌: 000",
-    "   아. 납부기한: 000",
+    `   다. 전 기 료: ${shownWon(input.electricity)}`,
+    `   라. 수 도 료: ${shownWon(input.water)}`,
+    `   마. 납부금액: 금${shownWon(input.total)}`,
+    "   바. 납부계좌: 000",
+    `   사. 납부기한: ${utilityPaymentDueDate(input.today)}`,
     "",
     "붙임  전기수도료 산출내역 1부.  끝.",
   ].join("\n");

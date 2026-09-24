@@ -20,6 +20,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(""); const [error, setError] = useState("");
+  const [downloadingWorkbook, setDownloadingWorkbook] = useState(false);
   const [pendingAction, setPendingAction] = useState<CompletionAction | null>(null);
   const [kind, setKind] = useState<UtilityCostKind>("BOTH");
   const [trade, setTrade] = useState<UtilityTrade>(() => inferUtilityTrade(constructionType));
@@ -39,6 +40,26 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     } catch {
       const area = document.createElement("textarea"); area.value = utilityDraft; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
     }
+  }
+
+  async function downloadUtilityWorkbook() {
+    if (utility.total === null) { setError(utility.reason || "산출 결과를 먼저 확인해 주세요."); return; }
+    setDownloadingWorkbook(true); setError("");
+    try {
+      const { buildUtilityCostWorkbook } = await import("@/lib/utility-cost-xlsx");
+      const bytes = buildUtilityCostWorkbook({
+        projectName, kind, trade, duration, amountBand: utility.amountBand,
+        amountExVat: numberValue(amountExVat), directMaterial: numberValue(directMaterial), directLabor: numberValue(directLabor),
+        electricity: utility.electricity, water: utility.water, total: utility.total,
+      });
+      const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${projectName.replace(/[\\/:*?"<>|]/g, "_") || "공사"}_전기수도료_산출내역.xlsx`;
+      document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "전기수도료 산출내역을 만들지 못했습니다."); }
+    finally { setDownloadingWorkbook(false); }
   }
 
   async function act(action: CompletionAction) {
@@ -75,8 +96,9 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
           <div className="utility-result-grid"><div><span>전기료</span><strong>{formatWon(utility.electricity?.amount ?? null)}</strong></div><div><span>수도료</span><strong>{formatWon(utility.water?.amount ?? null)}</strong></div><div className="total"><span>합계</span><strong>{formatWon(utility.total)}</strong></div></div>
           {utility.reason && <p className="utility-warning">[확인 필요] {utility.reason}</p>}
           <p className="utility-formula">계산식: (직접재료비 + 직접노무비) × (공종별 요율 + 공사기간별 요율 + 공사금액별 요율) ÷ 3. 재료비·노무비는 천원 단위, 산출금액은 10원 단위로 절사합니다.</p>
-          <small className="utility-source">원본 표 기준: 2023년도 완성공사 원가통계(대한건설협회, 2024.9 발표). 공사종류의 전기·통신·소방·전문공사는 건축요율을 적용합니다.</small>
-          <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>현재 계산 결과를 반영한 복사용 문안입니다. 납부계좌와 납부기한의 000을 수정해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
+          <small className="utility-source">원본 31번 시트 기준: 2024년도 완성공사 원가통계(대한건설협회, 2025.9 발표). 전기·통신·소방·전문공사는 건축요율을 적용합니다.</small>
+          <div className="utility-download-row"><button type="button" disabled={downloadingWorkbook || utility.total === null} onClick={() => void downloadUtilityWorkbook()}>{downloadingWorkbook ? "엑셀 만드는 중…" : "전기수도료 산출내역 엑셀 다운로드"}</button></div>
+          <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>산출기초는 제외했으며, 납부기한은 오늘부터 10일 후 날짜로 자동 작성됩니다. 납부계좌만 확인해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
         </section>
       </article>
       <article className={paymentDate ? "done" : utilityNoticeDate ? "current" : "waiting"}><span>03</span><div><h3>대금지급</h3><p>{paymentDate ? `${paymentDate} 완료` : utilityNoticeDate ? "대금지급 처리 후 완료해 주세요." : "수도광열비 안내공문 발송 완료 후 진행할 수 있습니다."}</p></div>{button("complete-payment", currentStage === "INSPECTION" && Boolean(utilityNoticeDate), Boolean(paymentDate))}</article>

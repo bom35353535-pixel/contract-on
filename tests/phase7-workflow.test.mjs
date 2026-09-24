@@ -74,6 +74,8 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   assert.match(contracts, /current_stage = 'FINISHED'/);
   assert.match(workspace, /에듀파인 검사·검수/);
   assert.match(workspace, /수도광열비 안내공문 발송/);
+  assert.match(workspace, /전기수도료 산출내역 엑셀 다운로드/);
+  assert.match(workspace, /buildUtilityCostWorkbook/);
   assert.match(workspace, /대금지급/);
   assert.match(workspace, /공사완료/);
   assert.match(contracts, /source !== "phase7"/);
