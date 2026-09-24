@@ -382,7 +382,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!contract) return errorResponse("계약 정보를 찾을 수 없습니다.", 404);
   if (contract.currentStage !== body.documentStage) return errorResponse("현재 계약단계가 이미 변경되었습니다.", 409);
   const workspace = await getPhase6DocumentWorkspace(contractId, body.documentStage);
-  if (!workspace.review && body.documentStage !== "NARA_CONTRACT") return errorResponse("먼저 서류를 업로드하고 분석 결과를 확인해 주세요.", 409);
+  const completionFilesConfirmed = body.documentStage === "COMPLETION" && workspace.files.length > 0;
+  if (!workspace.review && body.documentStage !== "NARA_CONTRACT" && !completionFilesConfirmed) return errorResponse("먼저 서류를 업로드하고 분석 결과를 확인해 주세요.", 409);
   try {
     const result = await advanceContractStage(contractId, body.documentStage === "COMPLETION" ? "phase7" : "phase6-documents");
     return Response.json(result);

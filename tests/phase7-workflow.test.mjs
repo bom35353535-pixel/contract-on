@@ -18,7 +18,7 @@ test("Phase 7 completion documents reuse evidence-limited document review", asyn
   assert.match(types, /"COMPLETION"/);
   assert.match(route, /stage === "COMPLETION" \? "PHASE7_COMPLETION_DOCUMENT_REVIEW"/);
   assert.match(workspace, /오늘은 계약상 준공일입니다\. 준공계 송부 여부와 준공서류를 확인하세요\./);
-  assert.match(workspace, /준공서류 확인 완료/);
+  assert.match(workspace, /준공서류 확인완료/);
 });
 
 test("Phase 7 construction checklist combines common and inferred trade checks without another menu", async () => {
@@ -65,6 +65,8 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   const actions = await readFile(new URL("../app/api/contracts/[id]/phase7-actions/route.ts", import.meta.url), "utf8");
   const contracts = await readFile(new URL("../lib/contracts.ts", import.meta.url), "utf8");
   const workspace = await readFile(new URL("../components/Phase7InspectionWorkspace.tsx", import.meta.url), "utf8");
+  const documentWorkspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const documentRoute = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   assert.ok(actions.indexOf('body.action === "complete-inspection"') < actions.indexOf('body.action === "complete-utility-notice"'));
   assert.ok(actions.indexOf('body.action === "complete-utility-notice"') < actions.indexOf('body.action === "complete-payment"'));
@@ -83,9 +85,11 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   assert.match(workspace, /setSavedPaymentDate\(result\.paymentDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedUtilityNoticeDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedPaymentDate\)/);
-  assert.match(workspace, /documentStage: "COMPLETION"/);
-  assert.match(workspace, /준공서류 확인 완료 · 검사검수 시작/);
-  assert.match(workspace, /setSavedStage\("INSPECTION"\)/);
-  assert.match(detail, /completionReviewReady=\{Boolean\(completionDocuments\.review\)\}/);
+  assert.match(documentWorkspace, /준공서류 확인완료/);
+  assert.match(documentWorkspace, /isCompletion && files\.length > 0/);
+  assert.match(documentRoute, /completionFilesConfirmed/);
+  assert.doesNotMatch(workspace, /준공서류 확인하기/);
+  assert.doesNotMatch(workspace, /beginInspection|inspectionStartOpen/);
+  assert.doesNotMatch(detail, /completionReviewReady/);
   assert.match(contracts, /source !== "phase7"/);
 });

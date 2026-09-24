@@ -224,8 +224,8 @@ test("contract and commitment completion navigate to the newly active work stage
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   assert.match(workspace, /result\.nextStage === "COMMITMENT"/);
   assert.match(workspace, /\?tab=commitment/);
-  assert.match(workspace, /\(!review && !isContract\)/);
-  assert.match(route, /!workspace\.review && body\.documentStage !== "NARA_CONTRACT"/);
+  assert.match(workspace, /isCompletion && files\.length > 0/);
+  assert.match(route, /completionFilesConfirmed/);
   assert.match(detail, /tab === "commitment"/);
   assert.match(commitment, /원인행위 완료 확인/);
   assert.match(advance, /body\.nextStage \?\? body\.transition\?\.nextStage/);
