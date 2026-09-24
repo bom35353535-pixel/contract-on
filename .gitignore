@@ -45,3 +45,4 @@ yarn-error.log*
 /.deploy-stage-*/
 /.npm-cache-law/
 /*.tgz
+/*.tar.gz
