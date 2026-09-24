@@ -158,6 +158,20 @@ const CREATE_QUOTATION_ANALYSES = `
   )
 `;
 
+const CREATE_ESTIMATE_ANALYSIS_CACHE = `
+  CREATE TABLE IF NOT EXISTS estimate_analysis_cache (
+    cache_key TEXT PRIMARY KEY NOT NULL,
+    file_hash TEXT NOT NULL,
+    analysis_version TEXT NOT NULL,
+    criteria_version TEXT NOT NULL,
+    extraction_json TEXT NOT NULL,
+    response_id TEXT,
+    metrics_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`;
+
 const CREATE_QUOTATION_ITEMS = `
   CREATE TABLE IF NOT EXISTS quotation_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -362,6 +376,7 @@ async function initialize() {
     d1.prepare(CREATE_KNOWLEDGE_SETTINGS),
     d1.prepare(CREATE_KNOWLEDGE_QUERIES),
     d1.prepare(CREATE_QUOTATION_ANALYSES),
+    d1.prepare(CREATE_ESTIMATE_ANALYSIS_CACHE),
     d1.prepare(CREATE_QUOTATION_ITEMS),
     d1.prepare(CREATE_AI_DECISION_AUDIT),
     d1.prepare(CREATE_QUOTATION_REVIEWS),
@@ -384,6 +399,7 @@ async function initialize() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_knowledge_queries_created_at ON knowledge_queries(created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_analyses_status_created ON quotation_analyses(status, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_analyses_contract_id ON quotation_analyses(contract_id)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_estimate_analysis_cache_hash_version ON estimate_analysis_cache(file_hash, analysis_version, criteria_version)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_quotation_items_analysis_id ON quotation_items(analysis_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_analysis_id ON ai_decision_audit(analysis_id)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_ai_decision_audit_contract_id ON ai_decision_audit(contract_id)"),

@@ -55,10 +55,25 @@ function cleanText(value: unknown) {
   return text ? text.slice(0, 500) : null;
 }
 
-function cleanNumber(value: unknown) {
+function numericValue(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
-  const number = typeof value === "number" ? value : Number(String(value).replace(/[원,\s]/g, ""));
-  return Number.isFinite(number) && number >= 0 ? Math.round(number) : null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const source = String(value).trim();
+  const accountingNegative = /^\(.*\)$/.test(source);
+  const normalized = source.replace(/[(),원₩\s]/g, "").replace(/[−–—]/g, "-");
+  const number = Number(normalized);
+  if (!Number.isFinite(number)) return null;
+  return accountingNegative ? -Math.abs(number) : number;
+}
+
+function cleanNumber(value: unknown) {
+  const number = numericValue(value);
+  return number !== null && number >= 0 ? Math.round(number) : null;
+}
+
+function cleanSignedNumber(value: unknown) {
+  const number = numericValue(value);
+  return number === null ? null : Math.round(number);
 }
 
 function cleanQuantity(value: unknown) {
@@ -83,12 +98,42 @@ export function normalizeQuotationExtraction(value: unknown): QuotationExtractio
       specification: cleanText(item.specification),
       unit: cleanText(item.unit),
       quantity: cleanQuantity(item.quantity),
-      unitPrice: cleanNumber(item.unitPrice),
-      amount: cleanNumber(item.amount),
+      unitPrice: cleanSignedNumber(item.unitPrice),
+      amount: cleanSignedNumber(item.amount),
       sourceText: cleanText(item.sourceText),
     };
   }).filter((item) => item.itemName || item.sourceText || item.amount !== null);
   return result as QuotationExtraction;
+}
+
+export type QuotationConsistencyIssue = {
+  code: "TOTAL_MISMATCH" | "ITEM_CALCULATION_MISMATCH";
+  message: string;
+};
+
+export function quotationConsistencyIssues(value: QuotationExtraction): QuotationConsistencyIssue[] {
+  const issues: QuotationConsistencyIssue[] = [];
+  if (value.totalAmount !== null && value.supplyAmount !== null && value.vatAmount !== null) {
+    const difference = value.supplyAmount + value.vatAmount - value.totalAmount;
+    if (Math.abs(difference) > 10) {
+      issues.push({
+        code: "TOTAL_MISMATCH",
+        message: `공급가액과 부가가치세의 합계가 총액과 ${Math.abs(difference).toLocaleString("ko-KR")}원 차이 납니다. 원본 견적서를 확인해 주세요.`,
+      });
+    }
+  }
+  const mismatchedRows = value.items.filter((item) => {
+    if (item.quantity === null || item.unitPrice === null || item.amount === null) return false;
+    const calculated = item.quantity * item.unitPrice;
+    return Math.abs(calculated - item.amount) > Math.max(1, Math.abs(item.amount) * 0.001);
+  });
+  if (mismatchedRows.length) {
+    issues.push({
+      code: "ITEM_CALCULATION_MISMATCH",
+      message: `수량×단가와 금액이 일치하지 않는 항목이 ${mismatchedRows.length}건 있습니다.`,
+    });
+  }
+  return issues;
 }
 
 export function missingRequiredFields(value: QuotationExtraction) {

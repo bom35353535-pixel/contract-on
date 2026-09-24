@@ -4,6 +4,16 @@ import { normalizeQuotationExtraction, type QuotationExtraction } from "./estima
 
 const API_BASE = "https://api.openai.com/v1";
 
+export type EstimateAnalysisStage = "DOCUMENT_PREP" | "AI_EXTRACTION" | "CROSS_CHECK";
+export type EstimateExtractionMetrics = {
+  mode: "LOCAL_SPREADSHEET_TEXT" | "OPENAI_FILE";
+  documentPreparationMs: number;
+  aiExtractionMs: number;
+  normalizationMs: number;
+  totalMs: number;
+  openaiRequestCount: number;
+};
+
 function apiKey() {
   const key = env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다.");
@@ -110,17 +120,36 @@ async function fastSpreadsheetText(file: File) {
     const shared = [...sharedXml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((entry) =>
       decodeXml([...entry[1].matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((part) => part[1]).join("")),
     );
-    const sheets = Object.keys(archive).filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(name)).sort();
+    const workbookXml = archive["xl/workbook.xml"] ? strFromU8(archive["xl/workbook.xml"]) : "";
+    const relsXml = archive["xl/_rels/workbook.xml.rels"] ? strFromU8(archive["xl/_rels/workbook.xml.rels"]) : "";
+    const relationshipTargets = new Map(
+      [...relsXml.matchAll(/<Relationship\b[^>]*\bId="([^"]+)"[^>]*\bTarget="([^"]+)"[^>]*\/?>(?:<\/Relationship>)?/g)]
+        .map((entry) => [entry[1], entry[2].replace(/^\//, "")] as const),
+    );
+    const workbookSheets = [...workbookXml.matchAll(/<sheet\b([^>]*)\/?>(?:<\/sheet>)?/g)].map((entry) => {
+      const attrs = entry[1];
+      const name = decodeXml(attrs.match(/\bname="([^"]+)"/)?.[1] || "워크시트");
+      const relationId = attrs.match(/\br:id="([^"]+)"/)?.[1] || "";
+      const target = relationshipTargets.get(relationId) || "";
+      const normalizedTarget = target.startsWith("xl/") ? target : `xl/${target.replace(/^\.\//, "")}`;
+      return { name, path: normalizedTarget };
+    }).filter((sheet) => archive[sheet.path]);
+    const sheets = workbookSheets.length
+      ? workbookSheets
+      : Object.keys(archive).filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(name)).sort().map((path) => ({ name: path.split("/").pop() || path, path }));
     const output: string[] = [];
     let outputLength = 0;
     for (const sheet of sheets) {
-      const heading = `[${sheet.split("/").pop()}]`;
+      const heading = `[워크시트: ${sheet.name}]`;
       output.push(heading);
       outputLength += heading.length + 1;
-      const xml = strFromU8(archive[sheet]);
-      for (const rowMatch of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+      const xml = strFromU8(archive[sheet.path]);
+      const merged = [...xml.matchAll(/<mergeCell\b[^>]*\bref="([^"]+)"/g)].map((entry) => entry[1]);
+      if (merged.length) output.push(`병합셀: ${merged.slice(0, 80).join(", ")}`);
+      for (const rowMatch of xml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+        const rowNumber = rowMatch[1].match(/\br="(\d+)"/)?.[1] || "?";
         const values: string[] = [];
-        for (const cellMatch of rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+        for (const cellMatch of rowMatch[2].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
           const attrs = cellMatch[1];
           const body = cellMatch[2];
           const reference = attrs.match(/\br="([A-Z]+\d+)"/i)?.[1] || "A1";
@@ -129,9 +158,11 @@ async function fastSpreadsheetText(file: File) {
             ?? [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((part) => part[1]).join("");
           let value = raw ? decodeXml(raw) : "";
           if (type === "s" && /^\d+$/.test(value)) value = shared[Number(value)] ?? value;
-          values[columnIndex(reference)] = value;
+          const formula = body.match(/<f\b[^>]*>([\s\S]*?)<\/f>/)?.[1];
+          const display = formula ? `${value || "(계산값 없음)"} [수식=${decodeXml(formula)}]` : value;
+          values[columnIndex(reference)] = display ? `${reference}=${display}` : "";
         }
-        const line = values.map((value) => value || "").join("\t").replace(/\t+$/g, "");
+        const line = `행 ${rowNumber}: ${values.filter(Boolean).join(" | ")}`;
         if (line.trim()) {
           output.push(line);
           outputLength += line.length + 1;
@@ -170,12 +201,30 @@ async function requestQuotation(content: Record<string, string>[]) {
   });
 }
 
-export async function extractQuotation(file: File): Promise<{ data: QuotationExtraction; responseId: string | null }> {
+export async function extractQuotation(
+  file: File,
+  onProgress?: (stage: EstimateAnalysisStage) => void,
+): Promise<{ data: QuotationExtraction; responseId: string | null; metrics: EstimateExtractionMetrics }> {
+  const startedAt = performance.now();
+  onProgress?.("DOCUMENT_PREP");
+  const preparationStartedAt = performance.now();
   const spreadsheetText = await fastSpreadsheetText(file);
+  const documentPreparationMs = Math.round(performance.now() - preparationStartedAt);
   if (spreadsheetText) {
+    onProgress?.("AI_EXTRACTION");
+    const aiStartedAt = performance.now();
     const response = await requestQuotation([{ type: "input_text", text: `파일명: ${file.name}\n다음은 견적서 셀 값을 행과 열 순서대로 추출한 자료입니다. 이 자료에서 계약 기본정보, 비용 구성, 공종·직종·자재 항목을 구조화하세요.\n\n${spreadsheetText}` }]);
+    const aiExtractionMs = Math.round(performance.now() - aiStartedAt);
+    onProgress?.("CROSS_CHECK");
+    const normalizationStartedAt = performance.now();
     const parsed = JSON.parse(outputText(response));
-    return { data: normalizeQuotationExtraction(parsed), responseId: typeof response.id === "string" ? response.id : null };
+    const data = normalizeQuotationExtraction(parsed);
+    const normalizationMs = Math.round(performance.now() - normalizationStartedAt);
+    return {
+      data,
+      responseId: typeof response.id === "string" ? response.id : null,
+      metrics: { mode: "LOCAL_SPREADSHEET_TEXT", documentPreparationMs, aiExtractionMs, normalizationMs, totalMs: Math.round(performance.now() - startedAt), openaiRequestCount: 1 },
+    };
   }
 
   const upload = new FormData();
@@ -186,10 +235,21 @@ export async function extractQuotation(file: File): Promise<{ data: QuotationExt
   if (!fileId) throw new Error("견적서 파일을 분석 서비스에 전달하지 못했습니다.");
 
   try {
+    onProgress?.("AI_EXTRACTION");
+    const aiStartedAt = performance.now();
     const inputFile: Record<string, string> = { type: "input_file", file_id: fileId };
     const response = await requestQuotation([inputFile, { type: "input_text", text: "이 견적서의 계약 기본정보, 비용 구성, 세부 공종·직종·자재 항목을 지정된 구조로 추출하세요." }]);
+    const aiExtractionMs = Math.round(performance.now() - aiStartedAt);
+    onProgress?.("CROSS_CHECK");
+    const normalizationStartedAt = performance.now();
     const parsed = JSON.parse(outputText(response));
-    return { data: normalizeQuotationExtraction(parsed), responseId: typeof response.id === "string" ? response.id : null };
+    const data = normalizeQuotationExtraction(parsed);
+    const normalizationMs = Math.round(performance.now() - normalizationStartedAt);
+    return {
+      data,
+      responseId: typeof response.id === "string" ? response.id : null,
+      metrics: { mode: "OPENAI_FILE", documentPreparationMs, aiExtractionMs, normalizationMs, totalMs: Math.round(performance.now() - startedAt), openaiRequestCount: 3 },
+    };
   } finally {
     await openai(`/files/${fileId}`, { method: "DELETE" }).catch(() => undefined);
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { QuotationReviewItemRecord, QuotationReviewRecord } from "@/db/schema";
-import type { QuotationExtraction } from "@/lib/estimate";
+import { quotationConsistencyIssues, type QuotationExtraction } from "@/lib/estimate";
 import { CurrentRateReference } from "./CurrentRateReference";
 import { PreConfirmationReviewResults } from "./PreConfirmationReviewResults";
 import { SupplierSanctionCheck } from "./SupplierSanctionCheck";
@@ -195,6 +195,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     projectName: data.projectName, constructionType: data.constructionType, totalAmount: data.totalAmount, supplyAmount: data.supplyAmount,
     plannedStartDate: data.plannedStartDate, plannedCompletionDate: data.plannedCompletionDate,
   });
+  const consistencyIssues = quotationConsistencyIssues(data);
 
   return (
     <>
@@ -218,6 +219,10 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <div><span className="section-kicker">AI 추출 완료</span><h2>견적서에서 다음과 같이 읽었습니다.</h2><p><strong>{originalName}</strong> · 문서에 없거나 읽지 못한 값은 비워두었습니다.</p></div>
         <div className="review-notice-actions"><span className={emptyCount ? "review-status needs" : "review-status ready"}>{emptyCount ? `필수입력 ${emptyCount}개` : "확정 가능"}</span><button type="button" disabled={!!busy} onClick={() => setReanalyzeConfirmOpen(true)}>{busy === "reanalyze" ? "다시 분석 중…" : "견적서 다시 분석하기"}</button></div>
       </section>
+      {consistencyIssues.length > 0 && <section className="estimate-consistency-alert" role="alert">
+        <strong>자동 교차검증에서 확인이 필요한 항목이 있습니다.</strong>
+        <ul>{consistencyIssues.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
+      </section>}
 
       <section className={`knowledge-first-review ${knowledgeReadyCount ? "ready" : "needs"}`}>
         <div><span className="workflow-step-number">1</span><div><strong>지식자료 먼저 준비</strong><small>{knowledgeReadyCount ? `검색 가능한 자료 ${knowledgeReadyCount}건으로 검토합니다.` : knowledgePendingCount ? `원본 ${knowledgePendingCount}건이 등록되어 있으나 검색 색인이 필요합니다.` : "등록된 검색자료가 없습니다. 견적검토 전에 지식자료를 먼저 올릴 수 있습니다."}</small></div></div>

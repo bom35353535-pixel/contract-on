@@ -6,6 +6,7 @@ import { maskEstimateFileInBrowser, type BrowserMaskResult } from "@/lib/browser
 import { ManualPdfRedactor } from "@/components/ManualPdfRedactor";
 
 const ACCEPTED = ".pdf,.xlsx,.xls,.docx,.csv";
+type ProgressEvent = { stage: string; label: string };
 
 export function UploadPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -18,6 +19,7 @@ export function UploadPanel() {
   const [maskNotice, setMaskNotice] = useState("");
   const [manualMaskOpen, setManualMaskOpen] = useState(false);
   const [manualMaskedFile, setManualMaskedFile] = useState<File | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<ProgressEvent[]>([]);
 
   function selectFile(selected?: File) {
     if (!selected) return;
@@ -25,6 +27,7 @@ export function UploadPanel() {
     setMaskResult(null);
     setManualMaskedFile(null);
     setMaskNotice("");
+    setAnalysisProgress([]);
     setNotice("파일을 선택했습니다. 분석을 시작하면 문서에 적힌 정보만 추출합니다.");
   }
 
@@ -55,14 +58,41 @@ export function UploadPanel() {
   async function analyze() {
     if (!file || busy) return;
     setBusy(true);
-    setNotice("AI가 견적서를 읽고 있습니다. 문서 크기에 따라 잠시 걸릴 수 있습니다.");
+    setAnalysisProgress([]);
+    setNotice("견적서 분석을 준비하고 있습니다.");
     const form = new FormData();
     form.set("file", manualMaskedFile ?? maskResult?.file ?? file);
     try {
-      const response = await fetch("/api/estimates", { method: "POST", body: form });
-      const result = await response.json() as { analysisId?: string; error?: string };
-      if (!response.ok || !result.analysisId) throw new Error(result.error || "견적서 분석에 실패했습니다.");
-      router.push(`/estimates/${result.analysisId}?analysis=complete`);
+      const response = await fetch("/api/estimates", { method: "POST", headers: { accept: "application/x-ndjson" }, body: form });
+      if (!response.ok || !response.body) {
+        const result = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(result.error || "견적서 분석에 실패했습니다.");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
+      let analysisId = "";
+      const handleLine = (line: string) => {
+        if (!line.trim()) return;
+        const event = JSON.parse(line) as { type: string; stage?: string; label?: string; analysisId?: string; error?: string };
+        if (event.type === "progress" && event.stage && event.label) {
+          setAnalysisProgress((current) => current.some((item) => item.stage === event.stage) ? current : [...current, { stage: event.stage!, label: event.label! }]);
+          setNotice(event.label);
+        }
+        if (event.type === "error") throw new Error(event.error || "견적서 분석에 실패했습니다.");
+        if (event.type === "complete" && event.analysisId) analysisId = event.analysisId;
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        pending += decoder.decode(value || new Uint8Array(), { stream: !done });
+        const lines = pending.split("\n");
+        pending = lines.pop() || "";
+        for (const line of lines) handleLine(line);
+        if (done) break;
+      }
+      if (pending) handleLine(pending);
+      if (!analysisId) throw new Error("분석 결과를 저장하지 못했습니다.");
+      router.push(`/estimates/${analysisId}?analysis=complete`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "견적서 분석에 실패했습니다.");
       setBusy(false);
@@ -94,6 +124,9 @@ export function UploadPanel() {
           </div>
           {maskNotice && <div className={`privacy-mask-result ${maskResult || manualMaskedFile ? "complete" : "notice"}`} role="status">{maskNotice}</div>}
           {(maskResult || manualMaskedFile) && <small className="privacy-mask-security">분석 시 원본 대신 브라우저에서 만든 마스킹 사본만 전송됩니다.</small>}
+          {busy && <ol className="estimate-analysis-progress" aria-live="polite" aria-label="견적서 분석 진행 단계">
+            {analysisProgress.map((item, index) => <li key={item.stage} className={index === analysisProgress.length - 1 ? "active" : "done"}><span>{index + 1}</span>{item.label}</li>)}
+          </ol>}
         </div>
       </div>
     </section>
