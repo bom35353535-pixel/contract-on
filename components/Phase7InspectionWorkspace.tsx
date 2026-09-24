@@ -13,8 +13,9 @@ const ACTION_LABELS: Record<CompletionAction, string> = {
 function numberValue(value: string) { return Math.max(0, Number(value.replaceAll(",", "")) || 0); }
 function formatWon(value: number | null) { return value === null ? "[확인 필요]" : `${value.toLocaleString("ko-KR")}원`; }
 
-export function Phase7InspectionWorkspace({ contractId, currentStage, inspectionDate, utilityNoticeDate, paymentDate, projectName, companyName, constructionType, contractAmount, supplyAmount, materialCost, directLaborCost, plannedStartDate, plannedCompletionDate }: {
+export function Phase7InspectionWorkspace({ contractId, currentStage, completionReviewReady, inspectionDate, utilityNoticeDate, paymentDate, projectName, companyName, constructionType, contractAmount, supplyAmount, materialCost, directLaborCost, plannedStartDate, plannedCompletionDate }: {
   contractId: string; currentStage: string; inspectionDate: string | null; utilityNoticeDate: string | null; paymentDate: string | null;
+  completionReviewReady: boolean;
   projectName: string; companyName: string; constructionType: string; contractAmount: number; supplyAmount: number | null; materialCost: number | null; directLaborCost: number | null;
   plannedStartDate: string | null; plannedCompletionDate: string | null;
 }) {
@@ -26,6 +27,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
   const [savedPaymentDate, setSavedPaymentDate] = useState(paymentDate);
   const [downloadingWorkbook, setDownloadingWorkbook] = useState(false);
   const [pendingAction, setPendingAction] = useState<CompletionAction | null>(null);
+  const [inspectionStartOpen, setInspectionStartOpen] = useState(false);
   const [kind, setKind] = useState<UtilityCostKind>("BOTH");
   const [trade, setTrade] = useState<UtilityTrade>(() => inferUtilityTrade(constructionType));
   const [duration, setDuration] = useState<UtilityDuration>(() => inferUtilityDuration(plannedStartDate, plannedCompletionDate));
@@ -85,13 +87,30 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
     } catch (reason) { setError(reason instanceof Error ? reason.message : `${label} 완료를 저장하지 못했습니다.`); }
     finally { setBusy(""); }
   }
+
+  async function beginInspection() {
+    setInspectionStartOpen(false); setBusy("begin-inspection"); setError("");
+    try {
+      const response = await fetch(`/api/contracts/${contractId}/phase6-documents`, {
+        method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ documentStage: "COMPLETION" }),
+      });
+      const result = await response.json() as { error?: string; nextStage?: string };
+      if (!response.ok) throw new Error(result.error || "검사검수 단계로 변경하지 못했습니다.");
+      if (result.nextStage !== "INSPECTION") throw new Error("변경된 계약단계를 확인해 주세요.");
+      setSavedStage("INSPECTION");
+      router.refresh();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "검사검수 단계로 변경하지 못했습니다."); }
+    finally { setBusy(""); }
+  }
   const finished = savedStage === "FINISHED";
   const button = (action: CompletionAction, enabled: boolean, done: boolean) => <button type="button" disabled={!!busy || !enabled || done} onClick={() => setPendingAction(action)}>{busy === action ? "저장 중…" : done ? "완료됨" : action === "complete-finish" ? "공사완료 처리" : `${ACTION_LABELS[action]} 완료`}</button>;
 
   return <>
     <AppDialog open={pendingAction !== null} title={`${pendingAction ? ACTION_LABELS[pendingAction] : "업무"} 처리를 완료하셨나요?`} confirmLabel="완료 확인" busy={!!busy} onCancel={() => setPendingAction(null)} onConfirm={() => pendingAction && void act(pendingAction)}><p>완료일이 오늘 날짜로 저장됩니다.</p></AppDialog>
+    <AppDialog open={inspectionStartOpen} title="준공서류 확인을 완료하셨나요?" confirmLabel="검사검수 시작" busy={busy === "begin-inspection"} onCancel={() => setInspectionStartOpen(false)} onConfirm={() => void beginInspection()}><p>준공서류 확인을 완료하고 검사검수 단계로 이동합니다.</p></AppDialog>
     <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 검사검수·대금지급</span><h2>공사완료 처리</h2><p>각 업무를 실제 처리한 순서대로 완료해 주세요.</p></div><span className="human-check-badge">담당자 완료확인</span></section>
     {error && <div className="document-message error" role="alert">{error}</div>}
+    {savedStage === "COMPLETION" && <section className="phase6-upcoming-notice inspection-start-notice"><div><strong>준공서류 확인 완료 후 검사검수를 시작할 수 있습니다.</strong><span>{completionReviewReady ? "준공서류 분석 결과가 준비되어 있습니다. 완료 여부를 확인해 주세요." : "먼저 준공서류를 업로드하고 확인 결과를 검토해 주세요."}</span></div>{completionReviewReady ? <button type="button" disabled={!!busy} onClick={() => setInspectionStartOpen(true)}>준공서류 확인 완료 · 검사검수 시작</button> : <a href={`/contracts/${contractId}?tab=completion-documents`}>준공서류 확인하기</a>}</section>}
     <section className="inspection-flow">
       <article className={savedInspectionDate ? "done" : "current"}><span>01</span><div><h3>에듀파인 검사·검수</h3><p>{savedInspectionDate ? `${savedInspectionDate} 완료` : "에듀파인에서 검사·검수를 처리한 후 완료해 주세요."}</p></div>{button("complete-inspection", savedStage === "INSPECTION", Boolean(savedInspectionDate))}</article>
       <article className={savedUtilityNoticeDate ? "done utility-step" : savedInspectionDate ? "current utility-step" : "waiting utility-step"}>

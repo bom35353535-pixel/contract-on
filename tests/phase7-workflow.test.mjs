@@ -65,6 +65,7 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   const actions = await readFile(new URL("../app/api/contracts/[id]/phase7-actions/route.ts", import.meta.url), "utf8");
   const contracts = await readFile(new URL("../lib/contracts.ts", import.meta.url), "utf8");
   const workspace = await readFile(new URL("../components/Phase7InspectionWorkspace.tsx", import.meta.url), "utf8");
+  const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   assert.ok(actions.indexOf('body.action === "complete-inspection"') < actions.indexOf('body.action === "complete-utility-notice"'));
   assert.ok(actions.indexOf('body.action === "complete-utility-notice"') < actions.indexOf('body.action === "complete-payment"'));
   assert.ok(actions.indexOf('body.action === "complete-payment"') < actions.indexOf('body.action === "complete-finish"'));
@@ -82,5 +83,9 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   assert.match(workspace, /setSavedPaymentDate\(result\.paymentDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedUtilityNoticeDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedPaymentDate\)/);
+  assert.match(workspace, /documentStage: "COMPLETION"/);
+  assert.match(workspace, /준공서류 확인 완료 · 검사검수 시작/);
+  assert.match(workspace, /setSavedStage\("INSPECTION"\)/);
+  assert.match(detail, /completionReviewReady=\{Boolean\(completionDocuments\.review\)\}/);
   assert.match(contracts, /source !== "phase7"/);
 });
