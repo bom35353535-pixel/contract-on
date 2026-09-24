@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { maskEstimateFileInBrowser, type BrowserMaskResult } from "@/lib/browser-privacy-mask";
+import { ManualPdfRedactor } from "@/components/ManualPdfRedactor";
 
 const ACCEPTED = ".pdf,.xlsx,.xls,.docx,.csv";
 
@@ -15,11 +16,14 @@ export function UploadPanel() {
   const [masking, setMasking] = useState(false);
   const [maskResult, setMaskResult] = useState<Extract<BrowserMaskResult, { supported: true }> | null>(null);
   const [maskNotice, setMaskNotice] = useState("");
+  const [manualMaskOpen, setManualMaskOpen] = useState(false);
+  const [manualMaskedFile, setManualMaskedFile] = useState<File | null>(null);
 
   function selectFile(selected?: File) {
     if (!selected) return;
     setFile(selected);
     setMaskResult(null);
+    setManualMaskedFile(null);
     setMaskNotice("");
     setNotice("파일을 선택했습니다. 분석을 시작하면 문서에 적힌 정보만 추출합니다.");
   }
@@ -28,6 +32,7 @@ export function UploadPanel() {
     if (!file || busy || masking) return;
     setMasking(true);
     setMaskResult(null);
+    setManualMaskedFile(null);
     setMaskNotice("브라우저에서 개인정보를 확인하고 있습니다.");
     try {
       const result = await maskEstimateFileInBrowser(file);
@@ -52,7 +57,7 @@ export function UploadPanel() {
     setBusy(true);
     setNotice("AI가 견적서를 읽고 있습니다. 문서 크기에 따라 잠시 걸릴 수 있습니다.");
     const form = new FormData();
-    form.set("file", maskResult?.file ?? file);
+    form.set("file", manualMaskedFile ?? maskResult?.file ?? file);
     try {
       const response = await fetch("/api/estimates", { method: "POST", body: form });
       const result = await response.json() as { analysisId?: string; error?: string };
@@ -65,6 +70,7 @@ export function UploadPanel() {
   }
 
   return (
+    <>{manualMaskOpen && file && <ManualPdfRedactor file={file} onCancel={() => setManualMaskOpen(false)} onApply={(masked, count) => { setManualMaskedFile(masked); setMaskResult(null); setManualMaskOpen(false); setMaskNotice(`직접 지정한 개인정보 영역 ${count}개를 마스킹했습니다. 마스킹 사본으로 견적서를 분석합니다.`); }} />}
     <section className="upload-section" aria-labelledby="upload-title">
       <div className="upload-copy">
         <span className="section-kicker">새 계약업무 시작</span>
@@ -83,12 +89,14 @@ export function UploadPanel() {
           <p>견적서에 휴대전화번호나 이메일 등 개인정보가 포함된 경우, 분석 전에 먼저 개인정보 마스킹을 진행해 주세요.</p>
           <div className="privacy-mask-actions">
             <button className="mask-button" type="button" disabled={!file || busy || masking} onClick={maskPrivacy}>{masking ? "마스킹 중…" : "개인정보 마스킹하기"}</button>
+            <button className="manual-mask-button" type="button" disabled={!file || !file.name.toLowerCase().endsWith(".pdf") || busy || masking} onClick={() => setManualMaskOpen(true)}>직접 드래그 마스킹</button>
             <button className="analysis-button" type="button" disabled={!file || busy || masking} onClick={analyze}>{busy ? "분석 중…" : "견적서 분석하기"}</button>
           </div>
-          {maskNotice && <div className={`privacy-mask-result ${maskResult ? "complete" : "notice"}`} role="status">{maskNotice}</div>}
-          {maskResult && <small className="privacy-mask-security">분석 시 원본 대신 브라우저에서 만든 마스킹 사본만 전송됩니다.</small>}
+          {maskNotice && <div className={`privacy-mask-result ${maskResult || manualMaskedFile ? "complete" : "notice"}`} role="status">{maskNotice}</div>}
+          {(maskResult || manualMaskedFile) && <small className="privacy-mask-security">분석 시 원본 대신 브라우저에서 만든 마스킹 사본만 전송됩니다.</small>}
         </div>
       </div>
     </section>
+    </>
   );
 }

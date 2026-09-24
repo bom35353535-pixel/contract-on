@@ -47,14 +47,16 @@ test("contract document UI blocks sensitive originals until masking or manual co
   assert.match(source, /개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요/);
   assert.match(source, /privacyStates\[index\]\?\.file \?\? file/);
   assert.match(source, /form\.set\("privacyConfirmed", "true"\)/);
-  assert.match(source, /const requiresPrivacyMask = isContract \|\| isCompletion/);
+  assert.match(source, /const requiresPrivacyMask = true/);
   assert.match(source, /준공서류/);
 });
 
 test("upload UI keeps selection local and sends the masked copy only after analyze", async () => {
   const source = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
   assert.match(source, /setMaskResult\(null\)/);
-  assert.match(source, /form\.set\("file", maskResult\?\.file \?\? file\)/);
+  assert.match(source, /form\.set\("file", manualMaskedFile \?\? maskResult\?\.file \?\? file\)/);
+  assert.match(source, /직접 드래그 마스킹/);
+  assert.match(source, /ManualPdfRedactor/);
   assert.doesNotMatch(source, /마스킹된 견적서 확인|previewOpen/);
   assert.equal((source.match(/fetch\("\/api\/estimates"/g) || []).length, 1);
   assert.ok(source.indexOf("async function analyze") < source.indexOf('fetch("/api/estimates"'));
@@ -75,16 +77,18 @@ test("PDF auto-redaction requires the user to inspect the generated copy", async
   assert.match(source, /"reviewed"/);
 });
 
-test("completion documents expose automatic and drag-to-redact privacy controls", async () => {
+test("contract, construction, and completion documents expose automatic and drag-to-redact privacy controls", async () => {
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   const redactor = await readFile(new URL("../components/ManualPdfRedactor.tsx", import.meta.url), "utf8");
-  assert.match(workspace, /isContract \|\| isCompletion/);
+  assert.match(workspace, /const requiresPrivacyMask = true/);
+  assert.match(workspace, /privacyDocumentLabel/);
   assert.match(workspace, /개인정보 자동 마스킹/);
   assert.match(workspace, /직접 드래그 마스킹/);
   assert.match(workspace, /ManualPdfRedactor/);
-  assert.match(redactor, /PDFDocument\.create/);
+  assert.match(redactor, /PDFDocument\.load/);
+  assert.match(redactor, /copyPages/);
   assert.match(redactor, /context\.fillRect/);
-  assert.match(redactor, /페이지를 이미지로 평탄화/);
+  assert.match(redactor, /마스킹한 페이지만 안전하게 평탄화/);
   assert.match(redactor, /마스킹 사본 사용/);
   assert.match(redactor, /원본은 마스킹 확인 전까지|새 PDF 사본만 분석에 사용/);
 });

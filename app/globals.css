@@ -105,7 +105,8 @@ a { color: inherit; text-decoration: none; }
 .privacy-mask-actions button { min-height: 45px; padding: 10px 13px; border-radius: 9px; font-size: 14px; font-weight: 850; cursor: pointer; }
 .privacy-mask-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .privacy-mask-actions .mask-button { border: 1px solid #378976; background: #eaf6f3; color: #1c6a59; }
-.privacy-mask-actions .analysis-button { grid-column: auto; justify-self: stretch; margin-top: 0; padding: 10px 13px; border: 1px solid var(--navy); background: var(--navy); color: white; font-size: 14px; }
+.privacy-mask-actions .manual-mask-button { border: 1px solid #8872bd; background: #f5f1ff; color: #604797; }
+.privacy-mask-actions .analysis-button { grid-column: 1 / -1; justify-self: stretch; margin-top: 0; padding: 10px 13px; border: 1px solid var(--navy); background: var(--navy); color: white; font-size: 14px; }
 .privacy-mask-result { margin-top: 11px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 750; line-height: 1.45; }
 .privacy-mask-result.complete { background: #e7f5f0; color: #176b58; }
 .privacy-mask-result.notice { background: #fff5e5; color: #895a11; }

@@ -56,7 +56,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (files.some((file) => !ALLOWED_EXTENSIONS.includes((file.name.split(".").pop()?.toLowerCase() || "") as (typeof ALLOWED_EXTENSIONS)[number]))) {
     return errorResponse("PDF, DOCX, XLSX, XLS, CSV, TXT 서류만 분석할 수 있습니다.");
   }
-  if ((stage === "NARA_CONTRACT" || stage === "COMPLETION") && form.get("privacyConfirmed") !== "true") return errorResponse(`개인정보 마스킹 확인 후 ${stage === "COMPLETION" ? "준공서류" : "계약서류"}를 분석해 주세요.`);
+  if (form.get("privacyConfirmed") !== "true") return errorResponse(`개인정보 마스킹 확인 후 ${stage === "COMPLETION" ? "준공서류" : stage === "NARA_CONTRACT" ? "계약서류" : "착공서류"}를 분석해 주세요.`);
 
   const stored: Array<{ id: string; storageKey: string; file: File }> = [];
   let metadataSaved = false;

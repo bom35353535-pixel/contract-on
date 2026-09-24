@@ -39,10 +39,12 @@ test("AI 업무비서 provides the official workflow and registered-knowledge-on
   assert.match(knowledge, /max_num_results: 3/);
 });
 
-test("completion documents require browser privacy masking before upload", async () => {
+test("contract, construction, and completion documents require browser privacy masking before upload", async () => {
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
-  assert.match(workspace, /const requiresPrivacyMask = isContract \|\| isCompletion/);
+  assert.match(workspace, /const requiresPrivacyMask = true/);
   assert.match(workspace, /개인정보 자동 마스킹/);
-  assert.match(route, /stage === "NARA_CONTRACT" \|\| stage === "COMPLETION"/);
+  assert.match(workspace, /직접 드래그 마스킹/);
+  assert.match(route, /form\.get\("privacyConfirmed"\) !== "true"/);
+  assert.match(route, /착공서류/);
 });
