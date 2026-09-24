@@ -12,6 +12,9 @@ test("Phase 8 requires user confirmation before scheduling warranty inspections"
   assert.match(component, /기준으로 확정하시겠습니까/);
   assert.doesNotMatch(component, /window\.confirm/);
   assert.match(component, /자동 확정하지 않습니다/);
+  assert.doesNotMatch(component, /<select[^>]*disabled=\{!canConfirm\}/);
+  assert.doesNotMatch(component, /type="date"[^>]*disabled=\{!canConfirm\}/);
+  assert.match(component, /최종 확정은 검사검수·대금지급을 거쳐 공사완료 처리한 후 가능합니다/);
 });
 
 test("Phase 8 stores source-backed warranty criteria and D-Day schedules", async () => {
