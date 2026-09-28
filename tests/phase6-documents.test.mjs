@@ -223,7 +223,7 @@ test("contract and commitment completion navigate to the newly active work stage
   const detail = await readFile(new URL("../app/contracts/[id]/page.tsx", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   assert.match(workspace, /result\.nextStage === "COMMITMENT"/);
-  assert.match(workspace, /\?tab=commitment/);
+  assert.match(workspace, /\?tab=g2b/);
   assert.match(workspace, /isCompletion && files\.length > 0/);
   assert.match(route, /completionFilesConfirmed/);
   assert.match(detail, /tab === "commitment"/);

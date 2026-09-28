@@ -4,6 +4,7 @@ import { AdvanceStageButton } from "@/components/AdvanceStageButton";
 import { AdministrativeDocumentsWorkspace } from "@/components/AdministrativeDocumentsWorkspace";
 import { AppShell } from "@/components/AppShell";
 import { CommitmentWorkspace } from "@/components/CommitmentWorkspace";
+import { G2bGuideWorkspace } from "@/components/G2bGuideWorkspace";
 import { QuotationReviewDashboard } from "@/components/QuotationReviewDashboard";
 import { Phase6DocumentWorkspace } from "@/components/Phase6DocumentWorkspace";
 import { Phase7ConstructionWorkspace } from "@/components/Phase7ConstructionWorkspace";
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: DetailProps): Promise<Metadat
 export default async function ContractDetailPage({ params, searchParams }: DetailProps) {
   const { id } = await params;
   const requestedTab = (await searchParams)?.tab;
-  const availableTabs = ["estimate", "documents", "contract-documents", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
+  const availableTabs = ["estimate", "documents", "contract-documents", "g2b", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
   const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments, phase7Completion] = await Promise.all([
     getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
@@ -91,6 +92,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
         {quotation ? <a className={tab === "estimate" ? "active" : ""} href={`/contracts/${id}?tab=estimate`}>견적검토</a> : <span>견적검토<small>후속</small></span>}
         <a className={tab === "documents" ? "active" : ""} href={`/contracts/${id}?tab=documents`}>품의/기안</a>
         <a className={tab === "contract-documents" ? "active" : ""} href={`/contracts/${id}?tab=contract-documents`}>계약서류</a>
+        <a className={tab === "g2b" ? "active" : ""} href={`/contracts/${id}?tab=g2b`}>나라장터</a>
         <a className={tab === "commitment" ? "active" : ""} href={`/contracts/${id}?tab=commitment`}>원인행위</a>
         <a className={tab === "construction-documents" ? "active" : ""} href={`/contracts/${id}?tab=construction-documents`}>착공서류</a>
         <a className={tab === "construction-progress" ? "active" : ""} href={`/contracts/${id}?tab=construction-progress`}>공사진행</a>
@@ -112,6 +114,8 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
       /> : tab === "contract-documents" ? <Phase6DocumentWorkspace
         contractId={id} currentStage={currentStage} documentStage="NARA_CONTRACT"
         files={contractDocuments.files} review={contractDocuments.review} items={contractDocuments.items}
+      /> : tab === "g2b" ? <G2bGuideWorkspace
+        contractId={id}
       /> : tab === "commitment" ? <CommitmentWorkspace
         contractId={id} currentStage={currentStage}
       /> : tab === "construction-documents" ? <Phase6DocumentWorkspace

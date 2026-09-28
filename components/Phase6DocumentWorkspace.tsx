@@ -171,7 +171,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       const result = await response.json() as { error?: string; nextStage?: string };
       if (!response.ok) throw new Error(result.error || "단계를 변경하지 못했습니다.");
       if (result.nextStage === "COMMITMENT") {
-        window.location.assign(`/contracts/${contractId}?tab=commitment`);
+        window.location.assign(`/contracts/${contractId}?tab=g2b`);
       } else if (result.nextStage === "IN_CONSTRUCTION") {
         window.location.assign(`/contracts/${contractId}?tab=construction`);
       } else if (result.nextStage === "INSPECTION") {
