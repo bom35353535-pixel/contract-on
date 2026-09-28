@@ -268,6 +268,19 @@ a { color: inherit; text-decoration: none; }
 .g2b-action-chip b { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: #e27055; color: white; font-size: 11px; }
 .g2b-step-body > p { grid-column: 1 / -1; margin: 0; color: #4e6572; font-size: 15px; line-height: 1.65; }
 .g2b-source-pages { grid-column: 1 / -1; color: #87959d; font-size: 12px; }
+.g2b-screen-viewer { grid-column: 1 / -1; overflow: hidden; border: 1px solid #cbd8de; border-radius: 14px; background: #eef3f5; }
+.g2b-screen-viewer > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border-bottom: 1px solid #d7e1e5; background: white; }
+.g2b-screen-viewer > header > div:first-child { display: flex; align-items: baseline; gap: 9px; }
+.g2b-screen-viewer > header strong { color: #203c4d; font-size: 15px; }
+.g2b-screen-viewer > header span { color: #6f818b; font-size: 13px; font-weight: 750; }
+.g2b-screen-controls { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.g2b-screen-controls button, .g2b-screen-controls select, .g2b-screen-controls a { min-height: 36px; padding: 7px 10px; border: 1px solid #c8d5da; border-radius: 8px; background: white; color: #304b5a; font: inherit; font-size: 13px; font-weight: 800; }
+.g2b-screen-controls button { cursor: pointer; }
+.g2b-screen-controls button:hover:not(:disabled), .g2b-screen-controls a:hover { border-color: #4b907e; color: #2e7563; }
+.g2b-screen-controls button:disabled { cursor: not-allowed; opacity: .42; }
+.g2b-screen-controls a { display: inline-flex; align-items: center; }
+.g2b-screen-frame { padding: 14px; overflow: auto; text-align: center; }
+.g2b-screen-frame img { display: block; width: 100%; height: auto; max-height: 72vh; margin: 0 auto; object-fit: contain; border: 1px solid #bccbd1; border-radius: 8px; background: white; box-shadow: 0 7px 24px rgba(28, 53, 66, .12); }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .65fr); gap: 15px; margin-top: 15px; }
 .info-card, .next-action-card, .history-card { background: white; border: 1px solid var(--line); border-radius: 16px; }
 .info-card { padding: 22px; }
@@ -1166,6 +1179,11 @@ a { color: inherit; text-decoration: none; }
   .g2b-summary-path { grid-column:2 / -1; }
   .g2b-step-body { grid-template-columns:1fr; padding:0 14px 16px; }
   .g2b-step-body > p,.g2b-source-pages { grid-column:auto; }
+  .g2b-screen-viewer { grid-column:auto; }
+  .g2b-screen-viewer > header { align-items:stretch; flex-direction:column; }
+  .g2b-screen-controls { justify-content:flex-start; }
+  .g2b-screen-controls a { width:100%; justify-content:center; }
+  .g2b-screen-frame { padding:8px; }
   .warranty-layout,.ledger-actions { grid-template-columns:1fr; }
   .phase7-head,.completion-day-card { flex-direction:column; }
   .construction-check-item { grid-template-columns:1fr; }
