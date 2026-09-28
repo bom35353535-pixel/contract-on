@@ -72,9 +72,21 @@ test("PDF masking runs in the browser while legacy XLS remains unsupported", asy
 
 test("PDF auto-redaction requires the user to inspect the generated copy", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(source, /마스킹된 PDF 확인/);
+  assert.match(source, /마스킹된 PDF 저장/);
   assert.match(source, /마스킹 결과를 확인했습니다/);
   assert.match(source, /"reviewed"/);
+});
+
+test("manual PDF masking keeps prior masks, accepts repeated regions, and avoids blob navigation", async () => {
+  const redactor = await readFile(new URL("../components/ManualPdfRedactor.tsx", import.meta.url), "utf8");
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const upload = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
+  assert.match(redactor, /startRef\.current/);
+  assert.match(redactor, /setRegions\(\(current\) => \[\.\.\.current, completed\]\)/);
+  assert.match(workspace, /privacyStates\[manualMaskIndex\]\?\.file \?\? selected\[manualMaskIndex\]/);
+  assert.match(upload, /file=\{manualMaskedFile \?\? file\}/);
+  assert.match(workspace, /link\.download = file\.name/);
+  assert.doesNotMatch(workspace, /window\.open\(url/);
 });
 
 test("contract, construction, and completion documents expose automatic and drag-to-redact privacy controls", async () => {

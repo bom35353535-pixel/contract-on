@@ -100,7 +100,7 @@ export function UploadPanel() {
   }
 
   return (
-    <>{manualMaskOpen && file && <ManualPdfRedactor file={file} onCancel={() => setManualMaskOpen(false)} onApply={(masked, count) => { setManualMaskedFile(masked); setMaskResult(null); setManualMaskOpen(false); setMaskNotice(`직접 지정한 개인정보 영역 ${count}개를 마스킹했습니다. 마스킹 사본으로 견적서를 분석합니다.`); }} />}
+    <>{manualMaskOpen && file && <ManualPdfRedactor file={manualMaskedFile ?? file} onCancel={() => setManualMaskOpen(false)} onApply={(masked, count) => { setManualMaskedFile(masked); setMaskResult(null); setManualMaskOpen(false); setMaskNotice(`직접 지정한 개인정보 영역 ${count}개를 마스킹했습니다. 추가로 가릴 부분이 있으면 직접 드래그 마스킹을 다시 눌러 계속할 수 있습니다.`); }} />}
     <section className="upload-section" aria-labelledby="upload-title">
       <div className="upload-copy">
         <span className="section-kicker">새 계약업무 시작</span>

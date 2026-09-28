@@ -19,10 +19,11 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pageWrapRef = useRef<HTMLDivElement>(null);
+  const startRef = useRef<Point | null>(null);
+  const draftRef = useRef<Region | null>(null);
   const [source, setSource] = useState<PdfSource | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [regions, setRegions] = useState<Region[]>([]);
-  const [start, setStart] = useState<Point | null>(null);
   const [draft, setDraft] = useState<Region | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -89,25 +90,48 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
   function begin(event: React.PointerEvent<HTMLDivElement>) {
     const point = pointFromEvent(event);
     event.currentTarget.setPointerCapture(event.pointerId);
-    setStart(point);
-    setDraft({ page: pageNumber, x: point.x, y: point.y, width: 0, height: 0 });
+    startRef.current = point;
+    const next = { page: pageNumber, x: point.x, y: point.y, width: 0, height: 0 };
+    draftRef.current = next;
+    setDraft(next);
   }
 
   function move(event: React.PointerEvent<HTMLDivElement>) {
-    if (!start) return;
+    const origin = startRef.current;
+    if (!origin) return;
     const point = pointFromEvent(event);
-    setDraft({
+    const next = {
       page: pageNumber,
-      x: Math.min(start.x, point.x),
-      y: Math.min(start.y, point.y),
-      width: Math.abs(point.x - start.x),
-      height: Math.abs(point.y - start.y),
-    });
+      x: Math.min(origin.x, point.x),
+      y: Math.min(origin.y, point.y),
+      width: Math.abs(point.x - origin.x),
+      height: Math.abs(point.y - origin.y),
+    };
+    draftRef.current = next;
+    setDraft(next);
   }
 
-  function end() {
-    if (draft && draft.width > 0.006 && draft.height > 0.006) setRegions((current) => [...current, draft]);
-    setStart(null);
+  function end(event: React.PointerEvent<HTMLDivElement>) {
+    const origin = startRef.current;
+    const point = pointFromEvent(event);
+    const completed = origin ? {
+      page: pageNumber,
+      x: Math.min(origin.x, point.x),
+      y: Math.min(origin.y, point.y),
+      width: Math.abs(point.x - origin.x),
+      height: Math.abs(point.y - origin.y),
+    } : draftRef.current;
+    if (completed && completed.width > 0.006 && completed.height > 0.006) setRegions((current) => [...current, completed]);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    startRef.current = null;
+    draftRef.current = null;
+    setDraft(null);
+  }
+
+  function cancelDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    startRef.current = null;
+    draftRef.current = null;
     setDraft(null);
   }
 
@@ -127,7 +151,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         }
         const sourcePage = await source.getPage(number);
         const base = sourcePage.getViewport({ scale: 1 });
-        const scale = Math.min(1.6, Math.max(1.15, 1800 / Math.max(base.width, base.height)));
+        const scale = Math.min(1.3, Math.max(1.05, 1400 / Math.max(base.width, base.height)));
         const viewport = sourcePage.getViewport({ scale });
         const canvas = window.document.createElement("canvas");
         canvas.width = Math.ceil(viewport.width);
@@ -139,16 +163,21 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         for (const region of pageRegions) {
           context.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
         }
-        const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PDF 페이지 이미지를 만들지 못했습니다.")), "image/jpeg", 0.86));
+        const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PDF 페이지 이미지를 만들지 못했습니다.")), "image/jpeg", 0.82));
         const image = await document.embedJpg(await jpeg.arrayBuffer());
         const outputPage = document.addPage([base.width, base.height]);
         outputPage.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
         sourcePage.cleanup();
         canvas.width = 1;
         canvas.height = 1;
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       }
       const bytes = await document.save({ useObjectStreams: true });
       const masked = new File([bytes], file.name, { type: "application/pdf", lastModified: file.lastModified });
+      if (canvasRef.current) {
+        canvasRef.current.width = 1;
+        canvasRef.current.height = 1;
+      }
       onApply(masked, regions.length);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "직접 마스킹한 PDF를 만들지 못했습니다.");
@@ -174,7 +203,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
       <div className="manual-redactor-scroll" ref={pageWrapRef}>
         <div className="manual-redactor-page">
           <canvas ref={canvasRef} />
-          <div className="manual-redactor-layer" onPointerDown={begin} onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
+          <div className="manual-redactor-layer" onPointerDown={begin} onPointerMove={move} onPointerUp={end} onPointerCancel={cancelDrag}>
             {visibleRegions.map((region, index) => <span key={`${region.page}-${index}`} style={{ left: `${region.x * 100}%`, top: `${region.y * 100}%`, width: `${region.width * 100}%`, height: `${region.height * 100}%` }} />)}
           </div>
           {busy && <div className="manual-redactor-loading">PDF 처리 중…</div>}
