@@ -28,8 +28,12 @@ function isResidentNumber(digits: string) {
   return month >= 1 && month <= 12 && day >= 1 && day <= 31 && /^[1-8]$/.test(digits[6]);
 }
 
+function isMobileNumber(digits: string) {
+  return /^01[016789]\d{7,8}$/.test(digits);
+}
+
 function redactableGroups(lines: OcrLine[]) {
-  const regions: Array<{ x0: number; y0: number; x1: number; y1: number; kind: "resident" | "account" }> = [];
+  const regions: Array<{ x0: number; y0: number; x1: number; y1: number; kind: "resident" | "mobile" | "account" }> = [];
   for (const line of lines) {
     for (const group of numericGroups(line)) {
       const digits = group.map((word) => word.text).join("").replace(/\D/g, "");
@@ -38,7 +42,8 @@ function redactableGroups(lines: OcrLine[]) {
       const y0 = Math.min(...group.map((word) => word.bbox.y0));
       const x1 = Math.max(...group.map((word) => word.bbox.x1));
       const y1 = Math.max(...group.map((word) => word.bbox.y1));
-      regions.push({ x0, y0, x1, y1, kind: isResidentNumber(digits) ? "resident" : "account" });
+      const kind = isResidentNumber(digits) ? "resident" : isMobileNumber(digits) ? "mobile" : "account";
+      regions.push({ x0, y0, x1, y1, kind });
     }
   }
   return regions;
@@ -100,6 +105,7 @@ export async function redactPdfInBrowser(file: File, onProgress?: (message: stri
         const padding = 5;
         context.fillRect(Math.max(0, region.x0 - padding), Math.max(0, region.y0 - padding), region.x1 - region.x0 + padding * 2, region.y1 - region.y0 + padding * 2);
         if (region.kind === "resident") counts.residentRegistration += 1;
+        else if (region.kind === "mobile") counts.mobile += 1;
         else counts.account += 1;
       }
       const image = await output.embedJpg(canvas.toDataURL("image/jpeg", 0.88));
