@@ -78,7 +78,7 @@ export function buildUtilityNoticeDraft(input: {
   today?: Date;
 }) {
   return [
-    `제목: ${input.projectName} 전기·수도료 납부 안내(안)`,
+    `제목: ${input.projectName} 전기·수도료 납부 안내`,
     "",
     `1. 관련: ${input.projectName} 계약`,
     `2. ${input.projectName}와 관련하여 공사 중 사용한 전기·수도료 산출 결과를 다음과 같이 안내하고자 합니다.`,

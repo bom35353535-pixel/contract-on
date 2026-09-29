@@ -112,7 +112,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
           <p className="utility-formula">계산식: (직접재료비 + 직접노무비) × (공종별 요율 + 공사기간별 요율 + 공사금액별 요율) ÷ 3. 재료비·노무비는 천원 단위, 산출금액은 10원 단위로 절사합니다.</p>
           <small className="utility-source">원본 31번 시트 기준: 2024년도 완성공사 원가통계(대한건설협회, 2025.9 발표). 전기·통신·소방·전문공사는 건축요율을 적용합니다.</small>
           <div className="utility-download-row"><button type="button" disabled={downloadingWorkbook || utility.total === null} onClick={() => void downloadUtilityWorkbook()}>{downloadingWorkbook ? "엑셀 만드는 중…" : "전기수도료 산출내역 엑셀 다운로드"}</button></div>
-          <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong><small>산출기초는 제외했으며, 납부기한은 오늘부터 10일 후 날짜로 자동 작성됩니다. 납부계좌만 확인해 주세요.</small></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
+          <section className="utility-draft-panel"><div><strong>전기·수도료 납부 내부기안문</strong></div><textarea value={utilityDraft} readOnly aria-label="전기 수도료 납부 내부기안문" /><button type="button" onClick={() => void copyUtilityDraft()}>내부기안문 복사</button></section>
         </section>
       </article>
       <article className={savedPaymentDate ? "done" : savedUtilityNoticeDate ? "current" : "waiting"}><span>03</span><div><h3>대금지급</h3><p>{savedPaymentDate ? `${savedPaymentDate} 완료` : savedUtilityNoticeDate ? "대금지급 처리 후 완료해 주세요." : "수도광열비 안내공문 발송 완료 후 진행할 수 있습니다."}</p></div>{button("complete-payment", savedStage === "INSPECTION" && Boolean(savedUtilityNoticeDate), Boolean(savedPaymentDate))}</article>

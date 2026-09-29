@@ -29,6 +29,7 @@ test("내부기안문은 산출기초 없이 오늘부터 10일 후 납부기한
   assert.doesNotMatch(draft, /산출기초/);
   assert.match(draft, /붙임  전기수도료 산출내역 1부/);
   assert.doesNotMatch(draft, /\|/);
+  assert.doesNotMatch(draft, /\(안\)/);
 });
 
 test("31번 시트 양식의 전기수도료 산출내역 엑셀을 만든다", async () => {
