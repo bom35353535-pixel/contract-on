@@ -87,6 +87,12 @@ test("PDF auto-redaction requires the user to inspect the generated copy", async
   assert.match(source, /"reviewed"/);
 });
 
+test("auto-masked PDFs can be submitted for document review without an extra confirmation click", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /\["masked", "review-required", "reviewed", "manual-confirmed"\]/);
+  assert.match(workspace, /privacyStates\[index\]\?\.file \?\? file/);
+});
+
 test("manual PDF masking keeps prior masks, accepts repeated regions, and avoids blob navigation", async () => {
   const redactor = await readFile(new URL("../components/ManualPdfRedactor.tsx", import.meta.url), "utf8");
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");

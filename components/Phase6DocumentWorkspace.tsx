@@ -129,7 +129,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       }
       return;
     }
-    const unprotected = requiresPrivacyMask ? selected.findIndex((_file, index) => !["masked", "reviewed", "manual-confirmed"].includes(privacyStates[index]?.status)) : -1;
+    const unprotected = requiresPrivacyMask ? selected.findIndex((_file, index) => !["masked", "review-required", "reviewed", "manual-confirmed"].includes(privacyStates[index]?.status)) : -1;
     if (unprotected >= 0) { setError(`${selected[unprotected].name}: 개인정보 마스킹을 완료하거나 이미 가린 사본임을 확인해 주세요.`); return; }
     setBusy("analyze"); setError(""); setMessage("");
     const form = new FormData();
