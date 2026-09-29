@@ -87,6 +87,8 @@ test("PDF auto-redaction shows detected categories and provides a result viewer"
   assert.match(source, /privacyMaskSummary\(privacy\.counts\)/);
   assert.match(pdfRedactor, /isMobileNumber/);
   assert.match(pdfRedactor, /counts\.mobile \+= 1/);
+  assert.match(pdfRedactor, /typeof source\.destroy === "function"/);
+  assert.doesNotMatch(pdfRedactor, /await source\.destroy\(\)\.catch/);
   assert.doesNotMatch(source, /마스킹된 PDF 저장/);
   assert.match(source, /마스킹 결과를 확인했습니다/);
   assert.match(source, /"reviewed"/);

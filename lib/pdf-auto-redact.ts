@@ -118,6 +118,8 @@ export async function redactPdfInBrowser(file: File, onProgress?: (message: stri
     return { file: masked, counts, pageCount: source.numPages };
   } finally {
     await worker.terminate().catch(() => undefined);
-    await source.destroy().catch(() => undefined);
+    if (typeof source.destroy === "function") {
+      await Promise.resolve(source.destroy()).catch(() => undefined);
+    }
   }
 }
