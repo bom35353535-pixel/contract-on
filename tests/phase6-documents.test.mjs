@@ -42,6 +42,14 @@ test("completion checklist marks zero-cost expenses and sub-100M retirement cont
   assert.deepEqual(documentReviewCounts(items), { submittedCount: 0, missingCount: 1, checkCount: 0 });
 });
 
+test("stored completion review applies current amount rules without another AI analysis", async () => {
+  const workspace = await readFile(new URL("../lib/phase6-documents.ts", import.meta.url), "utf8");
+  assert.match(workspace, /documentStage === "COMPLETION"/);
+  assert.match(workspace, /applyCompletionDocumentApplicability/);
+  assert.match(workspace, /documentReviewCounts/);
+  assert.match(workspace, /quotation_items/);
+});
+
 test("Phase 6 confirms an exactly classified construction document even when required-list evidence is absent", async () => {
   const { buildDocumentChecklist, documentReviewCounts } = await import(moduleUrl.href);
   const items = buildDocumentChecklist([], [{ id: "F1", originalName: "착공계.pdf", detectedType: "착공계", detectionStatus: "EXACT", summary: null }]);
