@@ -1145,12 +1145,13 @@ a { color: inherit; text-decoration: none; }
 .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
 .floating-knowledge-chat { position:fixed; right:22px; bottom:22px; z-index:1000; display:flex; flex-direction:column; align-items:flex-end; gap:12px; pointer-events:none; }
 .floating-chat-launcher,.floating-chat-panel { pointer-events:auto; }
-.floating-chat-launcher { display:flex; align-items:center; gap:9px; min-height:52px; padding:9px 17px 9px 10px; border:0; border-radius:999px; background:linear-gradient(135deg,#173f56,#1f7557); color:#fff; box-shadow:0 12px 32px rgba(18,58,45,.28); cursor:pointer; }
+.floating-chat-launcher { display:flex; align-items:center; gap:9px; min-height:52px; padding:9px 17px 9px 10px; border:0; border-radius:999px; background:linear-gradient(135deg,#173f56,#1f7557); color:#fff; box-shadow:0 12px 32px rgba(18,58,45,.28); cursor:grab; touch-action:none; user-select:none; }
+.floating-chat-launcher:active,.floating-chat-header:active { cursor:grabbing; }
 .floating-chat-launcher > span { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.16); font-size:19px; font-weight:900; }
 .floating-chat-launcher > strong { font-size:14px; font-weight:900; letter-spacing:-.2px; }
 .floating-chat-panel { display:grid; grid-template-rows:auto minmax(170px,1fr) auto; width:min(390px,calc(100vw - 28px)); max-height:min(650px,calc(100vh - 110px)); overflow:hidden; border:1px solid #cbdcd4; border-radius:20px; background:#fff; box-shadow:0 22px 70px rgba(19,54,42,.3); animation:floating-chat-in .18s ease-out; }
 @keyframes floating-chat-in { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
-.floating-chat-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 16px; background:linear-gradient(135deg,#153d53,#236c52); color:#fff; }
+.floating-chat-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 16px; background:linear-gradient(135deg,#153d53,#236c52); color:#fff; cursor:grab; touch-action:none; user-select:none; }
 .floating-chat-header > div { display:flex; align-items:center; gap:10px; }.floating-chat-header > div > span:last-child { display:grid; gap:2px; }
 .floating-chat-mark { display:grid; place-items:center; width:38px; height:38px; border:1px solid rgba(255,255,255,.38); border-radius:12px; background:rgba(255,255,255,.12); font-size:12px; font-weight:950; }
 .floating-chat-header strong { font-size:15px; }.floating-chat-header small { color:#d7ebe3; font-size:11px!important; }

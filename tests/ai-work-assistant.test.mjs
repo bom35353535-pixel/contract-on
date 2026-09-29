@@ -28,6 +28,9 @@ test("AI 업무비서 provides the official workflow and registered-knowledge-on
   assert.match(floating, /\/api\/knowledge\/query/);
   assert.match(floating, /플로팅 지식자료 챗봇/);
   assert.match(floating, /event\.currentTarget\.form\?\.requestSubmit\(\)/);
+  assert.match(floating, /floating-chat-position/);
+  assert.match(floating, /onPointerMove=\{moveDrag\}/);
+  assert.match(floating, /window\.innerWidth/);
   assert.match(floating, /Enter 전송 · Shift\+Enter 줄바꿈/);
   assert.match(shell, /<FloatingKnowledgeChat \/>/);
   assert.match(knowledge, /동의어·유사 표현·행정용어/);
