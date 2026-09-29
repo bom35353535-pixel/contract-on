@@ -141,7 +141,7 @@ export function UploadPanel() {
           <p>견적서에 휴대전화번호나 이메일 등 개인정보가 포함된 경우, 분석 전에 먼저 개인정보 마스킹을 진행해 주세요.</p>
           <div className="privacy-mask-actions">
             <button className="mask-button" type="button" disabled={!file || busy || masking} onClick={maskPrivacy}>{masking ? "마스킹 중…" : "개인정보 마스킹하기"}</button>
-            <button className="manual-mask-button" type="button" disabled={busy || masking} onClick={openManualMask}>직접 드래그 마스킹</button>
+            <button className="manual-mask-button" type="button" disabled={busy || masking} onClick={openManualMask}>직접 드래그 마스킹(PDF)</button>
             <button className="analysis-button" type="button" disabled={!file || busy || masking} onClick={analyze}>{busy ? "분석 중…" : "견적서 분석하기"}</button>
           </div>
           {maskNotice && <div className={`privacy-mask-result ${maskResult || manualMaskedFile ? "complete" : "notice"}`} role="status">{maskNotice}</div>}

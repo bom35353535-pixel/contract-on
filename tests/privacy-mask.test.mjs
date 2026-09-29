@@ -55,7 +55,7 @@ test("upload UI keeps selection local and sends the masked copy only after analy
   const source = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
   assert.match(source, /setMaskResult\(null\)/);
   assert.match(source, /form\.set\("file", manualMaskedFile \?\? maskResult\?\.file \?\? file\)/);
-  assert.match(source, /직접 드래그 마스킹/);
+  assert.match(source, /직접 드래그 마스킹\(PDF\)/);
   assert.match(source, /ManualPdfRedactor/);
   assert.doesNotMatch(source, /마스킹된 견적서 확인|previewOpen/);
   assert.equal((source.match(/fetch\("\/api\/estimates"/g) || []).length, 1);
@@ -105,7 +105,7 @@ test("contract, construction, and completion documents expose automatic and drag
   assert.match(workspace, /const requiresPrivacyMask = true/);
   assert.match(workspace, /privacyDocumentLabel/);
   assert.match(workspace, /개인정보 자동 마스킹/);
-  assert.match(workspace, /직접 드래그 마스킹/);
+  assert.match(workspace, /직접 드래그 마스킹\(PDF\)/);
   assert.match(workspace, /ManualPdfRedactor/);
   assert.match(redactor, /PDFDocument\.load/);
   assert.doesNotMatch(redactor, /copyPages/);

@@ -44,7 +44,7 @@ test("contract, construction, and completion documents require browser privacy m
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   assert.match(workspace, /const requiresPrivacyMask = true/);
   assert.match(workspace, /개인정보 자동 마스킹/);
-  assert.match(workspace, /직접 드래그 마스킹/);
+  assert.match(workspace, /직접 드래그 마스킹\(PDF\)/);
   assert.match(route, /form\.get\("privacyConfirmed"\) !== "true"/);
   assert.match(route, /착공서류/);
 });
