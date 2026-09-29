@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type G2bGuideStep = {
   number: string;
@@ -108,10 +108,25 @@ const G2B_GUIDE_STEPS: G2bGuideStep[] = [
 
 function G2bScreenViewer({ step, title, count }: { step: string; title: string; count: number }) {
   const [current, setCurrent] = useState(1);
+  const [expanded, setExpanded] = useState(false);
   const fileName = String(current).padStart(2, "0");
   const imageUrl = `/g2b-guide/${step}/${fileName}.webp`;
 
-  return <section className="g2b-screen-viewer" aria-label={`${title} 실습 화면`}>
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [expanded]);
+
+  return <><section className="g2b-screen-viewer" aria-label={`${title} 실습 화면`}>
     <header>
       <div>
         <strong>실습 화면</strong>
@@ -126,13 +141,25 @@ function G2bScreenViewer({ step, title, count }: { step: string; title: string; 
           </select>
         </label>
         <button type="button" onClick={() => setCurrent((value) => Math.min(count, value + 1))} disabled={current === count}>다음 화면</button>
-        <a href={imageUrl} target="_blank" rel="noreferrer">새 창에서 크게 보기</a>
+        <button type="button" className="g2b-enlarge-button" onClick={() => setExpanded(true)}>크게 보기</button>
       </div>
     </header>
     <div className="g2b-screen-frame">
       <img src={imageUrl} alt={`${title} 나라장터 실습 화면 ${current}`} loading="lazy" />
     </div>
-  </section>;
+  </section>
+  {expanded && <div className="g2b-image-modal" role="dialog" aria-modal="true" aria-label={`${title} 실습 화면 크게 보기`} onMouseDown={(event) => {
+    if (event.target === event.currentTarget) setExpanded(false);
+  }}>
+    <div className="g2b-image-modal-panel">
+      <header>
+        <div><strong>{title}</strong><span>화면 {current} / {count}</span></div>
+        <button type="button" onClick={() => setExpanded(false)} autoFocus>닫기</button>
+      </header>
+      <div className="g2b-image-modal-body"><img src={imageUrl} alt={`${title} 나라장터 실습 화면 ${current} 크게 보기`} /></div>
+    </div>
+  </div>}
+  </>;
 }
 
 export function G2bGuideWorkspace({ contractId }: { contractId: string }) {
