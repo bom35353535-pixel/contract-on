@@ -138,6 +138,7 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
     ["이윤", namedRateRow(rows, "이윤", amount, days) || price, namedRateRow(rows, "이윤", amount, days) ? 1 : 3, "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD"],
   ];
   for (const [label, row, rateIndex, baseKey] of definitions) {
+    if (label === "일반관리비" && !context.constructionType?.includes("건축")) continue;
     const target = targets.find((candidate) => candidate.section === "STATUTORY" && candidate.label.includes(label));
     const rate = row ? percent(row.cells[rateIndex]) : null;
     if (target && row && rate !== null) push(target, rateDocument, row.line, "공사금액·공사기간별 제비율표", null, rate, baseKey);

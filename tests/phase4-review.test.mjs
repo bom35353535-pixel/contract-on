@@ -98,6 +98,26 @@ test("Phase 4 accepts indirect labor and other expenses below their registered c
   assert.ok(reviewed.every((item) => item.detail.includes("허용 상한 이내")));
 });
 
+test("Phase 4 applies building common rates to electrical work but excludes building management rate", async () => {
+  const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
+  const targets = [
+    { section: "STATUTORY", targetKey: "rate:indirect", label: "간접노무비", quotedValue: 40_000, comparisonKind: "RATE", context: "간접노무비" },
+    { section: "STATUTORY", targetKey: "rate:other", label: "기타경비", quotedValue: 40_000, comparisonKind: "RATE", context: "기타경비" },
+    { section: "STATUTORY", targetKey: "rate:management", label: "일반관리비", quotedValue: 40_000, comparisonKind: "RATE", context: "일반관리비" },
+  ];
+  const text = [
+    "| 직접공사비 | 공사기간 | 간접노무비율 | 기타경비율 |",
+    "| 10억 미만 | 6개월 이하 | 17.5% | 5.0% |",
+    "| 5억 미만 | 8.0% | 8.0% | 15.0% |",
+    "전기·통신·소방·전문 및 기타공사는 일반관리비율을 제외한 각종 요율을 토목·건축 등 관련 공사업종에 따라 적용한다.",
+  ].join("\n");
+  const documents = [{ id: "rates", documentName: "2026년 건축공사 간접공사비 적용기준", originalName: "건축공사_간접공사비_적용기준.md", openaiFileId: null, year: 2026, category: "제비율", text }];
+  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "전기공사", totalAmount: 20_000_000, plannedStartDate: "2026-09-01", plannedCompletionDate: "2026-09-30" });
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:indirect")?.ratePercent, 17.5);
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:other")?.ratePercent, 5);
+  assert.equal(evidence.candidates.some((item) => item.targetKey === "rate:management"), false);
+});
+
 test("Phase 4 verifies the cited rate against any retrieved chunk from that file", async () => {
   const { applyEvidenceCandidates } = await import(moduleUrl.href);
   const target = { section: "STATUTORY", targetKey: "rate:간접노무비", label: "간접노무비", quotedValue: 5_250, comparisonKind: "RATE", context: "간접노무비" };
@@ -187,7 +207,7 @@ test("Phase 4 local markdown lookup accepts rows without outer pipes", async () 
     { id: "labor", documentName: "2026년 상반기 건설업 시중노임단가", originalName: "노임단가.md", openaiFileId: null, year: 2026, category: "계약", text: "1009 | **철공** | - | 239,808" },
     { id: "rates", documentName: "건축공사 간접공사비", originalName: "제비율.md", openaiFileId: null, year: 2026, category: "계약", text: "5억 미만 | 8.0 | 8.0 | 15.0" },
   ];
-  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "기타공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" });
+  const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "건축공사", totalAmount: 4_136_000, plannedStartDate: "2026-06-01", plannedCompletionDate: "2026-06-10" });
   assert.equal(evidence.candidates.find((item) => item.targetKey === "labor:1")?.expectedValue, 239_808);
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:일반관리비")?.ratePercent, 8);
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:이윤")?.ratePercent, 15);
