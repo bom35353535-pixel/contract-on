@@ -1,5 +1,5 @@
 export type DocumentStage = "NARA_CONTRACT" | "PRE_CONSTRUCTION" | "COMPLETION";
-export type DocumentReviewStatus = "SUBMITTED" | "MISSING" | "CHECK";
+export type DocumentReviewStatus = "SUBMITTED" | "MISSING" | "CHECK" | "NOT_APPLICABLE";
 
 export type RequiredDocumentCriterion = {
   requiredName: string;
@@ -184,4 +184,24 @@ export function documentReviewCounts(items: DocumentChecklistItem[]) {
     missingCount: items.filter((item) => item.status === "MISSING").length,
     checkCount: items.filter((item) => item.status === "CHECK").length,
   };
+}
+
+export function applyCompletionDocumentApplicability(
+  items: DocumentChecklistItem[],
+  context: { constructionAmount: number; wasteDisposalCost: number; environmentalPreservationCost: number },
+) {
+  return items.map((item): DocumentChecklistItem => {
+    if (item.status === "SUBMITTED") return item;
+    const name = normalize(item.requiredName);
+    if (name.includes("폐기물처리") && context.wasteDisposalCost <= 0) {
+      return { ...item, status: "NOT_APPLICABLE", uploadedFileId: null, detail: "견적서의 폐기물 처리비가 0원 또는 미기재이므로 해당없음입니다." };
+    }
+    if (name.includes("환경보전") && context.environmentalPreservationCost <= 0) {
+      return { ...item, status: "NOT_APPLICABLE", uploadedFileId: null, detail: "견적서의 환경보전비가 0원 또는 미기재이므로 해당없음입니다." };
+    }
+    if (name.includes("퇴직공제") && context.constructionAmount < 100_000_000) {
+      return { ...item, status: "NOT_APPLICABLE", uploadedFileId: null, detail: "공사금액이 1억원 미만이므로 건설근로자 퇴직공제부금 납부확인서는 해당없음입니다." };
+    }
+    return item;
+  });
 }

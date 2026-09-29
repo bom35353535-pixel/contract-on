@@ -161,8 +161,9 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
     setBusy(true); setError("");
     try {
       const { PDFDocument } = await import("pdf-lib");
-      const document = await PDFDocument.create();
-      for (let number = 1; number <= source.numPages; number += 1) {
+      const flattenedPages: Array<{ index: number; width: number; height: number; jpeg: ArrayBuffer }> = [];
+      const maskedPageNumbers = [...new Set(regionsToApply.map((region) => region.page))].sort((a, b) => a - b);
+      for (const number of maskedPageNumbers) {
         const pageRegions = regionsToApply.filter((value) => value.page === number);
         const sourcePage = await source.getPage(number);
         const base = sourcePage.getViewport({ scale: 1 });
@@ -179,22 +180,29 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
           context.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
         }
         const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PDF 페이지 이미지를 만들지 못했습니다.")), "image/jpeg", 0.72));
-        const image = await document.embedJpg(await jpeg.arrayBuffer());
-        const outputPage = document.addPage([base.width, base.height]);
-        outputPage.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
+        flattenedPages.push({ index: number - 1, width: base.width, height: base.height, jpeg: await jpeg.arrayBuffer() });
         sourcePage.cleanup();
         canvas.width = 1;
         canvas.height = 1;
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
       }
-      const bytes = await document.save({ useObjectStreams: true });
-      const masked = new File([bytes], file.name, { type: "application/pdf", lastModified: file.lastModified });
       if (canvasRef.current) {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
       }
       safelyDestroyPdf(source);
       setSource(null);
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+
+      const document = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false });
+      for (const flattened of flattenedPages) {
+        const image = await document.embedJpg(flattened.jpeg);
+        document.removePage(flattened.index);
+        const outputPage = document.insertPage(flattened.index, [flattened.width, flattened.height]);
+        outputPage.drawImage(image, { x: 0, y: 0, width: flattened.width, height: flattened.height });
+      }
+      const bytes = await document.save({ useObjectStreams: true });
+      const masked = new File([bytes], file.name, { type: "application/pdf", lastModified: file.lastModified });
       setBusy(false);
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
       onApply(masked, regionsToApply.length);
@@ -228,7 +236,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
           {busy && <div className="manual-redactor-loading">PDF 처리 중…</div>}
         </div>
       </div>
-      <footer><small>PDF 전체를 한 쪽씩 안전하게 평탄화하여 가린 원문이 남지 않도록 만듭니다.</small><button type="button" onClick={onCancel}>취소</button><button className="primary" type="button" disabled={!regions.length || busy} onClick={() => void applyMask()}>{busy ? "처리 중…" : "마스킹 사본 사용"}</button></footer>
+      <footer><small>마스킹한 페이지만 안전하게 평탄화하여 가린 원문이 남지 않도록 만듭니다.</small><button type="button" onClick={onCancel}>취소</button><button className="primary" type="button" disabled={!regions.length || busy} onClick={() => void applyMask()}>{busy ? "처리 중…" : "마스킹 사본 사용"}</button></footer>
     </section>
   </div>;
 }

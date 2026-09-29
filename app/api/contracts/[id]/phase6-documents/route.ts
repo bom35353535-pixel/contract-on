@@ -5,6 +5,7 @@ import { knowledgeDocuments } from "@/db/schema";
 import { advanceContractStage, getContract } from "@/lib/contracts";
 import {
   buildDocumentChecklist,
+  applyCompletionDocumentApplicability,
   documentReviewCounts,
   verifyRequiredDocumentCriteria,
   type ClassifiedDocument,
@@ -34,6 +35,28 @@ function errorResponse(message: string, status = 400) {
 
 function safeFileName(name: string) {
   return name.replace(/[^0-9A-Za-z가-힣._-]/g, "_").slice(-120) || "document";
+}
+
+async function getCompletionApplicabilityContext(contractId: string, constructionAmount: number) {
+  const result = await getD1().prepare(`
+    SELECT COALESCE(qi.item_name, '') AS itemName, COALESCE(qi.category, '') AS category, COALESCE(qi.amount, 0) AS amount
+    FROM quotation_items qi
+    WHERE qi.analysis_id = (
+      SELECT id FROM quotation_analyses
+      WHERE contract_id = ?
+      ORDER BY confirmed_at DESC, created_at DESC
+      LIMIT 1
+    )
+  `).bind(contractId).all<{ itemName: string; category: string; amount: number }>();
+  let wasteDisposalCost = 0;
+  let environmentalPreservationCost = 0;
+  for (const row of result.results || []) {
+    const name = `${row.category || ""} ${row.itemName || ""}`.replace(/\s+/g, "");
+    const amount = Number(row.amount) || 0;
+    if (name.includes("폐기물처리")) wasteDisposalCost += amount;
+    if (name.includes("환경보전")) environmentalPreservationCost += amount;
+  }
+  return { constructionAmount, wasteDisposalCost, environmentalPreservationCost };
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -151,7 +174,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       detectionStatus: file.detectionStatus === "EXACT" ? "EXACT" : "UNCERTAIN",
       summary: file.summary,
     }));
-    const items = buildDocumentChecklist(criteria, classifiedFiles);
+    let items = buildDocumentChecklist(criteria, classifiedFiles);
+    if (stage === "COMPLETION") {
+      items = applyCompletionDocumentApplicability(items, await getCompletionApplicabilityContext(contractId, contract.contractAmount));
+    }
     const counts = documentReviewCounts(items);
     const reviewId = crypto.randomUUID();
     await d1.prepare(`
@@ -329,7 +355,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   }
 
   const classifiedFiles = refreshedClassifiedFiles;
-  const items = buildDocumentChecklist(criteria, classifiedFiles);
+  let items = buildDocumentChecklist(criteria, classifiedFiles);
+  if (stage === "COMPLETION") {
+    items = applyCompletionDocumentApplicability(items, await getCompletionApplicabilityContext(contractId, contract.contractAmount));
+  }
   const counts = documentReviewCounts(items);
   const reviewId = crypto.randomUUID();
   const now = new Date().toISOString();

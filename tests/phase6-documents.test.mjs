@@ -29,6 +29,19 @@ test("Phase 6 does not invent missing requirements when registered evidence is a
   assert.doesNotMatch(items[0].detail, /누락/);
 });
 
+test("completion checklist marks zero-cost expenses and sub-100M retirement contribution documents not applicable", async () => {
+  const { applyCompletionDocumentApplicability, documentReviewCounts } = await import(moduleUrl.href);
+  const base = ["폐기물 처리비 정산서", "환경보전비 사용내역서", "건설근로자 퇴직공제부금 납부확인서", "준공계"].map((requiredName) => ({
+    status: "MISSING", requiredName, uploadedFileId: null, detail: "누락",
+    evidenceDocumentId: null, evidenceDocumentName: null, evidenceYear: null, evidenceLocation: null, evidenceExcerpt: null,
+  }));
+  const items = applyCompletionDocumentApplicability(base, {
+    constructionAmount: 22_000_000, wasteDisposalCost: 0, environmentalPreservationCost: 0,
+  });
+  assert.deepEqual(items.map((item) => item.status), ["NOT_APPLICABLE", "NOT_APPLICABLE", "NOT_APPLICABLE", "MISSING"]);
+  assert.deepEqual(documentReviewCounts(items), { submittedCount: 0, missingCount: 1, checkCount: 0 });
+});
+
 test("Phase 6 confirms an exactly classified construction document even when required-list evidence is absent", async () => {
   const { buildDocumentChecklist, documentReviewCounts } = await import(moduleUrl.href);
   const items = buildDocumentChecklist([], [{ id: "F1", originalName: "착공계.pdf", detectedType: "착공계", detectionStatus: "EXACT", summary: null }]);

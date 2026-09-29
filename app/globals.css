@@ -740,6 +740,7 @@ a { color: inherit; text-decoration: none; }
 .phase6-summary.submitted > span, .phase6-check-row.submitted .phase6-status-icon { background: #e3f2ed; color: #287b67; }
 .phase6-summary.missing > span, .phase6-check-row.missing .phase6-status-icon { background: #f8e5e2; color: #b54e45; }
 .phase6-summary.check > span, .phase6-check-row.check .phase6-status-icon { background: #fff1d8; color: #9f6b1f; }
+.phase6-check-row.not-applicable .phase6-status-icon { background: #edf1f4; color: #647782; }
 .phase6-checklist { display: grid; margin-top: 13px; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; }
 .phase6-check-row { border-bottom: 1px solid #edf1f3; background: white; }
 .phase6-check-row:last-child { border-bottom: 0; }
@@ -753,6 +754,7 @@ a { color: inherit; text-decoration: none; }
 .phase6-check-row.submitted .phase6-status-label { background: #e3f2ed; color: #287b67; }
 .phase6-check-row.missing .phase6-status-label { background: #f8e5e2; color: #b54e45; }
 .phase6-check-row.check .phase6-status-label { background: #fff1d8; color: #9f6b1f; }
+.phase6-check-row.not-applicable .phase6-status-label { background: #edf1f4; color: #647782; }
 .phase6-check-detail { padding: 14px 15px 16px 55px; border-top: 1px solid #edf1f3; background: #fbfcfc; }
 .phase6-check-detail > p { margin: 0 0 10px; color: #5e717c; font-size: 9px; }
 .phase6-evidence { padding: 11px; border: 1px solid #cfe3df; border-radius: 8px; background: #f4f9f8; }
