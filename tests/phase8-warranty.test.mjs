@@ -60,6 +60,26 @@ test("Phase 8 ledger templates retain their VBA projects", async () => {
   }
 });
 
+test("Phase 8 ledger export writes current contract data and shows only the requested ledger", async () => {
+  const { fillLedgerTemplate } = await import(new URL("../lib/xlsm-template.ts", import.meta.url).href);
+  const template = await readFile(new URL("../public/templates/공사대장.xlsm", import.meta.url));
+  const input = template.buffer.slice(template.byteOffset, template.byteOffset + template.byteLength);
+  const output = await fillLedgerTemplate(input, {
+    id: "CTR-TEST-001", projectName: "테스트 전기공사", companyName: "테스트전기 주식회사", constructionType: "전기공사",
+    location: "본관", contractAmount: 22_000_000, contractMethod: "나라장터 전자계약", contractDate: "2026-09-01",
+    plannedStartDate: "2026-09-02", actualStartDate: "2026-09-02", plannedCompletionDate: "2026-09-20",
+    actualCompletionDate: "2026-09-20", inspectionDate: "2026-09-21", paymentDate: "2026-09-25",
+  }, { warrantyStartDate: "2026-09-21", warrantyEndDate: "2027-09-20", warrantyYears: 1, bondRate: 0.03 }, "construction");
+  const archive = unzipSync(output);
+  const workbook = new TextDecoder().decode(archive["xl/workbook.xml"]);
+  const ledger = new TextDecoder().decode(archive["xl/worksheets/sheet39.xml"]);
+  assert.match(workbook, /<sheet name="32\.공사대장"[^>]*r:id="rId39"\/>/);
+  assert.equal((workbook.match(/state="veryHidden"/g) || []).length, 46);
+  assert.match(ledger, /<c r="B3"[^>]*t="inlineStr"><is><t>테스트 전기공사<\/t><\/is><\/c>/);
+  assert.match(ledger, /<c r="I3"[^>]*t="inlineStr"><is><t>테스트전기 주식회사<\/t><\/is><\/c>/);
+  assert.doesNotMatch(ledger, /○○초 돌봄교실 설치공사|○○건설/);
+});
+
 test("Phase 8 ledger export loads templates from the deployed asset binding", async () => {
   const route = await readFile(new URL("../app/api/contracts/[id]/ledger/[kind]/route.ts", import.meta.url), "utf8");
   assert.match(route, /env\.ASSETS\.fetch\(new Request\(templateUrl\)\)/);
@@ -68,7 +88,11 @@ test("Phase 8 ledger export loads templates from the deployed asset binding", as
 
 test("Phase 8 ledger export leaves unknown facts explicit", async () => {
   const source = await readFile(new URL("../lib/xlsm-template.ts", import.meta.url), "utf8");
-  assert.match(source, /E20:"\[확인 필요\]"/);
+  assert.match(source, /showOnlySheet/);
+  assert.match(source, /state="veryHidden"/);
+  assert.match(source, /"32\.공사대장" : "34\.하자대장"/);
+  assert.match(source, /B3: String\(contract\.projectName\)/);
+  assert.match(source, /B7: String\(contract\.companyName\)/);
   assert.match(source, /E31:\{ formula:"EDATE\(E30,E33\*12\)-1"/);
   assert.match(source, /E35:\{ formula:"ROUNDDOWN\(\(C27\*E34\),-1\)"/);
 });
