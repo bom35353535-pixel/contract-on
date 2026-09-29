@@ -21,6 +21,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
   const pageWrapRef = useRef<HTMLDivElement>(null);
   const startRef = useRef<Point | null>(null);
   const draftRef = useRef<Region | null>(null);
+  const regionsRef = useRef<Region[]>([]);
   const [source, setSource] = useState<PdfSource | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -121,7 +122,11 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
       width: Math.abs(point.x - origin.x),
       height: Math.abs(point.y - origin.y),
     } : draftRef.current;
-    if (completed && completed.width > 0.006 && completed.height > 0.006) setRegions((current) => [...current, completed]);
+    if (completed && completed.width > 0.006 && completed.height > 0.006) {
+      const next = [...regionsRef.current, completed];
+      regionsRef.current = next;
+      setRegions(next);
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     startRef.current = null;
     draftRef.current = null;
@@ -135,15 +140,22 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
     setDraft(null);
   }
 
+  function undoLastRegion() {
+    const next = regionsRef.current.slice(0, -1);
+    regionsRef.current = next;
+    setRegions(next);
+  }
+
   async function applyMask() {
-    if (!regions.length || busy || !source) return;
+    const regionsToApply = [...regionsRef.current];
+    if (!regionsToApply.length || busy || !source) return;
     setBusy(true); setError("");
     try {
       const { PDFDocument } = await import("pdf-lib");
       const original = await PDFDocument.load(await file.arrayBuffer());
       const document = await PDFDocument.create();
       for (let number = 1; number <= source.numPages; number += 1) {
-        const pageRegions = regions.filter((value) => value.page === number);
+        const pageRegions = regionsToApply.filter((value) => value.page === number);
         if (!pageRegions.length) {
           const [copied] = await document.copyPages(original, [number - 1]);
           document.addPage(copied);
@@ -151,7 +163,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         }
         const sourcePage = await source.getPage(number);
         const base = sourcePage.getViewport({ scale: 1 });
-        const scale = Math.min(1.3, Math.max(1.05, 1400 / Math.max(base.width, base.height)));
+        const scale = Math.min(1.2, Math.max(1, 1200 / Math.max(base.width, base.height)));
         const viewport = sourcePage.getViewport({ scale });
         const canvas = window.document.createElement("canvas");
         canvas.width = Math.ceil(viewport.width);
@@ -163,7 +175,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         for (const region of pageRegions) {
           context.fillRect(region.x * canvas.width, region.y * canvas.height, region.width * canvas.width, region.height * canvas.height);
         }
-        const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PDF 페이지 이미지를 만들지 못했습니다.")), "image/jpeg", 0.82));
+        const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("PDF 페이지 이미지를 만들지 못했습니다.")), "image/jpeg", 0.78));
         const image = await document.embedJpg(await jpeg.arrayBuffer());
         const outputPage = document.addPage([base.width, base.height]);
         outputPage.drawImage(image, { x: 0, y: 0, width: base.width, height: base.height });
@@ -178,7 +190,9 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
       }
-      onApply(masked, regions.length);
+      setBusy(false);
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+      onApply(masked, regionsToApply.length);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "직접 마스킹한 PDF를 만들지 못했습니다.");
       setBusy(false);
@@ -189,7 +203,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
   return <div className="manual-redactor-backdrop" role="presentation">
     <section className="manual-redactor-dialog" role="dialog" aria-modal="true" aria-labelledby="manual-redactor-title">
       <header>
-        <div><span>브라우저 내 안전 편집</span><h2 id="manual-redactor-title">개인정보 직접 마스킹</h2><p>가릴 부분을 마우스로 드래그하세요. 검은색 영역이 적용된 새 PDF 사본만 분석에 사용됩니다.</p></div>
+        <div><span>브라우저 내 안전 편집</span><h2 id="manual-redactor-title">개인정보 직접 마스킹</h2><p>가릴 곳을 차례대로 계속 드래그한 뒤 마지막에 한 번만 ‘마스킹 사본 사용’을 눌러 주세요.</p></div>
         <button type="button" onClick={onCancel} aria-label="직접 마스킹 닫기">×</button>
       </header>
       <div className="manual-redactor-toolbar">
@@ -197,7 +211,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         <strong>{pageNumber} / {source?.numPages || "-"}쪽</strong>
         <button type="button" disabled={!source || pageNumber >= source.numPages || busy} onClick={() => setPageNumber((value) => value + 1)}>다음 쪽</button>
         <span>마스킹 영역 {regions.length}개</span>
-        <button type="button" disabled={!regions.length || busy} onClick={() => setRegions((current) => current.slice(0, -1))}>마지막 영역 취소</button>
+        <button type="button" disabled={!regions.length || busy} onClick={undoLastRegion}>마지막 영역 취소</button>
       </div>
       {error && <div className="document-message error" role="alert">{error}</div>}
       <div className="manual-redactor-scroll" ref={pageWrapRef}>
