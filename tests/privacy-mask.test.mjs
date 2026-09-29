@@ -79,9 +79,11 @@ test("estimate drag masking remains clickable and guides the user to select a PD
   assert.doesNotMatch(source, /disabled=\{!file \|\| !file\.name\.toLowerCase\(\)\.endsWith\("\.pdf"\)/);
 });
 
-test("PDF auto-redaction requires the user to inspect the generated copy", async () => {
+test("PDF auto-redaction shows detected categories and provides a result viewer", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
-  assert.match(source, /추가 마스킹·확인/);
+  assert.match(source, /마스킹 결과 보기·추가 마스킹\(PDF\)/);
+  assert.match(source, /주민등록번호.*계좌번호.*휴대전화.*이메일/);
+  assert.match(source, /privacyMaskSummary\(privacy\.counts\)/);
   assert.doesNotMatch(source, /마스킹된 PDF 저장/);
   assert.match(source, /마스킹 결과를 확인했습니다/);
   assert.match(source, /"reviewed"/);
