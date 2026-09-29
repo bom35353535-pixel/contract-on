@@ -1,6 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
-export type PrivacyMaskCounts = { mobile: number; email: number; residentRegistration: number; account: number };
+export type PrivacyMaskCounts = { mobile: number; email: number; residentRegistration: number; account: number; name?: number; birthDate?: number; position?: number };
 export type BrowserMaskResult =
   | { supported: true; file: File; preview: string; counts: PrivacyMaskCounts; requiresReview?: boolean }
   | { supported: false; reason: string };
@@ -53,6 +53,9 @@ function addCounts(target: PrivacyMaskCounts, addition: PrivacyMaskCounts) {
   target.email += addition.email;
   target.residentRegistration += addition.residentRegistration;
   target.account += addition.account;
+  target.name = (target.name || 0) + (addition.name || 0);
+  target.birthDate = (target.birthDate || 0) + (addition.birthDate || 0);
+  target.position = (target.position || 0) + (addition.position || 0);
 }
 
 function localName(element: Element) {
@@ -144,7 +147,7 @@ export async function maskContractDocumentInBrowser(file: File, documentType: st
   if (extension === ".docx") return maskZipDocument(file, "docx", options);
   if (extension === ".pdf") {
     const { redactPdfInBrowser } = await import("./pdf-auto-redact");
-    const result = await redactPdfInBrowser(file, onProgress);
+    const result = await redactPdfInBrowser(file, onProgress, { documentType });
     return { supported: true, file: result.file, preview: "", counts: result.counts, requiresReview: true };
   }
   if (extension === ".xls") return { supported: false, reason: "구형 XLS 문서는 브라우저에서 원본 구조를 보존한 마스킹 사본을 만들 수 없습니다. 개인정보를 직접 가린 사본을 사용해 주세요." };

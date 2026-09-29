@@ -34,7 +34,7 @@ type PrivacyState = {
 };
 
 function privacyMaskSummary(counts?: PrivacyMaskCounts) {
-  return `주민등록번호 ${counts?.residentRegistration || 0}건 · 계좌번호 ${counts?.account || 0}건 · 휴대전화 ${counts?.mobile || 0}건 · 이메일 ${counts?.email || 0}건`;
+  return `성명 ${counts?.name || 0}건 · 생년월일 ${counts?.birthDate || 0}건 · 직위 ${counts?.position || 0}건 · 주민등록번호 ${counts?.residentRegistration || 0}건 · 계좌번호 ${counts?.account || 0}건 · 휴대전화 ${counts?.mobile || 0}건 · 이메일 ${counts?.email || 0}건`;
 }
 
 export function Phase6DocumentWorkspace({ contractId, currentStage, documentStage, files, review, items, ddayLabel, isStartDay }: Props) {

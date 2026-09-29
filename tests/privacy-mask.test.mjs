@@ -41,6 +41,34 @@ test("contract privacy mask covers representative registration and bank account 
   assert.equal(result.counts.account, 1);
 });
 
+test("construction personnel documents mask name birth date and position but preserve placement periods", async () => {
+  const { findPdfPrivacyRegions } = await import(new URL("../lib/pdf-auto-redact.ts", import.meta.url).href);
+  const line = (texts, y) => ({
+    words: texts.map((text, index) => ({ text, confidence: 95, bbox: { x0: index * 70, y0: y, x1: index * 70 + 60, y1: y + 20 } })),
+    bbox: { x0: 0, y0: y, x1: texts.length * 70, y1: y + 20 },
+  });
+  const lines = [
+    line(["현장대리인계"], 0),
+    line(["성명", "홍길동", "생년월일", "1985.03.01", "직위", "현장대리인"], 30),
+    line(["현장배치기간", "2026-09-01", "~", "2026-10-31"], 60),
+  ];
+  const regions = findPdfPrivacyRegions(lines, { documentType: "착공서류" });
+  assert.deepEqual(regions.map((region) => region.kind), ["name", "birthDate", "position"]);
+});
+
+test("construction commencement dates are not treated as bank account numbers", async () => {
+  const { findPdfPrivacyRegions } = await import(new URL("../lib/pdf-auto-redact.ts", import.meta.url).href);
+  const lines = [{
+    words: [
+      { text: "착공신고서", confidence: 95, bbox: { x0: 0, y0: 0, x1: 90, y1: 20 } },
+      { text: "착공일자", confidence: 95, bbox: { x0: 100, y0: 0, x1: 170, y1: 20 } },
+      { text: "2026-09-30", confidence: 95, bbox: { x0: 180, y0: 0, x1: 270, y1: 20 } },
+    ],
+    bbox: { x0: 0, y0: 0, x1: 270, y1: 20 },
+  }];
+  assert.deepEqual(findPdfPrivacyRegions(lines, { documentType: "착공서류" }), []);
+});
+
 test("contract document UI blocks sensitive originals until masking or manual confirmation", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   assert.match(source, /개인정보 자동 마스킹/);
