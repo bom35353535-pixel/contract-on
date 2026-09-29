@@ -99,7 +99,8 @@ test("contract, construction, and completion documents expose automatic and drag
   assert.match(workspace, /직접 드래그 마스킹/);
   assert.match(workspace, /ManualPdfRedactor/);
   assert.doesNotMatch(redactor, /PDFDocument\.load|copyPages/);
-  assert.match(redactor, /source\.destroy/);
+  assert.match(redactor, /typeof source\.destroy !== "function"/);
+  assert.match(redactor, /safelyDestroyPdf\(source\)/);
   assert.match(redactor, /context\.fillRect/);
   assert.match(redactor, /PDF 전체를 한 쪽씩 안전하게 평탄화/);
   assert.match(redactor, /마스킹 사본 사용/);

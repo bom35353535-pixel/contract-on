@@ -10,7 +10,16 @@ type PdfPage = {
   render: (options: { canvas: HTMLCanvasElement; canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }) => { promise: Promise<void> };
   cleanup: () => void;
 };
-type PdfSource = { numPages: number; getPage: (page: number) => Promise<PdfPage>; destroy: () => Promise<void> };
+type PdfSource = { numPages: number; getPage: (page: number) => Promise<PdfPage>; destroy?: () => Promise<void> | void };
+
+function safelyDestroyPdf(source: PdfSource | null) {
+  if (!source || typeof source.destroy !== "function") return;
+  try {
+    void Promise.resolve(source.destroy()).catch(() => undefined);
+  } catch {
+    // 일부 PDF.js 실행 환경은 destroy를 제공하지 않거나 이미 작업자를 정리합니다.
+  }
+}
 
 export function ManualPdfRedactor({ file, onCancel, onApply }: {
   file: File;
@@ -46,7 +55,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
     })();
     return () => {
       active = false;
-      void opened?.destroy().catch(() => undefined);
+      safelyDestroyPdf(opened);
     };
   }, [file]);
 
@@ -184,7 +193,7 @@ export function ManualPdfRedactor({ file, onCancel, onApply }: {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
       }
-      await source.destroy().catch(() => undefined);
+      safelyDestroyPdf(source);
       setSource(null);
       setBusy(false);
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
