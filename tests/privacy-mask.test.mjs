@@ -98,10 +98,10 @@ test("contract, construction, and completion documents expose automatic and drag
   assert.match(workspace, /개인정보 자동 마스킹/);
   assert.match(workspace, /직접 드래그 마스킹/);
   assert.match(workspace, /ManualPdfRedactor/);
-  assert.match(redactor, /PDFDocument\.load/);
-  assert.match(redactor, /copyPages/);
+  assert.doesNotMatch(redactor, /PDFDocument\.load|copyPages/);
+  assert.match(redactor, /source\.destroy/);
   assert.match(redactor, /context\.fillRect/);
-  assert.match(redactor, /마스킹한 페이지만 안전하게 평탄화/);
+  assert.match(redactor, /PDF 전체를 한 쪽씩 안전하게 평탄화/);
   assert.match(redactor, /마스킹 사본 사용/);
   assert.match(redactor, /가릴 곳을 차례대로 계속 드래그|가린 원문이 남지 않도록/);
 });
