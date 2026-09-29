@@ -44,12 +44,26 @@ test("Phase 8 replaces a stale structural criterion and allows an existing warra
   assert.match(component, /실내의장·마감공사 기준/);
 });
 
+test("Phase 8 confirmation action is presented as a clear primary button", async () => {
+  const component = await readFile(new URL("../components/Phase8WarrantyWorkspace.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(component, /className="primary-action"/);
+  assert.match(css, /\.primary-action \{[^}]*background:var\(--green\)/);
+  assert.match(css, /\.primary-action:disabled/);
+});
+
 test("Phase 8 ledger templates retain their VBA projects", async () => {
   for (const name of ["공사대장.xlsm", "하자대장.xlsm"]) {
     const bytes = await readFile(new URL(`../public/templates/${name}`, import.meta.url));
     const archive = unzipSync(bytes);
     assert.ok(archive["xl/vbaProject.bin"], `${name} VBA project missing`);
   }
+});
+
+test("Phase 8 ledger export loads templates from the deployed asset binding", async () => {
+  const route = await readFile(new URL("../app/api/contracts/[id]/ledger/[kind]/route.ts", import.meta.url), "utf8");
+  assert.match(route, /env\.ASSETS\.fetch\(new Request\(templateUrl\)\)/);
+  assert.doesNotMatch(route, /await fetch\(new URL\(`\/templates/);
 });
 
 test("Phase 8 ledger export leaves unknown facts explicit", async () => {
