@@ -37,12 +37,12 @@ test("Phase 5 builds the construction plan from the registered Markdown template
   assert.match(content, /2\. 우리학교 본관 옥상 방수 사업계획을 다음과 같이 수립하고자 합니다\./);
   assert.match(content, /가\. 사 업 명: 본관 옥상 방수공사/);
   assert.match(content, /나\. 예 산 액: 금11,000,000원/);
-  assert.match(content, /1\. 공 사 비: 금11,000,000원/);
-  assert.match(content, /2\. 일반수용비: 금000원/);
-  assert.match(content, /3\. 비 품 비: 금000원/);
+  assert.match(content, /1\) 공 사 비: 금11,000,000원/);
+  assert.match(content, /2\) 일반수용비: 금000원/);
+  assert.match(content, /3\) 비 품 비: 금000원/);
   assert.match(content, /다\. 사업내용/);
-  assert.match(content, /1\. \(공사\) 옥상 누수 방지/);
-  assert.match(content, /2\. \(물품\) 000/);
+  assert.match(content, /1\) \(공사\) 옥상 누수 방지/);
+  assert.match(content, /2\) \(물품\) 000/);
   assert.match(content, /붙임  성립전예산요구서 1부\.  끝\./);
   assert.doesNotMatch(content, /수신|경유|보충설명|작성 시 참고사항|\*\*|^#/m);
 });
