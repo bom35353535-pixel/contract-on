@@ -77,6 +77,9 @@ test("Phase 8 ledger export writes current contract data and shows only the requ
   assert.equal((workbook.match(/state="veryHidden"/g) || []).length, 46);
   assert.match(ledger, /<c r="B3"[^>]*t="inlineStr"><is><t>테스트 전기공사<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="I3"[^>]*t="inlineStr"><is><t>테스트전기 주식회사<\/t><\/is><\/c>/);
+  assert.match(ledger, /<c r="J20"[^>]*><v>22000000<\/v><\/c>/);
+  assert.match(ledger, /<c r="L20"[^>]*><f>MAX\(B6-SUM\(J16:J20\),0\)<\/f><v>0<\/v><\/c>/);
+  assert.match(ledger, /<c r="D15"[^>]*t="inlineStr"><is><t>\[확인 필요\]<\/t><\/is><\/c>/);
   assert.doesNotMatch(ledger, /○○초 돌봄교실 설치공사|○○건설/);
 });
 

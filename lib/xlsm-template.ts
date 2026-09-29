@@ -60,9 +60,9 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
     M2: String(contract.id), B3: String(contract.projectName), I3: String(contract.companyName), M3: null,
     B4: amount, G4: contract.contractMethod ? String(contract.contractMethod) : null, I4: null, B6: amount,
     I6: excelSerial(contract.contractDate as string | null), I8: null, I9: null, I10: null, I11: null, I12: null, H14: null,
-    D15: null, E15: null, D18: excelSerial(contract.plannedStartDate as string | null), E18: excelSerial(contract.actualStartDate as string | null),
+    D15: "[확인 필요]", E15: "[확인 필요]", D18: excelSerial(contract.plannedStartDate as string | null), E18: excelSerial(contract.actualStartDate as string | null),
     D19: excelSerial(contract.plannedCompletionDate as string | null), E19: excelSerial(contract.actualCompletionDate as string | null),
-    I20: excelSerial(contract.paymentDate as string | null), D21: amount, E22: excelSerial(start), E23: excelSerial(end),
+    I20: excelSerial(contract.paymentDate as string | null), J20: amount, L20: { formula:"MAX(B6-SUM(J16:J20),0)", cached:0 }, D21: amount, E22: excelSerial(start), E23: excelSerial(end),
     D25: Math.floor((amount * rate) / 10) * 10, D26: null, I26: excelSerial(contract.inspectionDate as string | null),
   } : {
     B4: String(contract.projectName), E4: amount, K4: Math.floor((amount * rate) / 10) * 10, K5: null,
