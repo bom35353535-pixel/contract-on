@@ -70,6 +70,15 @@ test("PDF masking runs in the browser while legacy XLS remains unsupported", asy
   assert.doesNotMatch(source, /fetch\(|OpenAI|Vector Store|\/api\//);
 });
 
+test("estimate drag masking remains clickable and guides the user to select a PDF", async () => {
+  const source = await readFile(new URL("../components/UploadPanel.tsx", import.meta.url), "utf8");
+  assert.match(source, /manualMaskRequestedRef/);
+  assert.match(source, /function openManualMask\(\)/);
+  assert.match(source, /disabled=\{busy \|\| masking\} onClick=\{openManualMask\}/);
+  assert.match(source, /직접 드래그 마스킹은 PDF 파일에서 사용할 수 있습니다/);
+  assert.doesNotMatch(source, /disabled=\{!file \|\| !file\.name\.toLowerCase\(\)\.endsWith\("\.pdf"\)/);
+});
+
 test("PDF auto-redaction requires the user to inspect the generated copy", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   assert.match(source, /추가 마스킹·확인/);

@@ -10,6 +10,7 @@ type ProgressEvent = { stage: string; label: string };
 
 export function UploadPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const manualMaskRequestedRef = useRef(false);
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [notice, setNotice] = useState("");
@@ -23,12 +24,33 @@ export function UploadPanel() {
 
   function selectFile(selected?: File) {
     if (!selected) return;
+    const manualMaskRequested = manualMaskRequestedRef.current;
+    manualMaskRequestedRef.current = false;
     setFile(selected);
     setMaskResult(null);
     setManualMaskedFile(null);
     setMaskNotice("");
     setAnalysisProgress([]);
+    if (manualMaskRequested) {
+      if (selected.name.toLowerCase().endsWith(".pdf")) setManualMaskOpen(true);
+      else setMaskNotice("직접 드래그 마스킹은 PDF 파일에서 사용할 수 있습니다. PDF 파일을 선택해 주세요.");
+    }
     setNotice("파일을 선택했습니다. 분석을 시작하면 문서에 적힌 정보만 추출합니다.");
+  }
+
+  function openManualMask() {
+    if (busy || masking) return;
+    if (!file) {
+      manualMaskRequestedRef.current = true;
+      if (inputRef.current) inputRef.current.value = "";
+      inputRef.current?.click();
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setMaskNotice("직접 드래그 마스킹은 PDF 파일에서 사용할 수 있습니다. PDF 견적서를 선택해 주세요.");
+      return;
+    }
+    setManualMaskOpen(true);
   }
 
   async function maskPrivacy() {
@@ -119,7 +141,7 @@ export function UploadPanel() {
           <p>견적서에 휴대전화번호나 이메일 등 개인정보가 포함된 경우, 분석 전에 먼저 개인정보 마스킹을 진행해 주세요.</p>
           <div className="privacy-mask-actions">
             <button className="mask-button" type="button" disabled={!file || busy || masking} onClick={maskPrivacy}>{masking ? "마스킹 중…" : "개인정보 마스킹하기"}</button>
-            <button className="manual-mask-button" type="button" disabled={!file || !file.name.toLowerCase().endsWith(".pdf") || busy || masking} onClick={() => setManualMaskOpen(true)}>직접 드래그 마스킹</button>
+            <button className="manual-mask-button" type="button" disabled={busy || masking} onClick={openManualMask}>직접 드래그 마스킹</button>
             <button className="analysis-button" type="button" disabled={!file || busy || masking} onClick={analyze}>{busy ? "분석 중…" : "견적서 분석하기"}</button>
           </div>
           {maskNotice && <div className={`privacy-mask-result ${maskResult || manualMaskedFile ? "complete" : "notice"}`} role="status">{maskNotice}</div>}
