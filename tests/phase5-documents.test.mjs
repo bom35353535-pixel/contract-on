@@ -54,6 +54,7 @@ test("Phase 5 exposes a source-backed editable construction plan without advanci
   assert.match(component, /공사계획서/);
   assert.match(component, /CONSTRUCTION_PLAN/);
   assert.match(component, /isLegacyConstructionPlan/);
+  assert.match(component, /공 사 비\|일반수용비\|비 품 비/);
   assert.match(route, /공사계획서는 작성내용 저장만 가능합니다/);
   assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_공사계획수립 내부기안문\.md/);
 });

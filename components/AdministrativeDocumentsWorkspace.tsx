@@ -42,7 +42,8 @@ function isReferenceMaterial(value: string) {
 }
 
 function isLegacyConstructionPlan(value: string) {
-  return /공사목적:/.test(value) && /계약업체:/.test(value) && !/예\s*산\s*액:/.test(value);
+  return (/공사목적:/.test(value) && /계약업체:/.test(value) && !/예\s*산\s*액:/.test(value))
+    || /^\s+[123]\. (?:공 사 비|일반수용비|비 품 비):/m.test(value);
 }
 
 function RecommendationContent({ text }: { text: string }) {
