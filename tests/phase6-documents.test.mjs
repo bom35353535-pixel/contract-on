@@ -174,6 +174,16 @@ test("document analysis completion uses an app dialog without the site-address p
   assert.doesNotMatch(workspace, /window\.alert/);
 });
 
+test("privacy progress and protected-copy notice appear directly below automatic masking", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const panel = workspace.indexOf("contract-privacy-panel");
+  const progress = workspace.indexOf("mask-progress-message");
+  const notice = workspace.indexOf("private-document-notice");
+  const analyze = workspace.indexOf("phase6-analyze-button");
+  assert.ok(panel >= 0 && panel < progress && progress < notice && notice < analyze);
+  assert.match(workspace, /setMaskMessage\(`\$\{file\.name\} · \$\{progress\}`\)/);
+});
+
 test("uploaded contract document files can be deleted and stale reviews are cleared", async () => {
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");

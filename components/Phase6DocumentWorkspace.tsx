@@ -44,6 +44,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [privacyStates, setPrivacyStates] = useState<PrivacyState[]>([]);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [maskMessage, setMaskMessage] = useState("");
   const [error, setError] = useState("");
   const [showCompletionNotice, setShowCompletionNotice] = useState(false);
   const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
@@ -66,14 +67,15 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   function selectFiles(files: File[]) {
     setSelected(files);
     setPrivacyStates(files.map(() => ({ status: "pending" })));
+    setMaskMessage("");
   }
 
   async function maskSensitiveFiles() {
     if (!selected.length || busy) return;
-    setBusy("mask"); setError(""); setMessage("");
+    setBusy("mask"); setError(""); setMessage(""); setMaskMessage("");
     try {
       const next = await Promise.all(selected.map(async (file): Promise<PrivacyState> => {
-        const result = await maskContractDocumentInBrowser(file, privacyDocumentLabel, (progress) => setMessage(`${file.name} · ${progress}`));
+        const result = await maskContractDocumentInBrowser(file, privacyDocumentLabel, (progress) => setMaskMessage(`${file.name} · ${progress}`));
         if (!result.supported) return { status: "manual-required", reason: result.reason };
         return { status: result.requiresReview ? "review-required" : "masked", file: result.file, counts: result.counts };
       }));
@@ -81,7 +83,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       const maskedCount = next.filter((state) => state.status === "masked" || state.status === "review-required").length;
       const manualCount = next.filter((state) => state.status === "manual-required").length;
       const reviewCount = next.filter((state) => state.status === "review-required").length;
-      setMessage(manualCount
+      setMaskMessage(manualCount
         ? `자동 마스킹 ${maskedCount}개 완료 · 직접 가린 사본 확인이 필요한 파일 ${manualCount}개`
         : reviewCount
           ? `PDF 자동 마스킹 ${reviewCount}개 완료 · 마스킹된 PDF를 열어 확인해 주세요.`
@@ -110,7 +112,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       ? { ...state, status: "manual-confirmed", file, reason: undefined }
       : state));
     setManualMaskIndex(null);
-    setMessage(`${file.name} · 직접 지정한 개인정보 영역 ${regionCount}개를 마스킹했습니다.`);
+    setMaskMessage(`${file.name} · 직접 지정한 개인정보 영역 ${regionCount}개를 마스킹했습니다.`);
   }
 
   async function analyze() {
@@ -146,6 +148,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       if (!response.ok) throw new Error(result.error || "서류를 분석하지 못했습니다.");
       setSelected([]);
       setPrivacyStates([]);
+      setMaskMessage("");
       if (inputRef.current) inputRef.current.value = "";
       setMessage(`마스킹 사본의 전체 페이지를 읽어 포함된 ${privacyDocumentLabel} 종류를 확인했습니다.`);
       setShowCompletionNotice(true);
@@ -223,8 +226,6 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
-    <div className="private-document-notice" role="note"><strong>🔒 {privacyDocumentLabel} 분석에는 개인정보를 가린 사본만 사용합니다.</strong><span>원본을 직접 선택하더라도 마스킹 확인 전에는 저장소나 분석 서비스로 전송하지 않습니다.</span></div>
-
     <section className={`phase6-upload-card ${!canUpload ? "locked" : ""}`}>
       <div className="phase6-card-heading"><div><span className="document-step">01</span><div><span className="section-kicker">복수 업로드</span><h3>{title} 분석</h3></div></div><span className={`document-status ${editable ? "current" : isFutureStage ? "upcoming" : "confirmed"}`}>{editable ? "업로드 가능" : isFutureStage ? "사전 업로드 가능" : isPastStage ? "단계 완료" : "단계 확인 필요"}</span></div>
       {isFutureStage && <div className="phase6-upcoming-notice"><strong>현재 단계: {STAGE_INFO[currentStage as keyof typeof STAGE_INFO].label}</strong><span>{title}는 미리 업로드·분석할 수 있습니다. 단계 완료 처리는 해당 업무단계에 도달한 뒤 가능합니다.</span></div>}
@@ -235,6 +236,8 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
         </label>
         {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => { const privacy = privacyStates[index]; const autoReview = privacy?.status === "review-required" || privacy?.status === "reviewed"; const isPdf = file.name.toLowerCase().endsWith(".pdf"); return <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB{requiresPrivacyMask ? " · 묶음 전체 판독" : ""}</small>{requiresPrivacyMask && privacy?.status === "masked" && <small className="privacy-inline-ok">자동 마스킹 완료 · {privacyMaskSummary(privacy.counts)}</small>}{requiresPrivacyMask && autoReview && <small className="privacy-inline-ok">PDF 자동 마스킹 완료 · {privacyMaskSummary(privacy.counts)}</small>}{requiresPrivacyMask && privacy?.status === "manual-required" && <small className="privacy-inline-warning">{privacy.reason}</small>}{requiresPrivacyMask && privacy?.status === "manual-confirmed" && <small className="privacy-inline-ok">직접 지정한 영역 마스킹 완료</small>}</span>{requiresPrivacyMask && isPdf && <button className="manual-redact-open" type="button" disabled={!!busy} onClick={() => setManualMaskIndex(index)}>직접 드래그 마스킹(PDF)</button>}{requiresPrivacyMask && autoReview && <div className="auto-mask-review"><button type="button" onClick={() => setManualMaskIndex(index)}>마스킹 결과 보기·추가 마스킹(PDF)</button><label><input type="checkbox" checked={privacy.status === "reviewed"} onChange={(event) => confirmAutoMask(index, event.target.checked)} /><span>마스킹 결과를 확인했습니다</span></label></div>}{requiresPrivacyMask && !isPdf && (privacy?.status === "manual-required" || privacy?.status === "manual-confirmed") && <label className="manual-mask-confirm"><input type="checkbox" checked={privacy.status === "manual-confirmed"} onChange={(event) => confirmManualMask(index, event.target.checked)} /><span>계좌번호·주민등록번호를 직접 가린 사본입니다</span></label>}</li>; })}</ul>}
         <div className="contract-privacy-panel" role="note"><div><strong>업로드 전 개인정보 보호</strong><p>자동 탐지를 사용하거나, PDF에서 개인정보 부분을 마우스로 직접 드래그해 가릴 수 있습니다. 선택한 원본은 마스킹 확인 전까지 브라우저 밖으로 전송되지 않습니다.</p>{!selected.length && <small>먼저 PDF 또는 문서 파일을 선택해 주세요.</small>}</div><button type="button" disabled={!!busy || !selected.length} onClick={maskSensitiveFiles}>{busy === "mask" ? "PDF 마스킹 중…" : "개인정보 자동 마스킹"}</button></div>
+        {maskMessage && <div className="document-message success mask-progress-message" role="status">{maskMessage}</div>}
+        <div className="private-document-notice" role="note"><strong>🔒 {privacyDocumentLabel} 분석에는 개인정보를 가린 사본만 사용합니다.</strong><span>원본을 직접 선택하더라도 마스킹 확인 전에는 저장소나 분석 서비스로 전송하지 않습니다.</span></div>
         <button className="phase6-analyze-button" type="button" disabled={!!busy || (!selected.length && !files.length)} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : selected.length ? "선택한 서류 확인" : "업로드된 서류 다시 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}
       {files.length > 0 && <details className="uploaded-document-details"><summary>업로드된 파일 {files.length}개</summary><ul>{files.map((file) => <li key={file.id}><strong>{file.originalName}</strong>{canUpload && <div className="uploaded-document-actions"><button type="button" disabled={!!busy} onClick={() => setPendingDelete(file)} aria-label={`${file.originalName} 삭제`}>삭제</button></div>}</li>)}</ul></details>}
