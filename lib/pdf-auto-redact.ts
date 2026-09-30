@@ -12,6 +12,7 @@ const PERSONNEL_FIELDS = [
   { label: "직위", kind: "position" as const },
   { label: "직책", kind: "position" as const },
 ];
+const FIELD_BOUNDARIES = ["현장배치기간", "배치기간", "소속", "주소", "자격", "면허", "비고"];
 
 function normalized(value: string) {
   return value.replace(/[\s:：·ㆍ._()\[\]{}]/g, "");
@@ -36,8 +37,8 @@ function personnelFieldRegions(line: OcrLine): RedactionRegion[] {
     return { ...item, start, end: cursor };
   });
   const joined = spans.map((item) => item.text).join("");
-  const labels = PERSONNEL_FIELDS.flatMap((field) => {
-    const results: Array<{ start: number; end: number; kind: RedactionKind }> = [];
+  const labels = [...PERSONNEL_FIELDS, ...FIELD_BOUNDARIES.map((label) => ({ label, kind: null }))].flatMap((field) => {
+    const results: Array<{ start: number; end: number; kind: RedactionKind | null }> = [];
     let from = 0;
     while (from < joined.length) {
       const start = joined.indexOf(field.label, from);
@@ -48,14 +49,24 @@ function personnelFieldRegions(line: OcrLine): RedactionRegion[] {
     return results;
   }).sort((a, b) => a.start - b.start);
   return labels.flatMap((label, index) => {
+    if (!label.kind) return [];
     const valueEnd = labels[index + 1]?.start ?? joined.length;
+    const labelWords = spans.filter((item) => item.end > label.start && item.start < label.end);
     const candidates = spans.filter((item) => item.start >= label.end && item.end <= valueEnd && /[0-9A-Za-z가-힣]/.test(item.text));
-    if (!candidates.length) return [];
+    if (!labelWords.length) return [];
+    const labelRight = Math.max(...labelWords.map((item) => item.word.bbox.x1));
+    const nextLabel = labels[index + 1];
+    const nextLabelWords = nextLabel ? spans.filter((item) => item.end > nextLabel.start && item.start < nextLabel.end) : [];
+    const fallbackWidth = label.kind === "birthDate" ? 240 : label.kind === "position" ? 210 : 170;
+    const x0 = candidates.length ? Math.min(...candidates.map((item) => item.word.bbox.x0)) : labelRight + 3;
+    const x1 = candidates.length
+      ? Math.max(...candidates.map((item) => item.word.bbox.x1))
+      : nextLabelWords.length ? Math.max(x0 + 30, Math.min(...nextLabelWords.map((item) => item.word.bbox.x0)) - 4) : labelRight + fallbackWidth;
     return [{
-      x0: Math.min(...candidates.map((item) => item.word.bbox.x0)),
-      y0: Math.min(...candidates.map((item) => item.word.bbox.y0)),
-      x1: Math.max(...candidates.map((item) => item.word.bbox.x1)),
-      y1: Math.max(...candidates.map((item) => item.word.bbox.y1)),
+      x0,
+      y0: Math.min(...labelWords.map((item) => item.word.bbox.y0)) - 2,
+      x1,
+      y1: Math.max(...labelWords.map((item) => item.word.bbox.y1)) + 2,
       kind: label.kind,
     }];
   });

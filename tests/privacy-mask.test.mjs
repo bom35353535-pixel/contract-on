@@ -113,6 +113,8 @@ test("PDF auto-redaction shows detected categories and provides a result viewer"
   assert.match(source, /마스킹 결과 보기·추가 마스킹\(PDF\)/);
   assert.match(source, /주민등록번호.*계좌번호.*휴대전화.*이메일/);
   assert.match(source, /privacyMaskSummary\(privacy\.counts\)/);
+  assert.doesNotMatch(source, /PDF 자동 마스킹 완료/);
+  assert.match(source, /privacyMaskCount\(result\.counts\) === 0/);
   assert.match(pdfRedactor, /isMobileNumber/);
   assert.match(pdfRedactor, /counts\.mobile \+= 1/);
   assert.match(pdfRedactor, /typeof source\.destroy === "function"/);
