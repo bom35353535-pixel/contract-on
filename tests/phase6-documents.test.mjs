@@ -274,3 +274,10 @@ test("contract completion uses an app dialog without the site-address prefix", a
   assert.match(workspace, /phase6-complete-confirm-title/);
   assert.doesNotMatch(workspace, /window\.confirm/);
 });
+
+test("construction completion remains available without an automatic document review", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /documentStage === "PRE_CONSTRUCTION"/);
+  assert.match(workspace, /착공서류 분석 결과가 없어도 담당자가 실제 서류와 착공 여부를 확인하여 공사중 단계로 이동할 수 있습니다/);
+  assert.match(workspace, /착공서류 분석 결과가 없어도 실제 서류와 착공 여부를 직접 확인한 경우 진행할 수 있습니다/);
+});

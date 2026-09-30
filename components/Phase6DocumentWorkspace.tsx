@@ -62,7 +62,17 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const privacyDocumentLabel = isContract ? "계약서류" : isCompletion ? "준공서류" : "착공서류";
   const title = isContract ? "계약서류" : isCompletion ? "준공계·준공서류" : "착공계·착공서류";
   const completeLabel = isContract ? "계약 완료" : isCompletion ? "준공서류 확인완료" : "착공 확인 완료";
-  const canComplete = isContract || Boolean(review) || (isCompletion && files.length > 0);
+  const canComplete = isContract || documentStage === "PRE_CONSTRUCTION" || Boolean(review) || (isCompletion && files.length > 0);
+  const noReviewConfirmTitle = isContract
+    ? "실제 계약 체결을 완료하셨나요?"
+    : isCompletion
+      ? "업로드된 준공서류를 직접 확인하셨나요?"
+      : "착공서류를 직접 확인하고 실제 착공 처리를 완료하셨나요?";
+  const noReviewConfirmDescription = isContract
+    ? "계약서류 분석 결과가 없어도 담당자가 실제 계약 체결 여부를 확인하여 다음 단계로 이동할 수 있습니다."
+    : isCompletion
+      ? "준공서류 화면에서 담당자가 확인완료를 눌러 검사검수 단계로 이동합니다."
+      : "착공서류 분석 결과가 없어도 담당자가 실제 서류와 착공 여부를 확인하여 공사중 단계로 이동할 수 있습니다.";
 
   function selectFiles(files: File[]) {
     setSelected(files);
@@ -208,7 +218,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   return <>
     {manualMaskIndex !== null && selected[manualMaskIndex] && <ManualPdfRedactor file={privacyStates[manualMaskIndex]?.file ?? selected[manualMaskIndex]} onCancel={() => setManualMaskIndex(null)} onApply={(file, count) => applyManualMask(manualMaskIndex, file, count)} />}
     {pendingDelete && <div className="action-confirm-backdrop" role="presentation" onMouseDown={() => !busy && setPendingDelete(null)}><section className="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-uploaded-file-title" onMouseDown={(event) => event.stopPropagation()}><h2 id="delete-uploaded-file-title">업로드된 파일을 삭제할까요?</h2><p><strong>{pendingDelete.originalName}</strong></p><p>파일을 삭제하면 이 단계의 기존 서류 확인 결과도 초기화됩니다.</p><div className="action-confirm-actions"><button type="button" disabled={!!busy} onClick={() => setPendingDelete(null)}>취소</button><button className="danger" type="button" disabled={!!busy} onClick={deleteUploadedFile}>{busy === "delete" ? "삭제 중…" : "파일 삭제"}</button></div></section></div>}
-    {completionConfirmOpen && <div className="action-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) setCompletionConfirmOpen(false); }}><section className="action-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="phase6-complete-confirm-title" aria-describedby="phase6-complete-confirm-description"><h2 id="phase6-complete-confirm-title">{completeLabel}</h2><p id="phase6-complete-confirm-description">{review ? "분석 결과를 확인하고 실제 행정처리를 완료한 경우에만 진행해 주세요." : isCompletion ? "업로드된 준공서류를 담당자가 직접 확인한 경우에만 검사검수 단계로 진행해 주세요." : "계약서류 분석 결과는 없습니다. 실제 계약 체결을 완료한 경우에만 진행해 주세요."}</p>{review && (review.missingCount > 0 || review.checkCount > 0) && <p>누락 {review.missingCount}건, 확인필요 {review.checkCount}건이 있습니다.</p>}<div className="action-confirm-actions"><button type="button" disabled={!!busy} onClick={() => setCompletionConfirmOpen(false)}>취소</button><button className="primary" type="button" autoFocus disabled={!!busy} onClick={() => void complete()}>{busy === "complete" ? "처리 중…" : "완료 확인"}</button></div></section></div>}
+    {completionConfirmOpen && <div className="action-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) setCompletionConfirmOpen(false); }}><section className="action-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="phase6-complete-confirm-title" aria-describedby="phase6-complete-confirm-description"><h2 id="phase6-complete-confirm-title">{completeLabel}</h2><p id="phase6-complete-confirm-description">{review ? "분석 결과를 확인하고 실제 행정처리를 완료한 경우에만 진행해 주세요." : isCompletion ? "업로드된 준공서류를 담당자가 직접 확인한 경우에만 검사검수 단계로 진행해 주세요." : isContract ? "계약서류 분석 결과가 없어도 실제 계약 체결을 완료한 경우 진행할 수 있습니다." : "착공서류 분석 결과가 없어도 실제 서류와 착공 여부를 직접 확인한 경우 진행할 수 있습니다."}</p>{review && (review.missingCount > 0 || review.checkCount > 0) && <p>누락 {review.missingCount}건, 확인필요 {review.checkCount}건이 있습니다.</p>}<div className="action-confirm-actions"><button type="button" disabled={!!busy} onClick={() => setCompletionConfirmOpen(false)}>취소</button><button className="primary" type="button" autoFocus disabled={!!busy} onClick={() => void complete()}>{busy === "complete" ? "처리 중…" : "완료 확인"}</button></div></section></div>}
     {showCompletionNotice && <div className="action-confirm-backdrop" role="presentation" onMouseDown={() => setShowCompletionNotice(false)}><section className="action-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="document-check-complete-title" onMouseDown={(event) => event.stopPropagation()}><h2 id="document-check-complete-title">서류 확인이 완료되었습니다.</h2><div className="action-confirm-actions"><button className="primary" type="button" autoFocus onClick={() => setShowCompletionNotice(false)}>확인</button></div></section></div>}
     <section className="phase6-workspace-head">
       <div><span className="section-kicker">{isCompletion ? "Phase 7 · 준공 관리" : `Phase 6 · ${isContract ? "계약" : "착공"} 관리`}</span><h2>{title}</h2><p>묶음 파일의 전체 페이지를 읽어 포함된 여러 서류를 자동으로 구분하고 등록자료의 제출 기준과 비교합니다.</p></div>
@@ -264,6 +274,6 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       </>}
     </section>
 
-    {editable && <section className="phase6-confirm-bar"><div><strong>{review ? "확인 결과 검토 후 실제 행정처리를 완료하셨나요?" : isCompletion ? "업로드된 준공서류를 직접 확인하셨나요?" : "실제 계약 체결을 완료하셨나요?"}</strong><small>{review ? "자동분류는 보조자료이며 최종 단계변경은 담당자가 확인합니다." : isCompletion ? "준공서류 화면에서 담당자가 확인완료를 눌러 검사검수 단계로 이동합니다." : "계약서류 분석 결과가 없어도 담당자가 실제 계약 체결 여부를 확인하여 다음 단계로 이동할 수 있습니다."}</small></div><button type="button" disabled={!!busy || !canComplete} onClick={() => setCompletionConfirmOpen(true)}>{busy === "complete" ? "처리 중…" : completeLabel}</button></section>}
+    {editable && <section className="phase6-confirm-bar"><div><strong>{review ? "확인 결과 검토 후 실제 행정처리를 완료하셨나요?" : noReviewConfirmTitle}</strong><small>{review ? "자동분류는 보조자료이며 최종 단계변경은 담당자가 확인합니다." : noReviewConfirmDescription}</small></div><button type="button" disabled={!!busy || !canComplete} onClick={() => setCompletionConfirmOpen(true)}>{busy === "complete" ? "처리 중…" : completeLabel}</button></section>}
   </>;
 }
