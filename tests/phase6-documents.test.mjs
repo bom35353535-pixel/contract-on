@@ -176,6 +176,7 @@ test("document analysis completion uses an app dialog without the site-address p
 
 test("document upload keeps the two masking actions and shows masking progress and result review below them", async () => {
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
   const picker = workspace.indexOf("phase6-file-picker");
   const actions = workspace.indexOf("privacy-mask-actions-simple");
   const analyze = workspace.indexOf("phase6-analyze-button");
@@ -184,6 +185,8 @@ test("document upload keeps the two masking actions and shows masking progress a
   assert.match(workspace, /직접 드래그 마스킹\(PDF\)/);
   assert.match(workspace, /privacy-mask-progress/);
   assert.match(workspace, /마스킹 결과 확인하기/);
+  assert.match(css, /\.phase6-file-picker \{[^}]*width: 100%[^}]*padding: 11px 14px[^}]*border-radius: 9px/s);
+  assert.match(css, /\.phase6-analyze-button \{[^}]*width: 100%[^}]*padding: 11px 14px[^}]*border-radius: 9px/s);
   assert.doesNotMatch(workspace, /contract-privacy-panel|mask-progress-message|private-document-notice/);
   assert.doesNotMatch(workspace, /자동으로 개인정보 위치를 찾지 못했습니다/);
 });
