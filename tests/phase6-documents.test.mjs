@@ -174,14 +174,16 @@ test("document analysis completion uses an app dialog without the site-address p
   assert.doesNotMatch(workspace, /window\.alert/);
 });
 
-test("privacy progress and protected-copy notice appear directly below automatic masking", async () => {
+test("document upload keeps only the two masking actions below the file picker", async () => {
   const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
-  const panel = workspace.indexOf("contract-privacy-panel");
-  const progress = workspace.indexOf("mask-progress-message");
-  const notice = workspace.indexOf("private-document-notice");
+  const picker = workspace.indexOf("phase6-file-picker");
+  const actions = workspace.indexOf("privacy-mask-actions-simple");
   const analyze = workspace.indexOf("phase6-analyze-button");
-  assert.ok(panel >= 0 && panel < progress && progress < notice && notice < analyze);
-  assert.match(workspace, /setMaskMessage\(`\$\{file\.name\} · \$\{progress\}`\)/);
+  assert.ok(picker >= 0 && picker < actions && actions < analyze);
+  assert.match(workspace, /개인정보 자동 마스킹/);
+  assert.match(workspace, /직접 드래그 마스킹\(PDF\)/);
+  assert.doesNotMatch(workspace, /contract-privacy-panel|mask-progress-message|private-document-notice/);
+  assert.doesNotMatch(workspace, /자동으로 개인정보 위치를 찾지 못했습니다/);
 });
 
 test("uploaded contract document files can be deleted and stale reviews are cleared", async () => {
