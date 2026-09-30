@@ -146,6 +146,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       if (!response.ok) throw new Error(result.error || "서류를 분석하지 못했습니다.");
       setSelected([]);
       setPrivacyStates([]);
+      setMaskProgress("");
       if (inputRef.current) inputRef.current.value = "";
       setMessage(`마스킹 사본의 전체 페이지를 읽어 포함된 ${privacyDocumentLabel} 종류를 확인했습니다.`);
       setShowCompletionNotice(true);
