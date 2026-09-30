@@ -43,6 +43,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   const [selected, setSelected] = useState<File[]>([]);
   const [privacyStates, setPrivacyStates] = useState<PrivacyState[]>([]);
   const [busy, setBusy] = useState("");
+  const [maskProgress, setMaskProgress] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showCompletionNotice, setShowCompletionNotice] = useState(false);
@@ -66,21 +67,30 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
   function selectFiles(files: File[]) {
     setSelected(files);
     setPrivacyStates(files.map(() => ({ status: "pending" })));
+    setMaskProgress("");
   }
 
   async function maskSensitiveFiles() {
     if (!selected.length || busy) return;
-    setBusy("mask"); setError(""); setMessage("");
+    setBusy("mask"); setError(""); setMessage(""); setMaskProgress("개인정보 자동 마스킹 … 준비 중");
     try {
-      const next = await Promise.all(selected.map(async (file): Promise<PrivacyState> => {
-        const result = await maskContractDocumentInBrowser(file, privacyDocumentLabel);
-        if (!result.supported) return { status: "manual-required", reason: result.reason };
-        if (result.requiresReview && privacyMaskCount(result.counts) === 0) return { status: "manual-required" };
-        return { status: result.requiresReview ? "review-required" : "masked", file: result.file, counts: result.counts };
-      }));
+      const next: PrivacyState[] = [];
+      for (let index = 0; index < selected.length; index += 1) {
+        const file = selected[index];
+        const filePrefix = selected.length > 1 ? `${index + 1}/${selected.length} ${file.name} · ` : "";
+        setMaskProgress(`${filePrefix}개인정보 자동 마스킹 … 처리 중`);
+        const result = await maskContractDocumentInBrowser(file, privacyDocumentLabel, (progress) => {
+          setMaskProgress(`${filePrefix}${progress}`);
+        });
+        if (!result.supported) next.push({ status: "manual-required", reason: result.reason });
+        else if (result.requiresReview && privacyMaskCount(result.counts) === 0) next.push({ status: "manual-required", file: result.file, counts: result.counts });
+        else next.push({ status: result.requiresReview ? "review-required" : "masked", file: result.file, counts: result.counts });
+      }
       setPrivacyStates(next);
+      setMaskProgress("개인정보 자동 마스킹 완료");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "개인정보 마스킹에 실패했습니다.");
+      setMaskProgress("");
     } finally {
       setBusy("");
     }
@@ -95,6 +105,11 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
 
   function openManualPdfMask() {
     const pdfIndex = selected.findIndex((file) => file.name.toLowerCase().endsWith(".pdf"));
+    if (pdfIndex >= 0) setManualMaskIndex(pdfIndex);
+  }
+
+  function openAutoMaskResult() {
+    const pdfIndex = selected.findIndex((file, index) => file.name.toLowerCase().endsWith(".pdf") && Boolean(privacyStates[index]?.file));
     if (pdfIndex >= 0) setManualMaskIndex(pdfIndex);
   }
 
@@ -220,6 +235,8 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
           <button type="button" disabled={!!busy || !selected.length} onClick={maskSensitiveFiles}>{busy === "mask" ? "마스킹 중…" : "개인정보 자동 마스킹"}</button>
           <button type="button" disabled={!!busy || !selected.some((file) => file.name.toLowerCase().endsWith(".pdf"))} onClick={openManualPdfMask}>직접 드래그 마스킹(PDF)</button>
         </div>
+        {maskProgress && <div className={`privacy-mask-progress ${busy === "mask" ? "working" : "complete"}`} role="status" aria-live="polite">{maskProgress}</div>}
+        {privacyStates.some((state, index) => Boolean(state.file) && selected[index]?.name.toLowerCase().endsWith(".pdf")) && <button className="privacy-mask-review-button" type="button" disabled={!!busy} onClick={openAutoMaskResult}>마스킹 결과 확인하기</button>}
         {selected.length > 0 && <ul className="selected-document-list">{selected.map((file, index) => <li key={`${file.name}-${index}`}><span><strong>{file.name}</strong><small>{(file.size / 1024 / 1024).toFixed(2)}MB</small></span></li>)}</ul>}
         <button className="phase6-analyze-button" type="button" disabled={!!busy || (!selected.length && !files.length)} onClick={analyze}>{busy === "analyze" ? "서류 확인 중…" : selected.length ? "선택한 서류 확인" : "업로드된 서류 다시 확인"}</button>
       </> : <p className="phase6-readonly-note">{isPastStage ? "이 업무단계는 완료되었습니다. 기존 분석 결과는 계속 확인할 수 있습니다." : "현재 계약단계를 확인한 뒤 다시 시도해 주세요."}</p>}

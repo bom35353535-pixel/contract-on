@@ -720,6 +720,12 @@ a { color: inherit; text-decoration: none; }
 .privacy-mask-actions-simple button { padding: 10px 14px; border: 1px solid #1f7463; border-radius: 9px; background: #fff; color: #1f7463; font-size: 13px; font-weight: 850; cursor: pointer; }
 .privacy-mask-actions-simple button:first-child { background: #1f7463; color: #fff; }
 .privacy-mask-actions-simple button:disabled { opacity: .5; cursor: not-allowed; }
+.privacy-mask-progress { margin-top: 10px; padding: 10px 12px; border-radius: 9px; font-size: 13px; font-weight: 800; }
+.privacy-mask-progress.working { border: 1px solid #a9d1c8; background: #eff9f6; color: #175f52; }
+.privacy-mask-progress.complete { border: 1px solid #b8ddc9; background: #eefaf2; color: #17643e; }
+.privacy-mask-review-button { display: block; margin-top: 8px; padding: 9px 13px; border: 1px solid #568f82; border-radius: 9px; background: #fff; color: #175f52; font-size: 13px; font-weight: 850; cursor: pointer; }
+.privacy-mask-review-button:hover { background: #f1f9f7; }
+.privacy-mask-review-button:disabled { opacity: .5; cursor: not-allowed; }
 .phase6-analyze-button { width: 100%; margin-top: 11px; padding: 11px 14px; border: 0; border-radius: 9px; background: var(--green); color: white; font-size: 10px; font-weight: 850; cursor: pointer; }
 .phase6-analyze-button:disabled { opacity: .55; cursor: wait; }
 .phase6-readonly-note, .phase6-empty-result { margin-top: 17px; padding: 26px; border: 1px dashed #ccd8dd; border-radius: 10px; color: #7b8b94; text-align: center; font-size: 9px; }

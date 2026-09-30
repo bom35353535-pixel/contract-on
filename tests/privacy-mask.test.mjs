@@ -107,13 +107,17 @@ test("estimate drag masking remains clickable and guides the user to select a PD
   assert.doesNotMatch(source, /disabled=\{!file \|\| !file\.name\.toLowerCase\(\)\.endsWith\("\.pdf"\)/);
 });
 
-test("PDF auto-redaction keeps detection logic but presents only the two masking actions", async () => {
+test("PDF auto-redaction reports page progress and exposes the masked result below the two masking actions", async () => {
   const source = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
   const pdfRedactor = await readFile(new URL("../lib/pdf-auto-redact.ts", import.meta.url), "utf8");
   assert.match(source, /privacy-mask-actions-simple/);
   assert.match(source, /개인정보 자동 마스킹/);
   assert.match(source, /직접 드래그 마스킹\(PDF\)/);
   assert.match(source, /privacyMaskCount\(result\.counts\) === 0/);
+  assert.match(source, /maskProgress/);
+  assert.match(source, /마스킹 결과 확인하기/);
+  assert.match(source, /openAutoMaskResult/);
+  assert.match(pdfRedactor, /개인정보 자동 마스킹 … \$\{pageNumber\}페이지 \/ 전체 \$\{source\.numPages\}페이지/);
   assert.match(pdfRedactor, /isMobileNumber/);
   assert.match(pdfRedactor, /counts\.mobile \+= 1/);
   assert.match(pdfRedactor, /typeof source\.destroy === "function"/);

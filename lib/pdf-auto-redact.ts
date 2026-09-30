@@ -160,7 +160,7 @@ export async function redactPdfInBrowser(file: File, onProgress?: (message: stri
   try {
     await worker.setParameters({ preserve_interword_spaces: "1" });
     for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
-      onProgress?.(`PDF 개인정보 자동 탐지 중 · ${pageNumber}/${source.numPages}쪽`);
+      onProgress?.(`개인정보 자동 마스킹 … ${pageNumber}페이지 / 전체 ${source.numPages}페이지`);
       const page = await source.getPage(pageNumber);
       const base = page.getViewport({ scale: 1 });
       const scale = Math.min(1.8, Math.max(1.35, 2100 / Math.max(base.width, base.height)));
