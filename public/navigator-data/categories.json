@@ -1,0 +1,130 @@
+[
+ {
+  "id": "contract",
+  "label": "계약·조달",
+  "icon": "Handshake",
+  "description": "입찰·계약·보증·조달 업무",
+  "x": 50.0,
+  "y": 12.0
+ },
+ {
+  "id": "budget",
+  "label": "예산·회계",
+  "icon": "Wallet",
+  "description": "예산 편성, 정산, 세무, 재산·물품",
+  "x": 63.01,
+  "y": 14.89
+ },
+ {
+  "id": "facility",
+  "label": "시설관리",
+  "icon": "Building2",
+  "description": "학교시설 공사·유지관리·재산",
+  "x": 74.04,
+  "y": 23.13
+ },
+ {
+  "id": "safety",
+  "label": "학교·산업안전",
+  "icon": "HardHat",
+  "description": "안전점검, 위험성평가, 보건",
+  "x": 81.41,
+  "y": 35.46
+ },
+ {
+  "id": "transport",
+  "label": "스쿨버스·현장학습차량",
+  "icon": "Bus",
+  "description": "스쿨버스·통학버스·현장학습(전세)버스·차량 안전",
+  "x": 84.0,
+  "y": 50.0
+ },
+ {
+  "id": "cert",
+  "label": "인증·업체검증",
+  "icon": "BadgeCheck",
+  "description": "업체 자격·제품 인증 확인",
+  "x": 81.41,
+  "y": 64.54
+ },
+ {
+  "id": "hr",
+  "label": "인사·채용",
+  "icon": "UserPlus",
+  "description": "교직원·교육공무직 채용, 인사",
+  "x": 74.04,
+  "y": 76.87
+ },
+ {
+  "id": "payroll",
+  "label": "급여·복지",
+  "icon": "BanknoteArrowUp",
+  "description": "급여, 4대보험, 연금, 복지",
+  "x": 63.01,
+  "y": 85.11
+ },
+ {
+  "id": "student",
+  "label": "학생·교육과정",
+  "icon": "GraduationCap",
+  "description": "교육과정, 체험·교육여행, 학생지원",
+  "x": 50.0,
+  "y": 88.0
+ },
+ {
+  "id": "civil",
+  "label": "민원·정보공개",
+  "icon": "MessagesSquare",
+  "description": "민원 처리, 공시, 정보공개",
+  "x": 36.99,
+  "y": 85.11
+ },
+ {
+  "id": "doc",
+  "label": "문서·기록",
+  "icon": "FolderArchive",
+  "description": "문서 유통·기록물 관리",
+  "x": 25.96,
+  "y": 76.87
+ },
+ {
+  "id": "privacy",
+  "label": "개인정보·보안",
+  "icon": "ShieldCheck",
+  "description": "개인정보 보호, 사이버보안",
+  "x": 18.59,
+  "y": 64.54
+ },
+ {
+  "id": "law",
+  "label": "법령·통계",
+  "icon": "Scale",
+  "description": "법령·판례·행정정보·통계",
+  "x": 16.0,
+  "y": 50.0
+ },
+ {
+  "id": "env",
+  "label": "환경·폐기물",
+  "icon": "Recycle",
+  "description": "폐기물 처리, 화학물질 관리",
+  "x": 18.59,
+  "y": 35.46
+ },
+ {
+  "id": "training",
+  "label": "연수·역량개발",
+  "icon": "BookOpenCheck",
+  "description": "직무연수, 법정 의무교육, 청렴교육",
+  "x": 25.96,
+  "y": 23.13
+ },
+ {
+  "id": "food",
+  "label": "급식·학교매점",
+  "icon": "Utensils",
+  "description": "급식·식품안전, 학교매점 판매 식품",
+  "x": 36.99,
+  "y": 14.89
+ }
+]
