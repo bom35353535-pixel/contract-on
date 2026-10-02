@@ -56,6 +56,22 @@ test("construction personnel documents mask name birth date and position but pre
   assert.deepEqual(regions.map((region) => region.kind), ["name", "birthDate", "position"]);
 });
 
+test("construction personnel table fragments are merged into rows before masking", async () => {
+  const { findPdfPrivacyRegions } = await import(new URL("../lib/pdf-auto-redact.ts", import.meta.url).href);
+  const word = (text, x0, y0, x1 = x0 + 55) => ({ text, confidence: 100, bbox: { x0, y0, x1, y1: y0 + 18 } });
+  const lines = [
+    { words: [word("현장대리인계", 80, 10, 190)], bbox: { x0: 80, y0: 10, x1: 190, y1: 28 } },
+    { words: [word("성 명", 85, 80, 130), word("김미래", 154, 80, 210)], bbox: { x0: 85, y0: 80, x1: 210, y1: 98 } },
+    { words: [word("생년월일", 326, 81, 385), word("1990. 01. 01.", 403, 81, 500)], bbox: { x0: 326, y0: 81, x1: 500, y1: 99 } },
+    { words: [word("소 속", 85, 112, 130), word("주식회사 미래전기", 154, 112, 290)], bbox: { x0: 85, y0: 112, x1: 290, y1: 130 } },
+    { words: [word("직 위", 335, 111, 380), word("대리", 403, 111, 440)], bbox: { x0: 335, y0: 111, x1: 440, y1: 129 } },
+    { words: [word("현장배치기간", 85, 145, 170), word("2026-09-01 ~ 2026-10-31", 190, 145, 390)], bbox: { x0: 85, y0: 145, x1: 390, y1: 163 } },
+  ];
+  const regions = findPdfPrivacyRegions(lines, { documentType: "착공서류" });
+  assert.deepEqual(regions.map((region) => region.kind), ["name", "birthDate", "position"]);
+  assert.ok(regions.every((region) => region.y0 < 140));
+});
+
 test("construction commencement dates are not treated as bank account numbers", async () => {
   const { findPdfPrivacyRegions } = await import(new URL("../lib/pdf-auto-redact.ts", import.meta.url).href);
   const lines = [{
@@ -96,6 +112,13 @@ test("PDF masking runs in the browser while legacy XLS remains unsupported", asy
   assert.match(source, /redactPdfInBrowser/);
   assert.match(source, /extension === "\.xls"/);
   assert.doesNotMatch(source, /fetch\(|OpenAI|Vector Store|\/api\//);
+});
+
+test("text PDFs use their embedded text layer and load OCR only for scanned pages", async () => {
+  const source = await readFile(new URL("../lib/pdf-auto-redact.ts", import.meta.url), "utf8");
+  assert.match(source, /page\.getTextContent\(\)/);
+  assert.match(source, /searchableText\.length < 20/);
+  assert.ok(source.indexOf('await import("tesseract.js")') > source.indexOf("const getOcrWorker"));
 });
 
 test("estimate drag masking remains clickable and guides the user to select a PDF", async () => {

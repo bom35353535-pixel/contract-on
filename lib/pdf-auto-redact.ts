@@ -22,6 +22,59 @@ function lineText(line: OcrLine) {
   return line.words.map((word) => word.text).join(" ");
 }
 
+type PdfTextItem = { str?: string; width?: number; height?: number; transform?: number[] };
+
+function groupWordsByRow(words: OcrWord[]) {
+  const rows: OcrWord[][] = [];
+  for (const word of [...words].sort((a, b) => {
+    const ay = (a.bbox.y0 + a.bbox.y1) / 2;
+    const by = (b.bbox.y0 + b.bbox.y1) / 2;
+    return Math.abs(ay - by) > 4 ? ay - by : a.bbox.x0 - b.bbox.x0;
+  })) {
+    const center = (word.bbox.y0 + word.bbox.y1) / 2;
+    const height = Math.max(1, word.bbox.y1 - word.bbox.y0);
+    const row = rows.find((candidate) => {
+      const candidateCenter = candidate.reduce((sum, item) => sum + (item.bbox.y0 + item.bbox.y1) / 2, 0) / candidate.length;
+      const candidateHeight = Math.max(1, ...candidate.map((item) => item.bbox.y1 - item.bbox.y0));
+      return Math.abs(center - candidateCenter) <= Math.max(5, Math.min(height, candidateHeight) * 0.55);
+    });
+    if (row) row.push(word);
+    else rows.push([word]);
+  }
+  return rows.map((row) => {
+    const sorted = row.sort((a, b) => a.bbox.x0 - b.bbox.x0);
+    return {
+      words: sorted,
+      bbox: {
+        x0: Math.min(...sorted.map((word) => word.bbox.x0)),
+        y0: Math.min(...sorted.map((word) => word.bbox.y0)),
+        x1: Math.max(...sorted.map((word) => word.bbox.x1)),
+        y1: Math.max(...sorted.map((word) => word.bbox.y1)),
+      },
+    };
+  });
+}
+
+export function pdfTextItemsToLines(
+  items: PdfTextItem[],
+  viewport: { scale: number; transform: number[] },
+  transform: (left: number[], right: number[]) => number[],
+) {
+  const words = items.flatMap((item) => {
+    const text = item.str?.trim();
+    if (!text || !item.transform) return [];
+    const matrix = transform(viewport.transform, item.transform);
+    const height = Math.max(7, Math.hypot(matrix[2], matrix[3]), Math.abs((item.height || 0) * viewport.scale));
+    const width = Math.max(2, Math.abs((item.width || text.length * height * 0.5) * viewport.scale));
+    return [{
+      text,
+      confidence: 100,
+      bbox: { x0: matrix[4], y0: matrix[5] - height, x1: matrix[4] + width, y1: matrix[5] },
+    }];
+  });
+  return groupWordsByRow(words);
+}
+
 function pageIsPersonnelDocument(lines: OcrLine[], filename: string) {
   const text = normalized(`${filename} ${lines.map(lineText).join(" ")}`);
   if (/현장대리인계|현장기술자지정신고서|재직증명서/.test(text)) return true;
@@ -103,8 +156,9 @@ function isMobileNumber(digits: string) {
 
 export function findPdfPrivacyRegions(lines: OcrLine[], options: { filename?: string; documentType?: string } = {}) {
   const regions: RedactionRegion[] = [];
-  const personnelDocument = pageIsPersonnelDocument(lines, `${options.filename || ""} ${options.documentType || ""}`);
-  for (const line of lines) {
+  const rowLines = groupWordsByRow(lines.flatMap((line) => line.words));
+  const personnelDocument = pageIsPersonnelDocument(rowLines, `${options.filename || ""} ${options.documentType || ""}`);
+  for (const line of rowLines) {
     const text = normalized(lineText(line));
     if (personnelDocument && !/현장배치기간|배치기간/.test(text)) regions.push(...personnelFieldRegions(line));
     for (const group of numericGroups(line)) {
@@ -142,23 +196,29 @@ function collectLines(blocks: unknown) {
 }
 
 export async function redactPdfInBrowser(file: File, onProgress?: (message: string) => void, options: { documentType?: string } = {}) {
-  const [{ getDocument, GlobalWorkerOptions }, { PDFDocument }, Tesseract] = await Promise.all([
+  const [{ getDocument, GlobalWorkerOptions, Util }, { PDFDocument }] = await Promise.all([
     import("pdfjs-dist"),
     import("pdf-lib"),
-    import("tesseract.js"),
   ]);
   GlobalWorkerOptions.workerSrc = "/pdf-privacy/pdf.worker.min.mjs";
-  const worker = await Tesseract.createWorker("kor+eng", Tesseract.OEM.LSTM_ONLY, {
-    workerPath: "/pdf-privacy/tesseract-worker.min.js",
-    corePath: "/pdf-privacy/tesseract-core-lstm.wasm.js",
-    langPath: "/pdf-privacy",
-    logger: () => undefined,
-  });
+  type TesseractWorker = Awaited<ReturnType<typeof import("tesseract.js")["createWorker"]>>;
+  let worker: TesseractWorker | null = null;
+  const getOcrWorker = async () => {
+    if (worker) return worker;
+    const Tesseract = await import("tesseract.js");
+    worker = await Tesseract.createWorker("kor+eng", Tesseract.OEM.LSTM_ONLY, {
+      workerPath: "/pdf-privacy/tesseract-worker.min.js",
+      corePath: "/pdf-privacy/tesseract-core-lstm.wasm.js",
+      langPath: "/pdf-privacy",
+      logger: () => undefined,
+    });
+    await worker.setParameters({ preserve_interword_spaces: "1" });
+    return worker;
+  };
   const source = await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const output = await PDFDocument.create();
   const counts: PrivacyMaskCounts = { mobile: 0, email: 0, residentRegistration: 0, account: 0, name: 0, birthDate: 0, position: 0 };
   try {
-    await worker.setParameters({ preserve_interword_spaces: "1" });
     for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
       onProgress?.(`개인정보 자동 마스킹 … ${pageNumber}페이지 / 전체 ${source.numPages}페이지`);
       const page = await source.getPage(pageNumber);
@@ -171,8 +231,16 @@ export async function redactPdfInBrowser(file: File, onProgress?: (message: stri
       const context = canvas.getContext("2d", { alpha: false });
       if (!context) throw new Error("PDF 페이지를 처리할 수 없습니다.");
       await page.render({ canvas, canvasContext: context, viewport }).promise;
-      const recognized = await worker.recognize(canvas, {}, { blocks: true });
-      const regions = findPdfPrivacyRegions(collectLines(recognized.data.blocks), { filename: file.name, documentType: options.documentType });
+      const textContent = await page.getTextContent();
+      const textLines = pdfTextItemsToLines(textContent.items as PdfTextItem[], viewport, Util.transform);
+      const searchableText = textLines.map(lineText).join("").replace(/\s/g, "");
+      let detectionLines = textLines;
+      if (searchableText.length < 20) {
+        const ocrWorker = await getOcrWorker();
+        const recognized = await ocrWorker.recognize(canvas, {}, { blocks: true });
+        detectionLines = collectLines(recognized.data.blocks);
+      }
+      const regions = findPdfPrivacyRegions(detectionLines, { filename: file.name, documentType: options.documentType });
       context.fillStyle = "#000000";
       for (const region of regions) {
         const padding = 5;
@@ -193,7 +261,7 @@ export async function redactPdfInBrowser(file: File, onProgress?: (message: stri
     const masked = new File([bytes], file.name, { type: "application/pdf", lastModified: file.lastModified });
     return { file: masked, counts, pageCount: source.numPages };
   } finally {
-    await worker.terminate().catch(() => undefined);
+    if (worker) await worker.terminate().catch(() => undefined);
     if (typeof source.destroy === "function") {
       await Promise.resolve(source.destroy()).catch(() => undefined);
     }
