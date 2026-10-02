@@ -11,21 +11,13 @@ const FLOW = [
   { id: 4, title: "대금 지급", owner: "사업·회계부서", items: ["지출결의 및 대금 지급", "하자보수보증금 확인(해당 공사)", "세금계산서·4대보험·국세·지방세 완납증명 확인"] },
 ] as const;
 
-function currentFlow(stage: string) {
-  if (["PURCHASE_REQUEST", "INTERNAL_APPROVAL"].includes(stage)) return 1;
-  if (["NARA_CONTRACT", "COMMITMENT"].includes(stage)) return 2;
-  if (["PRE_CONSTRUCTION", "IN_CONSTRUCTION", "COMPLETION", "INSPECTION"].includes(stage)) return 3;
-  return 4;
-}
-
-export function AiWorkAssistant({ projectName, currentStage }: { projectName?: string; currentStage?: string }) {
+export function AiWorkAssistant(_: { projectName?: string; currentStage?: string }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [durationMs, setDurationMs] = useState<number | null>(null);
-  const activeFlow = currentStage ? currentFlow(currentStage) : 0;
 
   async function ask(event: React.FormEvent) {
     event.preventDefault();
@@ -43,24 +35,21 @@ export function AiWorkAssistant({ projectName, currentStage }: { projectName?: s
   }
 
   return <section className="assistant-workspace">
-    <header className="assistant-head"><div><span className="section-kicker">AI 업무비서</span><h2>업무흐름을 보고, 등록된 지식에 질문하세요.</h2><p>{projectName ? <><strong>{projectName}</strong>의 현재 단계와 전체 계약업무 흐름을 함께 확인할 수 있습니다.</> : "학교 공사계약의 전체 업무흐름을 확인하고 지식자료에 질문할 수 있습니다."}</p></div><span className="assistant-guard">등록 지식만 답변</span></header>
-
-    <section className="workflow-guide-card">
-      <div className="assistant-section-title"><div><span>01</span><div><strong>전체 업무흐름도</strong><small>서울특별시교육청 계약길잡이 기준</small></div></div><em>현재 구간 표시</em></div>
-      <ol className="workflow-guide-list">{FLOW.map((phase) => <li className={phase.id === activeFlow ? "active" : phase.id < activeFlow ? "passed" : ""} key={phase.id}>
-        <div className="workflow-phase-number">{phase.id < activeFlow ? "✓" : String(phase.id).padStart(2, "0")}</div>
-        <div><div className="workflow-phase-heading"><strong>{phase.title}</strong><span>{phase.owner}</span></div><ul>{phase.items.map((item) => <li key={item}>{item}</li>)}</ul></div>
-      </li>)}</ol>
-      <footer className="workflow-sources"><span>원문</span><a href="https://contract.sen.go.kr/fus/MI000000000000000326/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅰ</a><a href="https://contract.sen.go.kr/fus/MI000000000000000327/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅱ</a><a href="https://contract.sen.go.kr/fus/MI000000000000000328/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅲ</a></footer>
-    </section>
-
     <section className="knowledge-chat-card">
-      <div className="assistant-section-title"><div><span>02</span><div><strong>지식자료 챗봇</strong><small>자연어·유사 표현을 이해해 등록자료 안에서만 검색합니다.</small></div></div><em>근거 없으면 답변 제한</em></div>
-      <div className="chat-policy"><strong>할루시네이션 방지</strong><span>지식관리에 검색 가능한 상태로 등록된 파일의 직접 근거와 파일 인용이 모두 있을 때만 답변합니다.</span></div>
+      <div className="assistant-section-title"><div><span>01</span><div><strong>지식자료 챗봇</strong><small>자연어·유사 표현으로 등록된 자료를 검색합니다.</small></div></div></div>
       <div className="chat-suggestions">{["착공 단계에서 받아야 할 서류는?", "하자담보기간 기준을 알려줘", "공사 계약방법은 어떻게 정해?"].map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}</div>
       <form className="assistant-question" onSubmit={ask}><label htmlFor="assistant-question">질문</label><textarea id="assistant-question" rows={3} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="예: 소규모 공사 착공계는 생략할 수 있어?" /><button disabled={busy || !question.trim()}>{busy ? "등록자료 검색 중…" : "지식자료에서 답변 찾기"}</button><small className="assistant-enter-hint">Enter 전송 · Shift+Enter 줄바꿈</small></form>
       {error && <div className="document-message error" role="alert">{error}</div>}
       <div className={`assistant-answer ${answer ? "visible" : ""}`}><span>AI 답변{durationMs !== null ? ` · ${(durationMs / 1000).toFixed(1)}초` : ""}</span><p>{answer || "질문하면 답변과 근거 파일이 여기에 표시됩니다."}</p>{sources.length > 0 && <div className="assistant-source-list"><strong>답변 근거</strong>{sources.map((source) => <span key={source.documentId}>{source.documentName}<small>{source.filename}</small></span>)}</div>}</div>
+    </section>
+
+    <section className="workflow-guide-card">
+      <div className="assistant-section-title"><div><span>02</span><div><strong>전체 업무흐름도</strong><small>서울특별시교육청 계약길잡이 기준</small></div></div></div>
+      <ol className="workflow-guide-list">{FLOW.map((phase) => <li className={`flow-tone-${phase.id}`} key={phase.id}>
+        <div className="workflow-phase-number">{String(phase.id).padStart(2, "0")}</div>
+        <div><div className="workflow-phase-heading"><strong>{phase.title}</strong><span>{phase.owner}</span></div><ul>{phase.items.map((item) => <li key={item}>{item}</li>)}</ul></div>
+      </li>)}</ol>
+      <footer className="workflow-sources"><span>원문</span><a href="https://contract.sen.go.kr/fus/MI000000000000000326/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅰ</a><a href="https://contract.sen.go.kr/fus/MI000000000000000327/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅱ</a><a href="https://contract.sen.go.kr/fus/MI000000000000000328/html/cont0010v.do" target="_blank" rel="noreferrer">계약흐름도Ⅲ</a></footer>
     </section>
   </section>;
 }

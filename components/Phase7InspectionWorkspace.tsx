@@ -95,7 +95,7 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
 
   return <>
     <AppDialog open={pendingAction !== null} title={`${pendingAction ? ACTION_LABELS[pendingAction] : "업무"} 처리를 완료하셨나요?`} confirmLabel="완료 확인" busy={!!busy} onCancel={() => setPendingAction(null)} onConfirm={() => pendingAction && void act(pendingAction)}><p>완료일이 오늘 날짜로 저장됩니다.</p></AppDialog>
-    <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 검사검수·대금지급</span><h2>공사완료 처리</h2><p>각 업무를 실제 처리한 순서대로 완료해 주세요.</p></div><span className="human-check-badge">담당자 완료확인</span></section>
+    <section className="phase7-head"><div><span className="section-kicker">검사검수·대금지급</span><h2>공사완료 처리</h2><p>각 업무를 실제 처리한 순서대로 완료해 주세요.</p></div><span className="human-check-badge">담당자 완료확인</span></section>
     {error && <div className="document-message error" role="alert">{error}</div>}
     <section className="inspection-flow">
       <article className={savedInspectionDate ? "done" : "current"}><span>01</span><div><h3>에듀파인 검사·검수</h3><p>{savedInspectionDate ? `${savedInspectionDate} 완료` : "에듀파인에서 검사·검수를 처리한 후 완료해 주세요."}</p></div>{button("complete-inspection", savedStage === "INSPECTION", Boolean(savedInspectionDate))}</article>

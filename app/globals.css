@@ -1139,12 +1139,16 @@ a { color: inherit; text-decoration: none; }
 .assistant-section-title > div { display:flex; align-items:center; gap:12px; }.assistant-section-title > div > span { display:grid; place-items:center; width:36px; height:36px; border-radius:11px; background:#173f56; color:#fff; font-weight:900; }
 .assistant-section-title strong,.assistant-section-title small { display:block; }.assistant-section-title strong { color:#183d2f; font-size:18px; }.assistant-section-title small { margin-top:3px; color:#748179; }
 .assistant-section-title em { padding:6px 9px; border-radius:8px; background:#f0f5f3; color:#627269; font-size:12px; font-style:normal; font-weight:800; }
-.workflow-guide-list { list-style:none; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; padding:0; }
-.workflow-guide-list > li { min-width:0; padding:16px; border:1px solid #e0e8e4; border-radius:14px; background:#fafcfb; }
-.workflow-guide-list > li.active { border-color:#65b697; background:#eef9f4; box-shadow:inset 0 0 0 1px #9dd5bf; }.workflow-guide-list > li.passed { background:#f5f9f7; }
-.workflow-phase-number { display:grid; place-items:center; width:34px; height:34px; margin-bottom:12px; border-radius:50%; background:#e5eeea; color:#4b675a; font-size:12px; font-weight:900; }.workflow-guide-list > li.active .workflow-phase-number { background:#1e7555; color:#fff; }.workflow-guide-list > li.passed .workflow-phase-number { background:#bde1d1; color:#176044; }
+.workflow-guide-list { list-style:none; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:28px; margin:4px 0 0; padding:18px 0 4px; }
+.workflow-guide-list > li { --flow-accent:#3e8b72; --flow-soft:#edf8f4; position:relative; min-width:0; padding:20px 18px 18px; border:1px solid color-mix(in srgb,var(--flow-accent) 25%,#fff); border-radius:18px; background:linear-gradient(155deg,var(--flow-soft),#fff 72%); box-shadow:0 10px 24px rgba(37,65,54,.07); }
+.workflow-guide-list > li:not(:last-child)::after { content:"→"; position:absolute; top:34px; right:-23px; z-index:2; color:#9aaca4; font-size:20px; font-weight:900; }
+.workflow-guide-list > li.flow-tone-1 { --flow-accent:#4d8fb8; --flow-soft:#edf6fc; }
+.workflow-guide-list > li.flow-tone-2 { --flow-accent:#7b6bb0; --flow-soft:#f3f0fb; }
+.workflow-guide-list > li.flow-tone-3 { --flow-accent:#cf7b63; --flow-soft:#fff1ed; }
+.workflow-guide-list > li.flow-tone-4 { --flow-accent:#b38b36; --flow-soft:#fff8e8; }
+.workflow-phase-number { display:grid; place-items:center; width:38px; height:38px; margin-bottom:13px; border-radius:12px; background:var(--flow-accent); color:#fff; font-size:12px; font-weight:900; box-shadow:0 6px 14px color-mix(in srgb,var(--flow-accent) 25%,transparent); }
 .workflow-phase-heading { min-height:45px; }.workflow-phase-heading strong,.workflow-phase-heading span { display:block; }.workflow-phase-heading strong { color:#173d2e; }.workflow-phase-heading span { margin-top:3px; color:#77877f; font-size:12px; font-weight:800; }
-.workflow-guide-list ul { display:grid; gap:7px; margin:10px 0 0; padding-left:17px; color:#53675d; font-size:14px; line-height:1.5; }
+.workflow-guide-list ul { display:grid; gap:7px; margin:12px 0 0; padding-left:17px; color:#53675d; font-size:14px; line-height:1.5; }
 .workflow-sources { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid #e6ece9; }.workflow-sources span { color:#6c7c74; font-size:12px; font-weight:900; }.workflow-sources a { padding:6px 9px; border-radius:8px; background:#edf4f1; color:#265f49; font-size:12px; font-weight:850; }
 .chat-policy { display:flex; align-items:flex-start; gap:12px; padding:13px 15px; border-left:4px solid #26936d; border-radius:10px; background:#edf8f3; color:#4d665b; }.chat-policy strong { flex:none; color:#176246; }.chat-policy span { line-height:1.5; }
 .chat-suggestions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }.chat-suggestions button { padding:8px 11px; border:1px solid #d3e1da; border-radius:999px; background:#fff; color:#3f6253; font-weight:750; cursor:pointer; }
@@ -1232,6 +1236,7 @@ a { color: inherit; text-decoration: none; }
   .utility-calculator-head { flex-direction:column; }
   .assistant-head,.assistant-section-title { align-items:flex-start; flex-direction:column; }
   .workflow-guide-list { grid-template-columns:1fr; }
+  .workflow-guide-list > li:not(:last-child)::after { content:"↓"; top:auto; right:50%; bottom:-25px; transform:translateX(50%); }
   .assistant-question { grid-template-columns:1fr; }.assistant-question button { min-height:48px; }
   .assistant-source-list > span { display:grid; gap:2px; }
   .floating-knowledge-chat { right:14px; bottom:14px; }

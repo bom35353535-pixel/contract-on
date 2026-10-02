@@ -10,7 +10,7 @@ export function CommitmentWorkspace({ contractId, currentStage }: { contractId: 
 
   return <>
     <section className="phase6-workspace-head">
-      <div><span className="section-kicker">Phase 6 · 원인행위 관리</span><h2>원인행위</h2><p>계약 체결 후 에듀파인 원인행위 처리를 담당자가 확인하고 착공 단계로 이동합니다.</p></div>
+      <div><span className="section-kicker">원인행위 관리</span><h2>원인행위</h2><p>계약 체결 후 에듀파인 원인행위 처리를 담당자가 확인하고 착공 단계로 이동합니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
 

@@ -37,7 +37,7 @@ const mainFields = [
 const moneyFields = [
   ["totalAmount", "총액", true], ["supplyAmount", "공급가액", false], ["vatAmount", "부가가치세", false],
   ["materialCost", "재료비", false], ["directLaborCost", "직접노무비", false], ["indirectLaborCost", "간접노무비", false],
-  ["expenses", "경비", false], ["statutoryExpenses", "법정경비", false], ["overhead", "일반관리비", false],
+  ["expenses", "경비", false], ["overhead", "일반관리비", false],
   ["profit", "이윤", false], ["safetyHealthCost", "산업안전보건관리비", false],
 ] as const;
 
@@ -73,8 +73,13 @@ function parseMoney(value: string) {
 }
 
 export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText, auditCases, auditSourceStatus }: Props) {
+  const extractedSafetyHealthCost = initial.items.find((item) => {
+    const text = `${item.category || ""} ${item.trade || ""} ${item.itemName || ""} ${item.sourceText || ""}`;
+    return text.includes("산업안전보건관리비") || text.includes("안전관리비");
+  })?.amount;
   const [data, setData] = useState(() => ({
     ...initial,
+    safetyHealthCost: initial.safetyHealthCost ?? extractedSafetyHealthCost ?? null,
     constructionType: constructionTypeFromProjectName(initial.projectName),
     purpose: initial.purpose || purposeFromProjectName(initial.projectName),
   }));

@@ -20,7 +20,8 @@ test("AI 업무비서 provides the official workflow and registered-knowledge-on
   assert.match(component, /사업 진행·완료/);
   assert.match(component, /대금 지급/);
   assert.match(component, /\/api\/knowledge\/query/);
-  assert.match(component, /등록 지식만 답변/);
+  assert.doesNotMatch(component, /등록 지식만 답변|근거 없으면 답변 제한|할루시네이션 방지|현재 구간 표시/);
+  assert.ok(component.indexOf("지식자료 챗봇") < component.indexOf("전체 업무흐름도"));
   assert.match(component, /MI000000000000000326/);
   assert.match(component, /MI000000000000000327/);
   assert.match(component, /MI000000000000000328/);

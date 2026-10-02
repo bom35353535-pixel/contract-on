@@ -159,7 +159,7 @@ export function AdministrativeDocumentsWorkspace({ contractId, currentStage, pla
       </section>
     </div>}
     <section className="administrative-workspace-head">
-      <div><span className="section-kicker">Phase 5 · 계획서/품의/내부기안</span><h2>계약정보를 다시 입력하지 않고 행정문안을 만듭니다.</h2><p>등록된 계획서 양식과 계약정보를 활용해 문안을 수정하고 복사할 수 있습니다.</p></div>
+      <div><span className="section-kicker">계획서·품의·내부기안</span><h2>계약정보를 다시 입력하지 않고 행정문안을 만듭니다.</h2><p>등록된 계획서 양식과 계약정보를 활용해 문안을 수정하고 복사할 수 있습니다.</p></div>
       <span className="human-check-badge">담당자 최종확정</span>
     </section>
     {message && <div className="document-message success" role="status">{message}</div>}

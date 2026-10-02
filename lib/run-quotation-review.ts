@@ -8,6 +8,23 @@ import { applyEvidenceCandidates, buildArithmeticReview, buildEvidenceTargets, d
 
 type Quotation = { analysis: QuotationAnalysisRecord; items: QuotationItemRecord[] };
 
+async function readKnowledgeText(document: {
+  originalName: string;
+  storageKey: string;
+  sizeBytes: number;
+}) {
+  if (!/\.(?:md|txt|csv)$/i.test(document.originalName) || document.sizeBytes > 3 * 1024 * 1024) return null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const stored = await env.FILES.get(document.storageKey);
+      if (stored) return await stored.text();
+    } catch (error) {
+      if (attempt === 1) console.error(`Knowledge source read failed: ${document.originalName}`, error);
+    }
+  }
+  return null;
+}
+
 export async function performQuotationReview(quotation: Quotation, contractId: string | null) {
   const db = getDb();
   const analysis = quotation.analysis.expenses === null
@@ -35,11 +52,11 @@ export async function performQuotationReview(quotation: Quotation, contractId: s
   let warning: string | null = null;
   let rawCandidates: unknown[] = [];
   try {
+    // 한 파일의 일시적인 R2 읽기 실패가 다른 모든 지식자료까지 무효화하지 않도록
+    // 문서별로 독립 처리하고 한 번 재시도한다.
     const textDocuments = (await Promise.all(searchableDocuments.map(async (document) => {
-      if (!/\.(?:md|txt|csv)$/i.test(document.originalName) || document.sizeBytes > 3 * 1024 * 1024) return null;
-      const stored = await env.FILES.get(document.storageKey);
-      if (!stored) return null;
-      return { ...document, text: await stored.text() };
+      const text = await readKnowledgeText(document);
+      return text === null ? null : { ...document, text };
     }))).filter((document): document is NonNullable<typeof document> => Boolean(document));
     const reviewContext = {
         constructionType: quotation.analysis.constructionType,

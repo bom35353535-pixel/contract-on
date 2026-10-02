@@ -178,6 +178,25 @@ test("Phase 4 review uses local text first and only searches the index for missi
   assert.match(source, /findQuotationReviewCriteria\(missingLaborTargets/);
 });
 
+test("Phase 4 keeps readable knowledge sources when another stored file cannot be read", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../lib/run-quotation-review.ts", import.meta.url), "utf8"));
+  assert.match(source, /async function readKnowledgeText/);
+  assert.match(source, /for \(let attempt = 0; attempt < 2/);
+  assert.match(source, /const text = await readKnowledgeText\(document\)/);
+});
+
+test("contract quotation review uses the same local registered-source pipeline", async () => {
+  const route = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../app/api/contracts/[id]/quotation-review/route.ts", import.meta.url), "utf8"));
+  assert.match(route, /performQuotationReview\(quotation, contractId\)/);
+  assert.doesNotMatch(route, /findQuotationReviewCriteria/);
+});
+
+test("quotation summary derives a zero safety cost from the extracted row and hides duplicate statutory total", async () => {
+  const component = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8"));
+  assert.match(component, /safetyHealthCost: initial\.safetyHealthCost \?\? extractedSafetyHealthCost \?\? null/);
+  assert.doesNotMatch(component.match(/const moneyFields = \[[\s\S]*?\] as const;/)?.[0] || "", /법정경비/);
+});
+
 test("Phase 4 labor review compares only the occupation unit price", async () => {
   const { buildEvidenceTargets } = await import(moduleUrl.href);
   const targets = buildEvidenceTargets(amounts, [{ id: 9, category: "철거 작업", trade: "노무비", itemName: "보통인부", specification: "현장 정리", unit: "인", quantity: 2, unitPrice: 172_068, amount: 344_136 }]);

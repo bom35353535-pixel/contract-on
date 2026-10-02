@@ -29,6 +29,11 @@ test("Phase 7 completion documents reuse evidence-limited document review", asyn
   assert.match(workspace, /준공서류 확인완료/);
 });
 
+test("completed completion documents hide the obsolete completion-day reminder", async () => {
+  const workspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(workspace, /!\(isCompletion && isPastStage\)/);
+});
+
 test("Phase 7 construction checklist combines common and inferred trade checks without another menu", async () => {
   const { getApplicableFieldChecklist } = await import(new URL("../lib/construction-field-checklist.ts", import.meta.url).href);
   const bathroom = getApplicableFieldChecklist("건축공사", "화장실 환경개선공사");

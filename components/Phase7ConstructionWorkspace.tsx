@@ -155,7 +155,7 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
 
   return <div className="phase7-print-scope">
     <AppDialog open={completionConfirmOpen} title="준공계를 접수하고 공사중 확인을 마쳤나요?" confirmLabel="준공 단계로 이동" busy={busy === "complete"} onCancel={() => setCompletionConfirmOpen(false)} onConfirm={() => void completeConstruction()}><p>{items.some((item) => item.status === "PENDING") ? `미선택 항목 ${items.filter((item) => item.status === "PENDING").length}건이 있습니다. ` : ""}확인하면 준공 단계로 이동합니다.</p></AppDialog>
-    <section className="phase7-head"><div><span className="section-kicker">Phase 7 · 공사중 관리</span><h2>공사중 확인사항</h2><p>학교 현장에서 계약내용, 자재, 기록과 안전 상태를 빠르게 확인합니다.</p></div><span className="human-check-badge">담당자 상태확인</span></section>
+    <section className="phase7-head"><div><span className="section-kicker">공사중 관리</span><h2>공사중 확인사항</h2><p>학교 현장에서 계약내용, 자재, 기록과 안전 상태를 빠르게 확인합니다.</p></div><span className="human-check-badge">담당자 상태확인</span></section>
     <section className={`completion-day-card ${isCompletionDay ? "today" : ""}`}><div><span>준공 일정</span><strong>{ddayLabel}</strong></div><p>{isCompletionDay ? "오늘은 계약상 준공일입니다. 준공계 송부 여부를 확인해 주세요." : "준공예정일과 준공계 접수 일정을 확인해 주세요."}</p></section>
     {message && <div className="document-message success" role="status">{message}</div>}
     {error && <div className="document-message error" role="alert">{error}</div>}
