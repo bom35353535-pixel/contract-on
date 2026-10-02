@@ -193,7 +193,8 @@ test("contract quotation review uses the same local registered-source pipeline",
 
 test("quotation summary derives a zero safety cost from the extracted row and hides duplicate statutory total", async () => {
   const component = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("../components/QuotationReview.tsx", import.meta.url), "utf8"));
-  assert.match(component, /safetyHealthCost: initial\.safetyHealthCost \?\? extractedSafetyHealthCost \?\? null/);
+  assert.match(component, /initial\.totalAmount !== null && initial\.totalAmount < 20_000_000 \? 0 : null/);
+  assert.match(component, /safetyHealthCost: resolvedSafetyHealthCost/);
   assert.doesNotMatch(component.match(/const moneyFields = \[[\s\S]*?\] as const;/)?.[0] || "", /법정경비/);
 });
 

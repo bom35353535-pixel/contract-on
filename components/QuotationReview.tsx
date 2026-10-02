@@ -77,9 +77,12 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
     const text = `${item.category || ""} ${item.trade || ""} ${item.itemName || ""} ${item.sourceText || ""}`;
     return text.includes("산업안전보건관리비") || text.includes("안전관리비");
   })?.amount;
+  const resolvedSafetyHealthCost = initial.safetyHealthCost
+    ?? extractedSafetyHealthCost
+    ?? (initial.totalAmount !== null && initial.totalAmount < 20_000_000 ? 0 : null);
   const [data, setData] = useState(() => ({
     ...initial,
-    safetyHealthCost: initial.safetyHealthCost ?? extractedSafetyHealthCost ?? null,
+    safetyHealthCost: resolvedSafetyHealthCost,
     constructionType: constructionTypeFromProjectName(initial.projectName),
     purpose: initial.purpose || purposeFromProjectName(initial.projectName),
   }));
