@@ -27,8 +27,8 @@ type Props = {
 };
 
 const mainFields = [
-  ["supplierPhoneNumber", "업체 전화번호", false],
   ["projectName", "공사명", true], ["constructionType", "공사종류", true], ["companyName", "업체명", true],
+  ["supplierPhoneNumber", "업체 전화번호", false],
   ["businessRegistrationNumber", "사업자등록번호", false],
   ["location", "공사장소", true], ["purpose", "공사목적", true],
   ["plannedStartDate", "착공예정일", true], ["plannedCompletionDate", "준공예정일", true],
