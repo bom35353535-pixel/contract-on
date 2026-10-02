@@ -29,8 +29,8 @@ test("knowledge management uses its updated browser-native tab", async () => {
   assert.doesNotMatch(shell, />행정 지식</);
 });
 
-test("AI 업무비서 is a global top-level menu next to knowledge management", async () => {
+test("AI 업무비서 is a global top-level menu before knowledge management", async () => {
   const shell = await readFile("components/AppShell.tsx", "utf8");
-  assert.match(shell, /href="\/knowledge"[\s\S]*href="\/assistant"/);
+  assert.match(shell, /href="\/assistant"[\s\S]*href="\/knowledge"/);
   assert.match(shell, />AI 업무비서<\/a>/);
 });
