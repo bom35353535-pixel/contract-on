@@ -1,13 +1,9 @@
 import { getD1 } from "@/db";
 import { ensureDatabase } from "@/db/init";
+import { calculateWarrantyEnd, calculateWarrantyInspectionDates } from "@/lib/warranty-dates";
 
 export type WarrantyCriterion = { id: string; category: string; workName: string; warrantyYears: number; bondRate: number | null; sourceName: string; sourcePage: string; sourceExcerpt: string };
 export type WarrantyInspection = { id: number; sequence: number; scheduledDate: string; status: string; inspectedAt: string | null; note: string | null };
-
-function dateOnly(date: Date) { return date.toISOString().slice(0, 10); }
-function parseDate(value: string) { const [y,m,d] = value.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); }
-export function addMonths(value: string, months: number) { const d = parseDate(value); d.setUTCMonth(d.getUTCMonth() + months); return dateOnly(d); }
-export function calculateWarrantyEnd(value: string, years: number) { const d = parseDate(value); d.setUTCFullYear(d.getUTCFullYear() + years); d.setUTCDate(d.getUTCDate() - 1); return dateOnly(d); }
 
 export async function getWarrantyWorkspace(contractId: string) {
   await ensureDatabase(); const d1 = getD1();
@@ -28,7 +24,7 @@ export async function confirmWarranty(contractId: string, criterionId: string, s
   const criterion = await d1.prepare("SELECT work_name AS workName, warranty_years AS warrantyYears, bond_rate AS bondRate FROM warranty_criteria WHERE id = ?").bind(criterionId).first<{ workName: string; warrantyYears: number; bondRate: number | null }>();
   if (!criterion) throw new Error("하자기간 기준을 선택해 주세요.");
   const endDate = calculateWarrantyEnd(startDate, criterion.warrantyYears); const now = new Date().toISOString();
-  const dates: string[] = []; for (let n = 1; ; n++) { const next = addMonths(startDate, n * 6); if (next > endDate) break; dates.push(next); }
+  const dates = calculateWarrantyInspectionDates(startDate, criterion.warrantyYears);
   await d1.batch([
     d1.prepare("INSERT INTO contract_warranties (contract_id, criterion_id, warranty_years, bond_rate, guarantee_method, warranty_start_date, warranty_end_date, confirmed_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(contract_id) DO UPDATE SET criterion_id=excluded.criterion_id, warranty_years=excluded.warranty_years, bond_rate=excluded.bond_rate, guarantee_method=excluded.guarantee_method, warranty_start_date=excluded.warranty_start_date, warranty_end_date=excluded.warranty_end_date, confirmed_at=excluded.confirmed_at, updated_at=excluded.updated_at").bind(contractId, criterionId, criterion.warrantyYears, criterion.bondRate, guaranteeMethod, startDate, endDate, now, now),
     d1.prepare("DELETE FROM warranty_inspections WHERE contract_id = ?").bind(contractId),

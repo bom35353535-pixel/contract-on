@@ -8,13 +8,20 @@ test("Phase 8 requires user confirmation before scheduling warranty inspections"
   const component = await readFile(new URL("../components/Phase8WarrantyWorkspace.tsx", import.meta.url), "utf8");
   assert.match(source, /contract\.stage !== "FINISHED"/);
   assert.match(source, /calculateWarrantyEnd\(startDate, criterion\.warrantyYears\)/);
-  assert.match(source, /addMonths\(startDate, n \* 6\)/);
+  assert.match(source, /calculateWarrantyInspectionDates\(startDate, criterion\.warrantyYears\)/);
   assert.match(component, /기준으로 확정하시겠습니까/);
   assert.doesNotMatch(component, /window\.confirm/);
   assert.match(component, /자동 확정하지 않습니다/);
   assert.doesNotMatch(component, /<select[^>]*disabled=\{!canConfirm\}/);
   assert.doesNotMatch(component, /type="date"[^>]*disabled=\{!canConfirm\}/);
   assert.match(component, /최종 확정은 검사검수·대금지급을 거쳐 공사완료 처리한 후 가능합니다/);
+});
+
+test("Phase 8 schedules one inspection before every six-month period ends", async () => {
+  const { calculateWarrantyInspectionDates } = await import(new URL("../lib/warranty-dates.ts", import.meta.url).href);
+  assert.deepEqual(calculateWarrantyInspectionDates("2026-09-21", 1), ["2027-03-20", "2027-09-20"]);
+  assert.deepEqual(calculateWarrantyInspectionDates("2026-09-21", 2), ["2027-03-20", "2027-09-20", "2028-03-20", "2028-09-20"]);
+  assert.deepEqual(calculateWarrantyInspectionDates("2026-09-21", 3), ["2027-03-20", "2027-09-20", "2028-03-20", "2028-09-20", "2029-03-20", "2029-09-20"]);
 });
 
 test("Phase 8 stores source-backed warranty criteria and D-Day schedules", async () => {
