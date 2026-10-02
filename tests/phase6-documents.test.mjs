@@ -185,7 +185,7 @@ test("document upload keeps the two masking actions and shows masking progress a
   assert.match(workspace, /직접 드래그 마스킹\(PDF\)/);
   assert.match(workspace, /privacy-mask-progress/);
   assert.match(workspace, /마스킹 결과 확인하기/);
-  assert.match(css, /\.phase6-file-picker \{[^}]*display: inline-flex[^}]*width: auto[^}]*padding: 10px 14px[^}]*border-radius: 9px/s);
+  assert.match(css, /\.phase6-file-picker \{[^}]*display: flex[^}]*width: 100%[^}]*padding: 10px 14px[^}]*border-radius: 9px/s);
   assert.match(css, /\.phase6-file-picker span \{[^}]*font-size: 13px/s);
   assert.match(css, /\.phase6-analyze-button \{[^}]*width: 100%[^}]*padding: 11px 14px[^}]*border-radius: 9px/s);
   assert.doesNotMatch(workspace, /contract-privacy-panel|mask-progress-message|private-document-notice/);

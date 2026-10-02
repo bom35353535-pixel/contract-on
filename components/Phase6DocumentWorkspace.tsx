@@ -181,7 +181,7 @@ export function Phase6DocumentWorkspace({ contractId, currentStage, documentStag
       if (result.nextStage === "COMMITMENT") {
         window.location.assign(`/contracts/${contractId}?tab=g2b`);
       } else if (result.nextStage === "IN_CONSTRUCTION") {
-        window.location.assign(`/contracts/${contractId}?tab=construction`);
+        window.location.assign(`/contracts/${contractId}?tab=construction-progress`);
       } else if (result.nextStage === "INSPECTION") {
         window.location.assign(`/contracts/${contractId}?tab=inspection`);
       } else {

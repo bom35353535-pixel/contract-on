@@ -705,7 +705,7 @@ a { color: inherit; text-decoration: none; }
 .phase6-card-heading > div { display: flex; align-items: center; gap: 11px; }
 .phase6-card-heading h3 { margin: 4px 0 0; font-size: 16px; }
 .review-time { color: #829099; font-size: 8px; font-weight: 800; }
-.phase6-file-picker { display: inline-flex; width: auto; min-height: 41px; align-items: center; justify-content: center; gap: 11px; margin-top: 17px; padding: 10px 14px; border: 1px solid var(--navy); border-radius: 9px; background: var(--navy); color: white; cursor: pointer; }
+.phase6-file-picker { display: flex; width: 100%; min-height: 41px; align-items: center; justify-content: center; gap: 11px; margin-top: 17px; padding: 10px 14px; border: 1px solid var(--navy); border-radius: 9px; background: var(--navy); color: white; cursor: pointer; }
 .phase6-file-picker:hover { background: #243d55; }
 .phase6-file-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .phase6-file-picker span { color: white; font-size: 13px; font-weight: 850; }

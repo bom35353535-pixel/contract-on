@@ -121,9 +121,9 @@ export function Phase7ConstructionWorkspace({ contractId, currentStage, projectN
       const response = await fetch(`/api/contracts/${contractId}/phase7-actions`, {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "complete-construction" }),
       });
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; nextStage?: string };
       if (!response.ok) throw new Error(result.error || "준공 단계로 변경하지 못했습니다.");
-      router.refresh();
+      window.location.assign(`/contracts/${contractId}?tab=completion-documents`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "준공 단계로 변경하지 못했습니다.");
     } finally { setBusy(""); }

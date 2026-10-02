@@ -11,6 +11,14 @@ test("Phase 7 exposes construction, completion documents, and inspection workspa
   assert.match(detail, /Phase7InspectionWorkspace/);
 });
 
+test("completed work stages navigate directly to the next workspace", async () => {
+  const documentWorkspace = await readFile(new URL("../components/Phase6DocumentWorkspace.tsx", import.meta.url), "utf8");
+  const constructionWorkspace = await readFile(new URL("../components/Phase7ConstructionWorkspace.tsx", import.meta.url), "utf8");
+  assert.match(documentWorkspace, /nextStage === "IN_CONSTRUCTION"[\s\S]*?tab=construction-progress/);
+  assert.doesNotMatch(documentWorkspace, /tab=construction`/);
+  assert.match(constructionWorkspace, /window\.location\.assign\(`\/contracts\/\$\{contractId\}\?tab=completion-documents`\)/);
+});
+
 test("Phase 7 completion documents reuse evidence-limited document review", async () => {
   const types = await readFile(new URL("../lib/contract-document-review.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/contracts/[id]/phase6-documents/route.ts", import.meta.url), "utf8");
