@@ -26,6 +26,8 @@ export const SUBMITTED_DOCUMENT_RULES: DocumentNameRule[] = [
   { canonicalName: "고용보험 가입증명서", stages: ["PRE_CONSTRUCTION"], aliases: ["고용보험가입증명서", "고용보험가입증명원", "고용보험성립신고", "고용보험"] },
   { canonicalName: "준공계", stages: ["COMPLETION"], aliases: ["준공계", "준공신고서"] },
   { canonicalName: "준공검사원", stages: ["COMPLETION"], aliases: ["준공검사원", "준공검사신청서", "검사원"] },
+  { canonicalName: "준공검사조서", stages: ["COMPLETION"], aliases: ["준공검사조서"] },
+  { canonicalName: "준공정산동의서", stages: ["COMPLETION"], aliases: ["준공정산동의서", "준공정산 동의서", "정산동의서"] },
   { canonicalName: "준공사진대지", stages: ["COMPLETION"], aliases: ["준공사진대지", "준공사진", "공사사진대지", "공사사진"] },
   { canonicalName: "하자보수보증서", stages: ["COMPLETION"], aliases: ["하자보수보증서", "하자보증서", "하자보수보증보험", "하자보증"] },
   { canonicalName: "세금계산서", stages: ["COMPLETION"], aliases: ["세금계산서", "전자세금계산서"] },

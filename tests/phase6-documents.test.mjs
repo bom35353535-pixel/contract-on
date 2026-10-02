@@ -70,6 +70,32 @@ test("one combined contract file can satisfy several submitted document types", 
   assert.deepEqual(documentReviewCounts(items), { submittedCount: 3, missingCount: 0, checkCount: 0 });
 });
 
+test("combined completion files satisfy completion report aliases and distinct settlement documents", async () => {
+  const { buildDocumentChecklist, documentReviewCounts } = await import(moduleUrl.href);
+  const criteria = ["준공계", "준공검사조서", "준공정산동의서"].map((requiredName) => ({
+    requiredName, aliases: requiredName === "준공계" ? ["준공신고서"] : [], evidenceDocumentId: "K1",
+    evidenceDocumentName: "계약구비서류_공사", evidenceYear: 2026, evidenceLocation: "준공 단계", evidenceExcerpt: `${requiredName} 제출`,
+  }));
+  const files = [{
+    id: "COMPLETION-BUNDLE", originalName: "준공서류일괄.pdf",
+    detectedTypes: ["준공신고서", "준공검사조서", "준공정산동의서"], detectionStatus: "EXACT", summary: null,
+  }];
+  const items = buildDocumentChecklist(criteria, files);
+  assert.deepEqual(items.map((item) => item.status), ["SUBMITTED", "SUBMITTED", "SUBMITTED"]);
+  assert.deepEqual(documentReviewCounts(items), { submittedCount: 3, missingCount: 0, checkCount: 0 });
+});
+
+test("completion classifier offers the registered report and settlement document types", async () => {
+  const classifier = await import(new URL("../lib/submitted-document-classifier.ts", import.meta.url).href);
+  const contentClassifier = await readFile(new URL("../lib/submitted-document-content-classifier.ts", import.meta.url), "utf8");
+  const options = classifier.submittedDocumentTypeOptions("COMPLETION");
+  assert.ok(options.includes("준공계"));
+  assert.ok(options.includes("준공검사조서"));
+  assert.ok(options.includes("준공정산동의서"));
+  assert.equal(classifier.classifySubmittedDocumentName("준공신고서.pdf", "COMPLETION").detectedType, "준공계");
+  assert.match(contentClassifier, /준공신고서는 준공계로 분류하세요/);
+});
+
 test("Phase 6 accepts only requirements verified against ready registered files", async () => {
   const { verifyRequiredDocumentCriteria } = await import(moduleUrl.href);
   const candidates = [{ requiredName: "착공계", aliases: ["착공신고서"], sourceFileId: "file-ready", sourceFilename: "기준.pdf", sourceLocation: "12쪽", sourceExcerpt: "착공계", matchStatus: "EXACT" }];

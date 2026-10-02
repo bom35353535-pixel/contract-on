@@ -55,6 +55,12 @@ export function decodeDetectedTypes(value: string | null | undefined) {
 }
 
 function stageInstruction(stage: DocumentStage) {
+  if (stage === "COMPLETION") return [
+    "각 문서의 표제와 본문에 직접 적힌 문서 종류만 분류하세요.",
+    "준공신고서는 준공계로 분류하세요.",
+    "준공검사원과 준공검사조서는 서로 다른 서류이므로 표제에 적힌 종류를 각각 분류하세요.",
+    "준공정산동의서 또는 정산동의서는 준공정산동의서로 분류하세요.",
+  ].join(" ");
   if (stage !== "PRE_CONSTRUCTION") return "각 문서의 표제와 본문에 직접 적힌 문서 종류만 분류하세요.";
   return [
     "예정공정표와 공정예정표는 공사공정예정표로 분류하세요.",

@@ -31,6 +31,7 @@ function tableCells(line: string) {
 
 function aliasesFor(name: string) {
   if (/착공신고서|착공계/.test(name)) return ["착공신고서", "착공계"];
+  if (/준공신고서|준공계/.test(name)) return ["준공신고서", "준공계"];
   if (/현장기술자|현장대리인/.test(name)) return ["현장기술자 지정신고서", "현장대리인계", "현장대리인 선임계", "재직증명서", "자격증 사본"];
   if (/공사공정예정표|공정예정표|예정공정표/.test(name)) return ["공사공정예정표", "공정예정표", "예정공정표"];
   if (/전기.*수도료/.test(name)) return ["전기, 수도료 납부 합의서", "전기·수도료 납부 합의서", "미사용 각서"];
@@ -41,6 +42,7 @@ function aliasesFor(name: string) {
 
 function canonicalName(name: string) {
   if (/착공신고서|착공계/.test(name)) return "착공계";
+  if (/준공신고서|준공계/.test(name)) return "준공계";
   if (/현장기술자|현장대리인/.test(name)) return "현장기술자 지정신고서";
   if (/공사공정예정표|공정예정표|예정공정표/.test(name)) return "공사공정예정표";
   if (/안전.*보건.*체크리스트/.test(name)) return "공사(용역) 안전·보건 체크리스트";
