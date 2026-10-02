@@ -25,7 +25,8 @@ test("internal navigation avoids the broken next/link runtime", async () => {
 test("knowledge management uses its updated browser-native tab", async () => {
   const shell = await readFile("components/AppShell.tsx", "utf8");
   assert.match(shell, /<a[^>]+href="\/knowledge"/);
-  assert.match(shell, />지식관리<span className="phase-chip">검색 가능<\/span><\/a>/);
+  assert.match(shell, />지식관리<\/a>/);
+  assert.doesNotMatch(shell, /검색 가능/);
   assert.doesNotMatch(shell, />행정 지식</);
 });
 
