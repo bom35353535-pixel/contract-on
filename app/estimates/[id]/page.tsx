@@ -34,8 +34,6 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     plannedStartDate: record.analysis.plannedStartDate, plannedCompletionDate: record.analysis.plannedCompletionDate,
     items: record.items.map((item) => ({ category: item.category, trade: item.trade, itemName: item.itemName, specification: item.specification, unit: item.unit, quantity: item.quantity, unitPrice: item.unitPrice, amount: item.amount, sourceText: item.sourceText })),
   };
-  const knowledgeReadyCount = knowledgeDocuments.filter((document) => document.status === "READY").length;
-  const knowledgePendingCount = knowledgeDocuments.filter((document) => document.status !== "READY").length;
   const rateReferenceDocument = knowledgeDocuments.find((document) => {
     const name = `${document.documentName} ${document.originalName}`;
     return name.includes("건축공사") && name.includes("간접공사비") && document.originalName.toLowerCase().endsWith(".md");
@@ -56,8 +54,6 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     initial={initial}
     confirmedContractId={record.analysis.contractId}
     review={review}
-    knowledgeReadyCount={knowledgeReadyCount}
-    knowledgePendingCount={knowledgePendingCount}
     rateReferenceDocumentName={rateReferenceDocument?.documentName ?? null}
     rateReferenceText={rateReferenceText}
     auditCases={auditLibrary.cases}

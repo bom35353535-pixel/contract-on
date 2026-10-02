@@ -18,8 +18,6 @@ type Props = {
   initial: QuotationExtraction;
   confirmedContractId: string | null;
   review: Review;
-  knowledgeReadyCount: number;
-  knowledgePendingCount: number;
   rateReferenceDocumentName: string | null;
   rateReferenceText: string | null;
   auditCases: AuditCase[];
@@ -72,7 +70,7 @@ function parseMoney(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
 }
 
-export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, knowledgeReadyCount, knowledgePendingCount, rateReferenceDocumentName, rateReferenceText, auditCases, auditSourceStatus }: Props) {
+export function QuotationReview({ analysisId, originalName, initial, confirmedContractId, review, rateReferenceDocumentName, rateReferenceText, auditCases, auditSourceStatus }: Props) {
   const extractedSafetyHealthCost = initial.items.find((item) => {
     const text = `${item.category || ""} ${item.trade || ""} ${item.itemName || ""} ${item.sourceText || ""}`;
     return text.includes("산업안전보건관리비") || text.includes("안전관리비");
@@ -232,11 +230,6 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
         <strong>자동 교차검증에서 확인이 필요한 항목이 있습니다.</strong>
         <ul>{consistencyIssues.map((issue) => <li key={issue.code}>{issue.message}</li>)}</ul>
       </section>}
-
-      <section className={`knowledge-first-review ${knowledgeReadyCount ? "ready" : "needs"}`}>
-        <div><span className="workflow-step-number">1</span><div><strong>지식자료 먼저 준비</strong><small>{knowledgeReadyCount ? `검색 가능한 자료 ${knowledgeReadyCount}건으로 검토합니다.` : knowledgePendingCount ? `원본 ${knowledgePendingCount}건이 등록되어 있으나 검색 색인이 필요합니다.` : "등록된 검색자료가 없습니다. 견적검토 전에 지식자료를 먼저 올릴 수 있습니다."}</small></div></div>
-        <a href="/knowledge">지식관리에서 먼저 업로드</a>
-      </section>
 
       <div className="review-reference-grid">
         <div className="review-reference-main">

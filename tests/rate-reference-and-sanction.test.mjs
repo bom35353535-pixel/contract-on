@@ -6,9 +6,11 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("estimate review loads the registered building-rate Markdown source from R2", async () => {
   const page = await read("app/estimates/[id]/page.tsx");
+  const review = await read("components/QuotationReview.tsx");
   assert.match(page, /env\.FILES\.get\(rateReferenceDocument\.storageKey\)/);
   assert.match(page, /name\.includes\("건축공사"\).*name\.includes\("간접공사비"\)/s);
   assert.match(page, /rateReferenceText=\{rateReferenceText\}/);
+  assert.doesNotMatch(review, /지식자료 먼저 준비|지식관리에서 먼저 업로드/);
 });
 
 test("current-rate reference displays registered formulas and separates rate conditions", async () => {
