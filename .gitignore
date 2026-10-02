@@ -43,6 +43,7 @@ yarn-error.log*
 /.pnpm-store/
 /tmp/
 /.deploy-stage-*/
+/.sites-build/
 /.npm-cache-law/
 /*.tgz
 /*.tar.gz
