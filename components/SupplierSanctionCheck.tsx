@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isValidBusinessRegistrationNumber, normalizeBusinessRegistrationNumber } from "@/lib/business-registration";
 
 type SanctionItem = {
   corpName: string | null;
@@ -23,7 +24,8 @@ function formattedBizno(value: string) {
 }
 
 export function SupplierSanctionCheck({ companyName, businessRegistrationNumber }: { companyName: string | null; businessRegistrationNumber: string | null }) {
-  const digits = (businessRegistrationNumber || "").replace(/\D/g, "");
+  const digits = normalizeBusinessRegistrationNumber(businessRegistrationNumber);
+  const invalidBusinessNumber = digits.length === 10 && !isValidBusinessRegistrationNumber(digits);
   const [result, setResult] = useState<SanctionResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -34,6 +36,12 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
       setResult(null);
       setBusy(false);
       setError("견적서에서 사업자등록번호 10자리를 확인하지 못했습니다. 위 기본정보의 사업자등록번호를 확인해 주세요.");
+      return;
+    }
+    if (invalidBusinessNumber) {
+      setResult(null);
+      setBusy(false);
+      setError("유효하지 않은 사업자등록번호입니다. 견적서에서 읽은 번호를 확인해 주세요.");
       return;
     }
     const controller = new AbortController();
@@ -52,13 +60,13 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
       })
       .finally(() => { if (!controller.signal.aborted) setBusy(false); });
     return () => controller.abort();
-  }, [digits, attempt]);
+  }, [digits, invalidBusinessNumber, attempt]);
 
-  const badge = busy ? "자동 조회 중" : !result ? "확인 필요" : result.totalCount > 0 ? `유효 제재 ${result.totalCount}건` : "유효 제재 조회 없음";
+  const badge = busy ? "자동 조회 중" : invalidBusinessNumber ? "번호 확인 필요" : !result ? "확인 필요" : result.totalCount > 0 ? `유효 제재 ${result.totalCount}건` : "현재 유효 제재 0건";
   return <section className="sanction-check-card">
     <div className="sanction-check-heading">
       <div><span>견적서 사업자번호 자동 연계</span><h2>부정당제재 상태</h2></div>
-      <strong className={!result ? "idle" : result.totalCount > 0 ? "alert" : "clear"}>{badge}</strong>
+      <strong className={!result || result.totalCount === 0 ? "idle" : "alert"}>{badge}</strong>
     </div>
     <dl className="sanction-auto-target">
       <div><dt>업체명</dt><dd>{companyName || "[확인 필요]"}</dd></div>
@@ -67,8 +75,8 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
     {busy && <div className="sanction-loading"><span /><strong>나라장터 공개정보를 자동 조회하고 있습니다.</strong></div>}
     {error && <div className="sanction-error"><p>{error}</p><button type="button" onClick={() => setAttempt((value) => value + 1)} disabled={busy}>다시 조회</button></div>}
     {result && result.items.length > 0 && <div className="sanction-result-list">{result.items.map((item, index) => <article key={`${item.startDate}-${index}`}><strong>{item.corpName || companyName || "업체명 [확인 필요]"}</strong><dl><div><dt>제재기간</dt><dd>{item.startDate || "[확인 필요]"} ~ {item.endDate || "[확인 필요]"}</dd></div><div><dt>처분기관</dt><dd>{item.institution || "[확인 필요]"}</dd></div><div><dt>진행상태</dt><dd>{item.status || "[확인 필요]"}</dd></div>{item.reason && <div><dt>사유·근거</dt><dd>{item.reason}</dd></div>}</dl></article>)}</div>}
-    {result && result.totalCount === 0 && <div className="sanction-clear-result"><strong>조회시점 현재 유효한 제재가 확인되지 않았습니다.</strong><span>{new Date(result.checkedAt).toLocaleString("ko-KR")} 자동 조회</span></div>}
-    <p className="sanction-coverage">조회시점 현재 유효한 부정당제재만 확인합니다. 0건은 과거 제재 이력이 없다는 뜻이 아니며, 계약 판단 전 공식 조회결과를 함께 확인하세요.</p>
+    {result && result.totalCount === 0 && <div className="sanction-clear-result neutral"><strong>조회 결과는 0건이지만 업체 존재 여부를 확인한 결과는 아닙니다.</strong><span>{new Date(result.checkedAt).toLocaleString("ko-KR")} 자동 조회</span></div>}
+    <p className="sanction-coverage">조회시점 현재 유효한 부정당제재만 확인합니다. 0건은 업체의 실재 여부나 과거 제재 이력이 없다는 뜻이 아니며, 계약 판단 전 사업자 상태와 공식 조회결과를 함께 확인하세요.</p>
     <footer>조회 출처: 조달청 나라장터 부정당제재업체정보</footer>
   </section>;
 }

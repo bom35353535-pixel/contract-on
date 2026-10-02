@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { isValidBusinessRegistrationNumber } from "@/lib/business-registration";
 
 export const runtime = "edge";
 
@@ -50,6 +51,7 @@ function errorResponse(error: string, status = 503) {
 export async function GET(request: Request) {
   const bizno = new URL(request.url).searchParams.get("bizno")?.replace(/\D/g, "") || "";
   if (!/^\d{10}$/.test(bizno)) return errorResponse("사업자등록번호 숫자 10자리를 확인해 주세요.", 400);
+  if (!isValidBusinessRegistrationNumber(bizno)) return errorResponse("유효하지 않은 사업자등록번호입니다. 견적서에서 읽은 번호를 확인해 주세요.", 400);
 
   const key = serviceKey();
   if (!key) return errorResponse("공공데이터포털 API 인증키가 설정되지 않았습니다. 관리자에게 문의해 주세요.");

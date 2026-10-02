@@ -59,6 +59,7 @@ test("quotation extraction keeps statutory cost summary rows separate", async ()
 test("supplier sanction lookup validates an exact business number and explains current-only coverage", async () => {
   const route = await read("app/api/g2b/sanctions/route.ts");
   const component = await read("components/SupplierSanctionCheck.tsx");
+  const validator = await read("lib/business-registration.ts");
   assert.match(route, /\^\\d\{10\}\$/);
   assert.match(route, /apis\.data\.go\.kr\/1230000\/ao\/UsrInfoService02\/getUnptRsttCorpInfo02/);
   assert.match(route, /env\.DATA_GO_KR_API_KEY/);
@@ -66,7 +67,11 @@ test("supplier sanction lookup validates an exact business number and explains c
   assert.match(route, /url\.searchParams\.set\("inqryDiv", "1"\)/);
   assert.match(route, /rstrtSttDt/);
   assert.doesNotMatch(route, /k-skill-proxy\.nomadamas\.org/);
-  assert.match(component, /0건은 과거 제재 이력이 없다는 뜻이 아니며/);
+  assert.match(validator, /weights = \[1, 3, 7, 1, 3, 7, 1, 3, 5\]/);
+  assert.match(route, /isValidBusinessRegistrationNumber\(bizno\)/);
+  assert.match(component, /유효하지 않은 사업자등록번호입니다/);
+  assert.match(component, /0건은 업체의 실재 여부나 과거 제재 이력이 없다는 뜻이 아니며/);
+  assert.match(component, /업체 존재 여부를 확인한 결과는 아닙니다/);
   assert.match(component, /조달청 나라장터 부정당제재업체정보/);
   assert.match(component, /businessRegistrationNumber/);
   assert.match(component, /useEffect/);
