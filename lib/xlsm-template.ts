@@ -69,7 +69,7 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
   let targetXml = strFromU8(files[targetPath]);
   const targetValues: Record<string, CellValue> = kind === "construction" ? {
     L2: contract.contractDate ? `${String(contract.contractDate).slice(0, 4)}년-` : null,
-    M2: String(contract.id), B3: String(contract.projectName), I3: String(contract.companyName), M3: null,
+    M2: String(contract.id), B3: String(contract.projectName), I3: String(contract.companyName), M3: "행정실장\n000",
     B4: amount, G4: contract.contractMethod ? String(contract.contractMethod) : null, I4: null, B6: amount,
     I6: excelSerial(contract.contractDate as string | null), I8: null, I9: null, I10: null, I11: null, I12: null, H14: null,
     C15: contractGuaranteeAmount === null ? "[확인 필요]" : contractGuaranteeAmount, E15: "[확인 필요]", D18: excelSerial(contract.plannedStartDate as string | null), E18: excelSerial(contract.actualStartDate as string | null),
