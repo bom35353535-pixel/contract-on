@@ -21,4 +21,7 @@ test("navigator uses the complete supplied site data and working discovery contr
   assert.match(component, /즐겨찾기/);
   assert.match(component, /최근 사용한 사이트/);
   assert.match(component, /navigator-data\/sites\.json/);
+  assert.match(component, /sen-map-lines/);
+  assert.match(component, /x2=\{category\.x\}/);
+  assert.match(component, /left: `\$\{category\.x\}%`/);
 });

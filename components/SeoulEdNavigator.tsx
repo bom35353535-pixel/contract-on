@@ -26,7 +26,7 @@ type Site = {
   note: string;
 };
 
-type Category = { id: string; label: string; description: string };
+type Category = { id: string; label: string; description: string; icon?: string; x: number; y: number };
 type Assignment = { task: string; siteName: string; reason: string; keywords: string[] };
 type PageMode = "home" | "map" | "all" | "favorites";
 
@@ -158,7 +158,11 @@ export function SeoulEdNavigator() {
 
       {(mode === "map" || mode === "home") && <section className="sen-map-section">
         <div className="sen-section-head"><div><h2>나의 업무지도</h2><p>업무 분야를 선택하면 관련 사이트만 모아볼 수 있습니다.</p></div><button type="button" onClick={() => { setSelectedGroup(""); setSubmittedQuery(""); }}>전체 보기</button></div>
-        <div className="sen-work-map"><div className="sen-map-center">내 업무</div>{categories.map((category) => <button key={category.id} type="button" className={selectedGroup === category.id || matchedGroups.some((group) => group.id === category.id) && submittedQuery ? "active" : ""} onClick={() => { setSelectedGroup(category.id); setMode("map"); }}><strong>{category.label}</strong><span>{category.description}</span></button>)}</div>
+        <div className="sen-work-map">
+          <svg className="sen-map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{categories.map((category) => <line key={category.id} x1="50" y1="50" x2={category.x} y2={category.y} />)}</svg>
+          <div className="sen-map-center"><strong>내 업무</strong><span>업무를 선택하세요</span></div>
+          {categories.map((category, index) => <button key={category.id} type="button" style={{ left: `${category.x}%`, top: `${category.y}%` }} className={`sen-map-node node-${index % 8} ${selectedGroup === category.id || matchedGroups.some((group) => group.id === category.id) && submittedQuery ? "active" : ""}`} onClick={() => { setSelectedGroup(category.id); setMode("map"); }}><span className="sen-map-icon" aria-hidden="true">{category.label.slice(0, 1)}</span><span className="sen-map-copy"><strong>{category.label}</strong><small>사이트 {sites.filter((site) => site.group === category.id).length}개</small></span></button>)}
+        </div>
       </section>}
 
       <section className="sen-results-section">

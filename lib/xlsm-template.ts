@@ -20,6 +20,20 @@ function numericCellValue(xml: string, ref: string) {
   return Number.isFinite(value) ? value : null;
 }
 
+function purposeLines(value: unknown, maxLength = 28) {
+  const text = String(value ?? "").trim();
+  if (!text) return [];
+  const lines: string[] = [];
+  let current = "";
+  for (const word of text.split(/\s+/)) {
+    if (!current) current = word;
+    else if (`${current} ${word}`.length <= maxLength) current += ` ${word}`;
+    else { lines.push(current); current = word; }
+  }
+  if (current) lines.push(current);
+  return lines.slice(0, 4);
+}
+
 function sheetPathByName(files: Record<string, Uint8Array>, sheetName: string) {
   const workbook = strFromU8(files["xl/workbook.xml"]); const rels = strFromU8(files["xl/_rels/workbook.xml.rels"]);
   const sheet = [...workbook.matchAll(/<sheet\b[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"[^>]*\/>/g)].find((m) => m[1] === sheetName);
@@ -59,7 +73,7 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
     E10:"학교교육여건개선시설", E11:"교육환경개선시설", E12:"학교시설교육환경개선", E13:"학교회계전출금", E14:"시설비",
     C28:excelSerial(contract.contractDate as string | null), C29:excelSerial(contract.plannedStartDate as string | null), C30:excelSerial(contract.actualStartDate as string | null), C31:excelSerial(contract.plannedCompletionDate as string | null), C32:excelSerial(contract.actualCompletionDate as string | null), C33:excelSerial(contract.inspectionDate as string | null), C34:amount, C35:String(contract.id), C36:excelSerial(contract.paymentDate as string | null),
     E27:contractGuaranteeAmount === null ? "[확인 필요]" : { formula:"ROUNDDOWN((C27*E28),-1)", cached:contractGuaranteeAmount }, E28:contractGuaranteeRate, E30:excelSerial(start), E31:{ formula:"EDATE(E30,E33*12)-1", cached:excelSerial(end) ?? 0 }, E33:years, E34:rate,
-    E35:{ formula:"ROUNDDOWN((C27*E34),-1)", cached:Math.floor((amount * rate) / 10) * 10 }, E36:"[확인 필요]", E37:contract.contractMethod ? String(contract.contractMethod) : null, E38:"[확인 필요]",
+    E35:{ formula:"ROUNDDOWN((C27*E34),-1)", cached:Math.floor((amount * rate) / 10) * 10 }, E36:warranty.guaranteeMethod ? String(warranty.guaranteeMethod) : "[확인 필요]", E37:contract.contractMethod ? String(contract.contractMethod) : null, E38:"[확인 필요]",
   };
   for (const [ref, value] of Object.entries(values)) if (value !== null) xml = patchCell(xml, ref, value);
   files[inputPath] = strToU8(xml);
@@ -67,17 +81,19 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
   const targetName = kind === "construction" ? "32.공사대장" : "34.하자대장";
   const targetPath = sheetPathByName(files, targetName);
   let targetXml = strFromU8(files[targetPath]);
+  const constructionPurpose = purposeLines(contract.purpose);
   const targetValues: Record<string, CellValue> = kind === "construction" ? {
     L2: contract.contractDate ? `${String(contract.contractDate).slice(0, 4)}년-` : null,
     M2: String(contract.id), B3: String(contract.projectName), I3: String(contract.companyName), M3: "행정실장\n000",
     B4: amount, G4: contract.contractMethod ? String(contract.contractMethod) : null, I4: contract.supplierPhoneNumber ? String(contract.supplierPhoneNumber) : "[확인 필요]", B6: amount,
     I6: excelSerial(contract.contractDate as string | null), I8: null, I9: null, I10: null, I11: null, I12: null, H14: null,
+    B11: constructionPurpose[0] ?? "[확인 필요]", B12: constructionPurpose[1] ?? null, B13: constructionPurpose[2] ?? null, B14: constructionPurpose[3] ?? null,
     C15: contractGuaranteeAmount === null ? "[확인 필요]" : contractGuaranteeAmount, E15: "[확인 필요]", D18: excelSerial(contract.plannedStartDate as string | null), E18: excelSerial(contract.actualStartDate as string | null),
     D19: excelSerial(contract.plannedCompletionDate as string | null), E19: excelSerial(contract.actualCompletionDate as string | null),
     I20: excelSerial(contract.paymentDate as string | null), J20: amount, L20: { formula:"MAX(B6-SUM(J16:J20),0)", cached:0 }, D21: amount, E22: excelSerial(start), E23: excelSerial(end),
     D25: Math.floor((amount * rate) / 10) * 10, D26: null, I26: excelSerial(contract.inspectionDate as string | null),
   } : {
-    B4: String(contract.projectName), E4: amount, K4: Math.floor((amount * rate) / 10) * 10, K5: null,
+    B4: String(contract.projectName), E4: amount, K4: Math.floor((amount * rate) / 10) * 10, K5: warranty.guaranteeMethod ? String(warranty.guaranteeMethod) : "[확인 필요]",
     B6: null, E6: excelSerial(contract.contractDate as string | null), K6: excelSerial(contract.plannedCompletionDate as string | null),
     B7: String(contract.companyName), E7: excelSerial(contract.actualStartDate as string | null), K7: excelSerial(contract.actualCompletionDate as string | null),
     B8: null, E8: excelSerial(contract.inspectionDate as string | null), M8: excelSerial(start), M9: excelSerial(end),

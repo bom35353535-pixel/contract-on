@@ -1270,13 +1270,23 @@ a { color: inherit; text-decoration: none; }
 .sen-section-head>button { padding:8px 12px; border:1px solid #cfdcea; border-radius:9px; background:#fff; color:#456079; font-weight:750; cursor:pointer; }
 .sen-section-head>input { width:min(320px,100%); padding:9px 12px; border:1px solid #cbd9e8; border-radius:9px; font:inherit; }
 .sen-map-section,.sen-results-section,.sen-recent { margin-bottom:24px; padding:22px; border:1px solid #dbe4ed; border-radius:18px; background:#f9fbfd; }
-.sen-work-map { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-.sen-map-center { display:grid; place-items:center; min-height:82px; border:2px solid var(--sen-blue); border-radius:16px; background:linear-gradient(135deg,var(--sen-navy),#24578e); color:#fff; font-size:18px; font-weight:900; }
-.sen-work-map button { min-height:82px; padding:12px; border:1px solid #d7e2ed; border-radius:14px; background:#fff; text-align:left; cursor:pointer; transition:.18s ease; }
-.sen-work-map button:hover,.sen-work-map button.active { border-color:#65a0f8; background:#edf5ff; transform:translateY(-2px); box-shadow:0 7px 18px rgba(52,120,246,.12); }
-.sen-work-map button strong,.sen-work-map button span { display:block; }
-.sen-work-map button strong { color:#23466c; font-size:14px; }
-.sen-work-map button span { margin-top:5px; color:#718091; font-size:11px; line-height:1.35; }
+.sen-work-map { position:relative; min-height:530px; overflow:hidden; border:1px solid #e6ded3; border-radius:18px; background:linear-gradient(145deg,#fffdfa,#fbf8f3); }
+.sen-map-lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.sen-map-lines line { vector-effect:non-scaling-stroke; stroke:#b9ccdf; stroke-width:1.15; opacity:.72; }
+.sen-map-center { position:absolute; left:50%; top:50%; z-index:2; display:grid; width:145px; height:88px; place-content:center; transform:translate(-50%,-50%); border-radius:20px; background:linear-gradient(145deg,#4c3c33,#6c5547); color:#fff; text-align:center; box-shadow:0 13px 30px rgba(76,60,51,.2); }
+.sen-map-center strong,.sen-map-center span { display:block; }
+.sen-map-center strong { font-size:18px; font-weight:900; }.sen-map-center span { margin-top:5px; color:#eadfd8; font-size:12px; }
+.sen-work-map .sen-map-node { position:absolute; z-index:3; display:flex; width:190px; min-height:62px; align-items:center; gap:11px; padding:10px 13px; transform:translate(-50%,-50%); border:1px solid #e2d8cd; border-radius:16px; background:#fffdfb; text-align:left; cursor:pointer; box-shadow:0 4px 12px rgba(86,68,56,.07); transition:.18s ease; }
+.sen-work-map .sen-map-node:hover,.sen-work-map .sen-map-node.active { z-index:4; transform:translate(-50%,-53%); border-color:#6d9dd8; background:#f5f9ff; box-shadow:0 10px 22px rgba(52,120,246,.15); }
+.sen-map-icon { display:grid!important; width:34px; height:34px; flex:none; place-items:center; border-radius:50%; background:#e9f2ff; color:#3374c5!important; font-size:14px!important; font-weight:900; }
+.sen-map-copy { display:block; min-width:0; }.sen-map-copy strong,.sen-map-copy small { display:block; }
+.sen-map-copy strong { overflow:hidden; color:#493b34; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+.sen-map-copy small { margin-top:4px; color:#96745e; font-size:11px!important; }
+.sen-map-node.node-1 .sen-map-icon,.sen-map-node.node-6 .sen-map-icon { background:#e8f7f3; color:#168f82!important; }
+.sen-map-node.node-2 .sen-map-icon,.sen-map-node.node-7 .sen-map-icon { background:#f7efe2; color:#ba762f!important; }
+.sen-map-node.node-3 .sen-map-icon { background:#f1ecff; color:#7164cf!important; }
+.sen-map-node.node-4 .sen-map-icon { background:#fdeeee; color:#c45b59!important; }
+.sen-map-node.node-5 .sen-map-icon { background:#edf6e7; color:#61933f!important; }
 .sen-site-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
 .sen-site-card { display:flex; min-width:0; min-height:250px; flex-direction:column; padding:17px; border:1px solid #dbe4ed; border-radius:14px; background:#fff; box-shadow:0 5px 14px rgba(28,62,99,.05); }
 .sen-site-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -1308,8 +1318,8 @@ a { color: inherit; text-decoration: none; }
 .sen-detail-panel dt { color:#7b8895; }.sen-detail-panel dd { margin:0; color:#314b64; font-weight:650; }
 .sen-detail-note { padding:14px; border-radius:10px; background:#fff8e8; color:#725a24; }.sen-detail-note p { margin:5px 0 0; line-height:1.55; }
 .sen-detail-open { width:100%; margin-top:18px; padding:12px; border:0; border-radius:10px; background:var(--sen-blue); color:#fff; font-weight:850; cursor:pointer; }.sen-detail-open:disabled { background:#aab4bf; cursor:not-allowed; }
-@media (max-width:1000px){.sen-site-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sen-work-map{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:700px){.sen-hero{align-items:stretch; flex-direction:column;padding:25px}.sen-hero h1{font-size:30px}.sen-hero-badge{min-width:0}.sen-local-nav{overflow-x:auto}.sen-local-nav button{flex:0 0 auto}.sen-search-card>div:first-of-type{grid-template-columns:1fr}.sen-search-card>div:first-of-type>button{min-height:46px}.sen-result-summary{align-items:flex-start;flex-direction:column}.sen-result-summary>div:last-child{justify-content:flex-start}.sen-work-map,.sen-site-grid{grid-template-columns:1fr}.sen-map-center{min-height:62px}.sen-section-head{align-items:flex-start;flex-direction:column}.sen-section-head>input{width:100%}}
+@media (max-width:1000px){.sen-site-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sen-work-map .sen-map-node{width:165px}.sen-work-map{min-height:570px}}
+@media (max-width:700px){.sen-hero{align-items:stretch; flex-direction:column;padding:25px}.sen-hero h1{font-size:30px}.sen-hero-badge{min-width:0}.sen-local-nav{overflow-x:auto}.sen-local-nav button{flex:0 0 auto}.sen-search-card>div:first-of-type{grid-template-columns:1fr}.sen-search-card>div:first-of-type>button{min-height:46px}.sen-result-summary{align-items:flex-start;flex-direction:column}.sen-result-summary>div:last-child{justify-content:flex-start}.sen-site-grid{grid-template-columns:1fr}.sen-work-map{display:grid; min-height:0; grid-template-columns:1fr; gap:9px; padding:12px}.sen-map-lines{display:none}.sen-map-center,.sen-work-map .sen-map-node{position:static; width:100%; min-height:62px; transform:none}.sen-work-map .sen-map-node:hover,.sen-work-map .sen-map-node.active{transform:none}.sen-section-head{align-items:flex-start;flex-direction:column}.sen-section-head>input{width:100%}}
 
 /* 행정업무 화면의 본문·입력·표 글자는 확대해 장시간 확인할 때의 피로를 줄인다. */
 body :where(p, small, label, button, input, select, textarea, th, td, dt, dd, summary, a) {

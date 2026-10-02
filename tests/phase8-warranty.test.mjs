@@ -66,10 +66,10 @@ test("Phase 8 ledger export writes current contract data and shows only the requ
   const input = template.buffer.slice(template.byteOffset, template.byteOffset + template.byteLength);
   const output = await fillLedgerTemplate(input, {
     id: "CTR-TEST-001", projectName: "테스트 전기공사", companyName: "테스트전기 주식회사", constructionType: "전기공사",
-    location: "본관", contractAmount: 22_000_000, contractMethod: "나라장터 전자계약", contractDate: "2026-09-01",
+    purpose: "본관 전기설비를 개선하여 안전한 교육환경을 조성", location: "본관", contractAmount: 22_000_000, contractMethod: "나라장터 전자계약", contractDate: "2026-09-01",
     plannedStartDate: "2026-09-02", actualStartDate: "2026-09-02", plannedCompletionDate: "2026-09-20",
     actualCompletionDate: "2026-09-20", inspectionDate: "2026-09-21", paymentDate: "2026-09-25",
-  }, { warrantyStartDate: "2026-09-21", warrantyEndDate: "2027-09-20", warrantyYears: 1, bondRate: 0.03 }, "construction");
+  }, { warrantyStartDate: "2026-09-21", warrantyEndDate: "2027-09-20", warrantyYears: 1, bondRate: 0.03, guaranteeMethod: "보증보험" }, "construction");
   const archive = unzipSync(output);
   const workbook = new TextDecoder().decode(archive["xl/workbook.xml"]);
   const ledger = new TextDecoder().decode(archive["xl/worksheets/sheet39.xml"]);
@@ -79,17 +79,36 @@ test("Phase 8 ledger export writes current contract data and shows only the requ
   assert.match(ledger, /<c r="B3"[^>]*t="inlineStr"><is><t>테스트 전기공사<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="I3"[^>]*t="inlineStr"><is><t>테스트전기 주식회사<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="M3"[^>]*t="inlineStr"><is><t>행정실장\n000<\/t><\/is><\/c>/);
+  assert.match(ledger, /<c r="B11"[^>]*t="inlineStr"><is><t>본관 전기설비를 개선하여 안전한 교육환경을 조성<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="J20"[^>]*><v>22000000<\/v><\/c>/);
   assert.match(ledger, /<c r="L20"[^>]*><f>MAX\(B6-SUM\(J16:J20\),0\)<\/f><v>0<\/v><\/c>/);
   assert.match(ledger, /<c r="C15"[^>]*><v>1100000<\/v><\/c>/);
   assert.match(inputSheet, /<c r="E27"[^>]*><f>ROUNDDOWN\(\(C27\*E28\),-1\)<\/f><v>1100000<\/v><\/c>/);
   assert.match(inputSheet, /<c r="E28"[^>]*><v>0\.05<\/v><\/c>/);
+  assert.match(inputSheet, /<c r="E36"[^>]*t="inlineStr"><is><t>보증보험<\/t><\/is><\/c>/);
   assert.match(inputSheet, /<c r="E10"[^>]*t="inlineStr"><is><t>학교교육여건개선시설<\/t><\/is><\/c>/);
   assert.match(inputSheet, /<c r="E11"[^>]*t="inlineStr"><is><t>교육환경개선시설<\/t><\/is><\/c>/);
   assert.match(inputSheet, /<c r="E12"[^>]*t="inlineStr"><is><t>학교시설교육환경개선<\/t><\/is><\/c>/);
   assert.match(inputSheet, /<c r="E13"[^>]*t="inlineStr"><is><t>학교회계전출금<\/t><\/is><\/c>/);
   assert.match(inputSheet, /<c r="E14"[^>]*t="inlineStr"><is><t>시설비<\/t><\/is><\/c>/);
   assert.doesNotMatch(ledger, /○○초 돌봄교실 설치공사|○○건설/);
+
+  const warrantyOutput = await fillLedgerTemplate(input, {
+    id: "CTR-TEST-001", projectName: "테스트 전기공사", companyName: "테스트전기 주식회사", constructionType: "전기공사",
+    purpose: "본관 전기설비 개선", location: "본관", contractAmount: 22_000_000,
+  }, { warrantyStartDate: "2026-09-21", warrantyEndDate: "2027-09-20", warrantyYears: 1, bondRate: 0.03, guaranteeMethod: "보증보험" }, "warranty");
+  const warrantyArchive = unzipSync(warrantyOutput);
+  const warrantyLedger = new TextDecoder().decode(warrantyArchive["xl/worksheets/sheet41.xml"]);
+  assert.match(warrantyLedger, /<c r="K5"[^>]*t="inlineStr"><is><t>보증보험<\/t><\/is><\/c>/);
+});
+
+test("Phase 8 requires a warranty guarantee method before confirmation", async () => {
+  const component = await readFile(new URL("../components/Phase8WarrantyWorkspace.tsx", import.meta.url), "utf8");
+  const warranty = await readFile(new URL("../lib/warranty.ts", import.meta.url), "utf8");
+  assert.match(component, /하자보증금 납부방법/);
+  assert.match(component, /지급각서/);
+  assert.match(component, /보증보험/);
+  assert.match(warranty, /guarantee_method/);
 });
 
 test("Phase 8 ledger export loads templates from the deployed asset binding", async () => {

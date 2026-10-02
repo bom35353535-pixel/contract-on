@@ -338,7 +338,7 @@ const CREATE_WARRANTY_CRITERIA = `CREATE TABLE IF NOT EXISTS warranty_criteria (
 )`;
 const CREATE_CONTRACT_WARRANTIES = `CREATE TABLE IF NOT EXISTS contract_warranties (
   contract_id TEXT PRIMARY KEY NOT NULL, criterion_id TEXT NOT NULL, warranty_years INTEGER NOT NULL,
-  bond_rate REAL, warranty_start_date TEXT NOT NULL, warranty_end_date TEXT NOT NULL,
+  bond_rate REAL, guarantee_method TEXT, warranty_start_date TEXT NOT NULL, warranty_end_date TEXT NOT NULL,
   confirmed_at TEXT NOT NULL, updated_at TEXT NOT NULL,
   FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
   FOREIGN KEY (criterion_id) REFERENCES warranty_criteria(id)
@@ -414,6 +414,11 @@ async function initialize() {
     d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_warranty_inspections_contract_sequence ON warranty_inspections(contract_id, sequence)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_warranty_inspections_contract_date ON warranty_inspections(contract_id, scheduled_date)"),
   ]);
+
+  const warrantyColumns = await d1.prepare("PRAGMA table_info(contract_warranties)").all<{ name: string }>();
+  if (!warrantyColumns.results.some((column) => column.name === "guarantee_method")) {
+    await d1.prepare("ALTER TABLE contract_warranties ADD COLUMN guarantee_method TEXT").run();
+  }
 
   await d1.batch(WARRANTY_CRITERIA.map(([id, category, workName, years, rate]) => d1.prepare(
     "INSERT OR IGNORE INTO warranty_criteria (id, category, work_name, keywords_json, warranty_years, bond_rate, source_name, source_page, source_excerpt) VALUES (?, ?, ?, '[]', ?, ?, '하자기간.pdf', 'p.155', ?)"

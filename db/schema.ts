@@ -369,6 +369,7 @@ export const contractWarranties = sqliteTable("contract_warranties", {
   criterionId: text("criterion_id").notNull().references(() => warrantyCriteria.id),
   warrantyYears: integer("warranty_years").notNull(),
   bondRate: real("bond_rate"),
+  guaranteeMethod: text("guarantee_method"),
   warrantyStartDate: text("warranty_start_date").notNull(),
   warrantyEndDate: text("warranty_end_date").notNull(),
   confirmedAt: text("confirmed_at").notNull(),
