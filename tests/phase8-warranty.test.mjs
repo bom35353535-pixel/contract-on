@@ -73,13 +73,21 @@ test("Phase 8 ledger export writes current contract data and shows only the requ
   const archive = unzipSync(output);
   const workbook = new TextDecoder().decode(archive["xl/workbook.xml"]);
   const ledger = new TextDecoder().decode(archive["xl/worksheets/sheet39.xml"]);
+  const inputSheet = new TextDecoder().decode(archive["xl/worksheets/sheet2.xml"]);
   assert.match(workbook, /<sheet name="32\.공사대장"[^>]*r:id="rId39"\/>/);
   assert.equal((workbook.match(/state="veryHidden"/g) || []).length, 46);
   assert.match(ledger, /<c r="B3"[^>]*t="inlineStr"><is><t>테스트 전기공사<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="I3"[^>]*t="inlineStr"><is><t>테스트전기 주식회사<\/t><\/is><\/c>/);
   assert.match(ledger, /<c r="J20"[^>]*><v>22000000<\/v><\/c>/);
   assert.match(ledger, /<c r="L20"[^>]*><f>MAX\(B6-SUM\(J16:J20\),0\)<\/f><v>0<\/v><\/c>/);
-  assert.match(ledger, /<c r="D15"[^>]*t="inlineStr"><is><t>\[확인 필요\]<\/t><\/is><\/c>/);
+  assert.match(ledger, /<c r="C15"[^>]*><v>1100000<\/v><\/c>/);
+  assert.match(inputSheet, /<c r="E27"[^>]*><f>ROUNDDOWN\(\(C27\*E28\),-1\)<\/f><v>1100000<\/v><\/c>/);
+  assert.match(inputSheet, /<c r="E28"[^>]*><v>0\.05<\/v><\/c>/);
+  assert.match(inputSheet, /<c r="E10"[^>]*t="inlineStr"><is><t>학교교육여건개선시설<\/t><\/is><\/c>/);
+  assert.match(inputSheet, /<c r="E11"[^>]*t="inlineStr"><is><t>교육환경개선시설<\/t><\/is><\/c>/);
+  assert.match(inputSheet, /<c r="E12"[^>]*t="inlineStr"><is><t>학교시설교육환경개선<\/t><\/is><\/c>/);
+  assert.match(inputSheet, /<c r="E13"[^>]*t="inlineStr"><is><t>학교회계전출금<\/t><\/is><\/c>/);
+  assert.match(inputSheet, /<c r="E14"[^>]*t="inlineStr"><is><t>시설비<\/t><\/is><\/c>/);
   assert.doesNotMatch(ledger, /○○초 돌봄교실 설치공사|○○건설/);
 });
 

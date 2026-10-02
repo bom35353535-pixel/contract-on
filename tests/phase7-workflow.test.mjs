@@ -93,6 +93,8 @@ test("Phase 7 records inspection, utility notice, payment, and finish as separat
   assert.match(workspace, /setSavedPaymentDate\(result\.paymentDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedUtilityNoticeDate\)/);
   assert.match(workspace, /savedStage === "INSPECTION" && Boolean\(savedPaymentDate\)/);
+  assert.match(workspace, /action === "complete-finish" && result\.currentStage === "FINISHED"/);
+  assert.match(workspace, /tab=warranty/);
   assert.match(documentWorkspace, /준공서류 확인완료/);
   assert.match(documentWorkspace, /isCompletion && files\.length > 0/);
   assert.match(documentRoute, /completionFilesConfirmed/);

@@ -81,6 +81,10 @@ export function Phase7InspectionWorkspace({ contractId, currentStage, inspection
       if (result.utilityNoticeDate) setSavedUtilityNoticeDate(result.utilityNoticeDate);
       if (result.paymentDate) setSavedPaymentDate(result.paymentDate);
       if (result.currentStage) setSavedStage(result.currentStage);
+      if (action === "complete-finish" && result.currentStage === "FINISHED") {
+        window.location.assign(`/contracts/${contractId}?tab=warranty`);
+        return;
+      }
       router.refresh();
     } catch (reason) { setError(reason instanceof Error ? reason.message : `${label} 완료를 저장하지 못했습니다.`); }
     finally { setBusy(""); }
