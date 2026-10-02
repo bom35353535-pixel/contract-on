@@ -108,6 +108,7 @@ test("Phase 8 requires a warranty guarantee method before confirmation", async (
   assert.match(component, /하자보증금 납부방법/);
   assert.match(component, /지급각서/);
   assert.match(component, /보증보험/);
+  assert.doesNotMatch(component, /disabled=\{!canConfirm\|\|!startDate\|\|!guaranteeMethod/);
   assert.match(warranty, /guarantee_method/);
 });
 
