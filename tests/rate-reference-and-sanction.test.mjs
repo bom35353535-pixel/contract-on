@@ -22,8 +22,9 @@ test("current-rate reference displays registered formulas and separates rate con
   assert.match(component, /extractedConstructionText\.includes\("건축공사"\)/);
   assert.match(component, /\["건축", "전기", "통신", "소방", "전문", "기타"\]/);
   assert.match(component, /isCommonBuildingRateType \|\| hasBuildingItem/);
-  assert.match(component, /간접노무비·기타경비 등은 건축공사 요율을 적용했습니다/);
-  assert.match(component, /일반관리비율은 자동 적용하지 않습니다/);
+  assert.match(component, /usesSpecialManagementRate \? 2 : 1/);
+  assert.match(component, /간접노무비·기타경비 등은 건축공사 요율을 적용하고/);
+  assert.match(component, /일반관리비는 전문·전기·통신·소방·기타 공사용 요율을 적용했습니다/);
   assert.match(component, /itemQuote\("기타경비"\)/);
   assert.doesNotMatch(component, /label: "기타경비"[^\n]*quote: data\.expenses/);
   assert.match(component, /공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다/);

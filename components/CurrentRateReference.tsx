@@ -111,12 +111,12 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
   const constructionType = data.constructionType?.trim() || "";
   const isBuilding = constructionType.includes("건축");
   const isCommonBuildingRateType = ["건축", "전기", "통신", "소방", "전문", "기타"].some((type) => constructionType.includes(type));
+  const usesSpecialManagementRate = !isBuilding && ["전기", "통신", "소방", "전문", "기타"].some((type) => constructionType.includes(type));
   const extractedConstructionText = data.items.map((candidate) =>
     `${candidate.category || ""} ${candidate.trade || ""} ${candidate.itemName || ""} ${candidate.specification || ""} ${candidate.sourceText || ""}`,
   ).join(" ");
   const hasBuildingItem = extractedConstructionText.includes("건축공사");
   const usesBuildingReference = isCommonBuildingRateType || hasBuildingItem || (!constructionType && Boolean(documentName?.includes("건축공사")));
-  const usesBuildingManagementRate = isBuilding || (!constructionType && Boolean(documentName?.includes("건축공사")));
   const durationRow = amount !== null && days !== null && usesBuildingReference
     ? tableRows.find((row) => row.length >= 4 && row[0].includes("억") && row[1].includes("개월") && amountMatches(row[0], amount) && periodMatches(row[1], days))
     : undefined;
@@ -126,7 +126,9 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
 
   const indirectRate = namedRate(tableRows, "간접노무비", amount, days) ?? percent(durationRow?.[2]);
   const otherRate = namedRate(tableRows, "기타경비", amount, days) ?? percent(durationRow?.[3]);
-  const managementRate = usesBuildingManagementRate ? namedRate(tableRows, "일반관리비", amount, days) ?? percent(priceRow?.[1]) : null;
+  const managementRate = usesBuildingReference
+    ? namedRate(tableRows, "일반관리비", amount, days) ?? percent(priceRow?.[usesSpecialManagementRate ? 2 : 1])
+    : null;
   const profitRate = usesBuildingReference ? namedRate(tableRows, "이윤", amount, days) ?? percent(priceRow?.[3]) : null;
   const labor = data.directLaborCost === null && data.indirectLaborCost === null ? null : (data.directLaborCost || 0) + (data.indirectLaborCost || 0);
   const expenseAmount = data.expenses ?? deriveExpenseAmount(data.items);
@@ -212,7 +214,7 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
     </div>
     {!referenceText && <p className="rate-reference-warning">등록된 건축공사 간접공사비 MD 원문을 읽지 못했습니다. 지식관리에서 해당 MD 파일 등록상태를 확인해 주세요.</p>}
     {!data.constructionType && usesBuildingReference && <p className="rate-reference-warning">공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다. 최종 판정 전 공사종류를 확인해 주세요.</p>}
-    {data.constructionType && !isBuilding && isCommonBuildingRateType && <p className="rate-reference-warning">등록자료의 공통 적용 메모에 따라 {data.constructionType}의 간접노무비·기타경비 등은 건축공사 요율을 적용했습니다. 일반관리비율은 자동 적용하지 않습니다.</p>}
+    {data.constructionType && !isBuilding && isCommonBuildingRateType && <p className="rate-reference-warning">등록자료의 공통 적용 메모에 따라 {data.constructionType}의 간접노무비·기타경비 등은 건축공사 요율을 적용하고, 일반관리비는 전문·전기·통신·소방·기타 공사용 요율을 적용했습니다.</p>}
     {data.constructionType && !isBuilding && !isCommonBuildingRateType && hasBuildingItem && <p className="rate-reference-warning">공사종류 입력값은 {data.constructionType}이지만 견적서 공종표의 ‘건축공사’를 근거로 등록된 건축공사 기준을 적용했습니다. 최종 판정 전 공종을 확인해 주세요.</p>}
     {data.constructionType && !usesBuildingReference && <p className="rate-reference-warning">현재 등록된 기준표는 건축공사용입니다. 다른 공종은 해당 공종 기준자료가 필요합니다.</p>}
     {referenceText && <p className="rate-reference-scope">현재 화면은 견적 총액을 직접공사비·추정가격에 대입한 참고 계산입니다. 두 기준금액이 다르면 담당자가 실제 값을 별도로 확인해야 합니다.</p>}
