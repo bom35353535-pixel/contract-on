@@ -30,8 +30,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       UPDATE quotation_analyses SET project_name = ?, construction_type = ?, purpose = ?, location = ?, company_name = ?,
         business_registration_number = ?, quotation_date = ?, total_amount = ?, supply_amount = ?, vat_amount = ?, material_cost = ?, direct_labor_cost = ?,
         indirect_labor_cost = ?, expenses = ?, statutory_expenses = ?, overhead = ?, profit = ?, safety_health_cost = ?,
-        planned_start_date = ?, planned_completion_date = ?, updated_at = ? WHERE id = ? AND status = 'ANALYZED'
-    `).bind(...Object.values(columns), now, id),
+        planned_start_date = ?, planned_completion_date = ?, extraction_json = ?, updated_at = ? WHERE id = ? AND status = 'ANALYZED'
+    `).bind(...Object.values(columns), JSON.stringify(values), now, id),
     d1.prepare("DELETE FROM quotation_items WHERE analysis_id = ?").bind(id),
   ]);
   for (let start = 0; start < values.items.length; start += 75) {

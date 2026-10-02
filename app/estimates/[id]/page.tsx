@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { QuotationReview } from "@/components/QuotationReview";
 import { listContracts } from "@/lib/contracts";
-import type { QuotationExtraction } from "@/lib/estimate";
+import { normalizeQuotationExtraction, type QuotationExtraction } from "@/lib/estimate";
 import { listKnowledgeDocuments } from "@/lib/knowledge";
 import { getLatestQuotationReviewByAnalysis, getQuotationAnalysis } from "@/lib/quotations";
 import { loadRegisteredAuditCases } from "@/lib/audit-case-source";
@@ -16,10 +16,15 @@ export default async function QuotationReviewPage({ params }: { params: Promise<
     getQuotationAnalysis(id), listContracts(), getLatestQuotationReviewByAnalysis(id), listKnowledgeDocuments(),
   ]);
   if (!record) notFound();
+  const extracted = (() => {
+    try { return normalizeQuotationExtraction(JSON.parse(record.analysis.extractionJson)); }
+    catch { return normalizeQuotationExtraction(null); }
+  })();
   const initial: QuotationExtraction = {
     projectName: record.analysis.projectName, constructionType: record.analysis.constructionType,
     purpose: record.analysis.purpose, location: record.analysis.location, companyName: record.analysis.companyName,
     businessRegistrationNumber: record.analysis.businessRegistrationNumber,
+    supplierPhoneNumber: extracted.supplierPhoneNumber,
     quotationDate: record.analysis.quotationDate, totalAmount: record.analysis.totalAmount,
     supplyAmount: record.analysis.supplyAmount, vatAmount: record.analysis.vatAmount,
     materialCost: record.analysis.materialCost, directLaborCost: record.analysis.directLaborCost,

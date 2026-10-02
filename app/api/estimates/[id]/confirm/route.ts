@@ -69,8 +69,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         purpose = ?, location = ?, company_name = ?, business_registration_number = ?, quotation_date = ?, total_amount = ?, supply_amount = ?,
         vat_amount = ?, material_cost = ?, direct_labor_cost = ?, indirect_labor_cost = ?, expenses = ?,
         statutory_expenses = ?, overhead = ?, profit = ?, safety_health_cost = ?, planned_start_date = ?,
-        planned_completion_date = ?, updated_at = ?, confirmed_at = ? WHERE id = ? AND status = 'ANALYZED'
-    `).bind(contractId, ...Object.values(columns), now, now, id),
+        planned_completion_date = ?, extraction_json = ?, updated_at = ?, confirmed_at = ? WHERE id = ? AND status = 'ANALYZED'
+    `).bind(contractId, ...Object.values(columns), finalJson, now, now, id),
     d1.prepare("INSERT INTO contract_stage_history (contract_id, from_stage, to_stage, action, actor, occurred_at) VALUES (?, NULL, 'PURCHASE_REQUEST', '견적정보 확정 및 계약업무 시작', '담당자', ?)").bind(contractId, now),
     d1.prepare("UPDATE quotation_reviews SET contract_id = ? WHERE analysis_id = ? AND contract_id IS NULL").bind(contractId, id),
     d1.prepare("UPDATE ai_decision_audit SET contract_id = ? WHERE analysis_id = ? AND contract_id IS NULL").bind(contractId, id),

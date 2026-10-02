@@ -20,6 +20,7 @@ export type QuotationExtraction = {
   location: string | null;
   companyName: string | null;
   businessRegistrationNumber: string | null;
+  supplierPhoneNumber: string | null;
   quotationDate: string | null;
   totalAmount: number | null;
   supplyAmount: number | null;
@@ -38,14 +39,14 @@ export type QuotationExtraction = {
 };
 
 const fieldNames = [
-  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "quotationDate",
+  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "supplierPhoneNumber", "quotationDate",
   "totalAmount", "supplyAmount", "vatAmount", "materialCost", "directLaborCost",
   "indirectLaborCost", "expenses", "statutoryExpenses", "overhead", "profit",
   "safetyHealthCost", "plannedStartDate", "plannedCompletionDate",
 ] as const;
 
 const textFields = new Set([
-  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "quotationDate",
+  "projectName", "constructionType", "purpose", "location", "companyName", "businessRegistrationNumber", "supplierPhoneNumber", "quotationDate",
   "plannedStartDate", "plannedCompletionDate",
 ]);
 
@@ -53,6 +54,24 @@ function cleanText(value: unknown) {
   if (typeof value !== "string") return null;
   const text = value.trim();
   return text ? text.slice(0, 500) : null;
+}
+
+export function normalizeSupplierPhoneNumber(value: unknown) {
+  if (typeof value !== "string") return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 9 && digits.startsWith("02")) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+  if (digits.length === 10 && digits.startsWith("02")) return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  return null;
+}
+
+export function extractSupplierPhoneNumber(text: string) {
+  const label = /(?:전화번호|전화|연락처|TEL|T\.\s*E\.\s*L\.)/i.exec(text);
+  if (!label) return null;
+  const sameLine = text.slice(label.index + label[0].length).split(/\r?\n/, 1)[0].slice(0, 120);
+  const phone = sameLine.match(/0\d{1,2}[\s)-]*\d{3,4}[\s-]*\d{4}/)?.[0] ?? null;
+  return normalizeSupplierPhoneNumber(phone);
 }
 
 function numericValue(value: unknown) {
@@ -88,6 +107,7 @@ export function normalizeQuotationExtraction(value: unknown): QuotationExtractio
   for (const field of fieldNames) {
     result[field] = textFields.has(field) ? cleanText(source[field]) : cleanNumber(source[field]);
   }
+  result.supplierPhoneNumber = normalizeSupplierPhoneNumber(source.supplierPhoneNumber);
   const rows = Array.isArray(source.items) ? source.items.slice(0, 500) : [];
   result.items = rows.map((row) => {
     const item = row && typeof row === "object" ? row as Record<string, unknown> : {};

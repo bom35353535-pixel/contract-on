@@ -55,7 +55,7 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
     : templateContractGuaranteeRate;
   const contractGuaranteeAmount = contractGuaranteeRate === null ? null : Math.floor((amount * contractGuaranteeRate) / 10) * 10;
   const values: Record<string, CellValue> = {
-    C9:String(contract.projectName), C14:String(contract.location ?? ""), C19:String(contract.companyName), C21:String(contract.constructionType), C22:contract.businessRegistrationNumber ? String(contract.businessRegistrationNumber) : null, C27:amount,
+    C9:String(contract.projectName), C14:String(contract.location ?? ""), C19:String(contract.companyName), C20:contract.supplierPhoneNumber ? String(contract.supplierPhoneNumber) : null, C21:String(contract.constructionType), C22:contract.businessRegistrationNumber ? String(contract.businessRegistrationNumber) : null, C27:amount,
     E10:"학교교육여건개선시설", E11:"교육환경개선시설", E12:"학교시설교육환경개선", E13:"학교회계전출금", E14:"시설비",
     C28:excelSerial(contract.contractDate as string | null), C29:excelSerial(contract.plannedStartDate as string | null), C30:excelSerial(contract.actualStartDate as string | null), C31:excelSerial(contract.plannedCompletionDate as string | null), C32:excelSerial(contract.actualCompletionDate as string | null), C33:excelSerial(contract.inspectionDate as string | null), C34:amount, C35:String(contract.id), C36:excelSerial(contract.paymentDate as string | null),
     E27:contractGuaranteeAmount === null ? "[확인 필요]" : { formula:"ROUNDDOWN((C27*E28),-1)", cached:contractGuaranteeAmount }, E28:contractGuaranteeRate, E30:excelSerial(start), E31:{ formula:"EDATE(E30,E33*12)-1", cached:excelSerial(end) ?? 0 }, E33:years, E34:rate,
@@ -70,7 +70,7 @@ export async function fillLedgerTemplate(template: ArrayBuffer, contract: Record
   const targetValues: Record<string, CellValue> = kind === "construction" ? {
     L2: contract.contractDate ? `${String(contract.contractDate).slice(0, 4)}년-` : null,
     M2: String(contract.id), B3: String(contract.projectName), I3: String(contract.companyName), M3: "행정실장\n000",
-    B4: amount, G4: contract.contractMethod ? String(contract.contractMethod) : null, I4: null, B6: amount,
+    B4: amount, G4: contract.contractMethod ? String(contract.contractMethod) : null, I4: contract.supplierPhoneNumber ? String(contract.supplierPhoneNumber) : "[확인 필요]", B6: amount,
     I6: excelSerial(contract.contractDate as string | null), I8: null, I9: null, I10: null, I11: null, I12: null, H14: null,
     C15: contractGuaranteeAmount === null ? "[확인 필요]" : contractGuaranteeAmount, E15: "[확인 필요]", D18: excelSerial(contract.plannedStartDate as string | null), E18: excelSerial(contract.actualStartDate as string | null),
     D19: excelSerial(contract.plannedCompletionDate as string | null), E19: excelSerial(contract.actualCompletionDate as string | null),
