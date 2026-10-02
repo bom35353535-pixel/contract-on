@@ -98,7 +98,7 @@ test("Phase 4 accepts indirect labor and other expenses below their registered c
   assert.ok(reviewed.every((item) => item.detail.includes("허용 상한 이내")));
 });
 
-test("Phase 4 applies building common rates to electrical work but excludes building management rate", async () => {
+test("Phase 4 applies the separate electrical and specialist management rate column", async () => {
   const { findLocalQuotationEvidence } = await import(new URL("../lib/local-quotation-evidence.ts", import.meta.url).href);
   const targets = [
     { section: "STATUTORY", targetKey: "rate:indirect", label: "간접노무비", quotedValue: 40_000, comparisonKind: "RATE", context: "간접노무비" },
@@ -115,7 +115,7 @@ test("Phase 4 applies building common rates to electrical work but excludes buil
   const evidence = findLocalQuotationEvidence(targets, documents, { constructionType: "전기공사", totalAmount: 20_000_000, plannedStartDate: "2026-09-01", plannedCompletionDate: "2026-09-30" });
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:indirect")?.ratePercent, 17.5);
   assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:other")?.ratePercent, 5);
-  assert.equal(evidence.candidates.some((item) => item.targetKey === "rate:management"), false);
+  assert.equal(evidence.candidates.find((item) => item.targetKey === "rate:management")?.ratePercent, 8);
 });
 
 test("Phase 4 verifies the cited rate against any retrieved chunk from that file", async () => {

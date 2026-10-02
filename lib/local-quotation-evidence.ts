@@ -131,14 +131,15 @@ export function findLocalQuotationEvidence(targets: ReviewTarget[], documents: K
   const rows = rateDocument.text.split(/\r?\n/).map((line) => ({ line, cells: cells(line) })).filter((row) => row.cells.length >= 2);
   const duration = days === null ? null : rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && row.cells[1].includes("개월") && amountMatches(row.cells[0], amount) && periodMatches(row.cells[1], days));
   const price = rows.find((row) => row.cells.length >= 4 && row.cells[0].includes("억") && !row.cells[1].includes("개월") && percent(row.cells[1]) !== null && percent(row.cells[3]) !== null && amountMatches(row.cells[0], amount));
+  const namedManagement = namedRateRow(rows, "일반관리비", amount, days);
+  const buildingManagementRate = context.constructionType?.includes("건축") || context.constructionType?.includes("산업설비");
   const definitions: Array<[string, typeof duration, number, EvidenceCandidate["baseKey"]]> = [
     ["간접노무비", namedRateRow(rows, "간접노무비", amount, days) || duration, namedRateRow(rows, "간접노무비", amount, days) ? 1 : 2, "DIRECT_LABOR_COST"],
     ["기타경비", namedRateRow(rows, "기타경비", amount, days) || duration, namedRateRow(rows, "기타경비", amount, days) ? 1 : 3, "MATERIAL_PLUS_LABOR"],
-    ["일반관리비", namedRateRow(rows, "일반관리비", amount, days) || price, namedRateRow(rows, "일반관리비", amount, days) ? 1 : 1, "MATERIAL_PLUS_LABOR_PLUS_EXPENSES"],
+    ["일반관리비", namedManagement || price, namedManagement ? 1 : buildingManagementRate ? 1 : 2, "MATERIAL_PLUS_LABOR_PLUS_EXPENSES"],
     ["이윤", namedRateRow(rows, "이윤", amount, days) || price, namedRateRow(rows, "이윤", amount, days) ? 1 : 3, "LABOR_PLUS_EXPENSES_PLUS_OVERHEAD"],
   ];
   for (const [label, row, rateIndex, baseKey] of definitions) {
-    if (label === "일반관리비" && !context.constructionType?.includes("건축")) continue;
     const target = targets.find((candidate) => candidate.section === "STATUTORY" && candidate.label.includes(label));
     const rate = row ? percent(row.cells[rateIndex]) : null;
     if (target && row && rate !== null) push(target, rateDocument, row.line, "공사금액·공사기간별 제비율표", null, rate, baseKey);
