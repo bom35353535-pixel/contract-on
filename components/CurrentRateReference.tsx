@@ -181,6 +181,9 @@ export function CurrentRateReference({ data, documentName, referenceText, onQuot
   const fixedNames = ["건강보험료", "노인장기요양보험료", "연금보험료", "고용보험료", "산재보험료"];
   const fixedRows = fixedNames.map((name) => {
     const row = tableRows.find((candidate) => candidate[0] === name);
+    if (name === "고용보험료" && row) {
+      return { label: name, formula: "노무비 × 적용요율", condition: "모든 건설공사 적용" };
+    }
     return row ? { label: name, formula: row[1], condition: row[3] || row[2] } : null;
   }).filter((row): row is { label: string; formula: string; condition: string } => Boolean(row));
   const effectiveDate = referenceText?.match(/effective_from:\s*["']?(\d{4}-\d{2}-\d{2})/)?.[1]

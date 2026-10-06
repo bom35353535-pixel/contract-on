@@ -31,6 +31,7 @@ test("current-rate reference displays registered formulas and separates rate con
   assert.match(component, /usesSpecialManagementRate \? 2 : 1/);
   assert.match(component, /간접노무비·기타경비 등은 건축공사 요율을 적용하고/);
   assert.match(component, /일반관리비는 전문·전기·통신·소방·기타 공사용 요율을 적용했습니다/);
+  assert.match(component, /name === "고용보험료"[\s\S]*formula: "노무비 × 적용요율", condition: "모든 건설공사 적용"/);
   assert.match(component, /itemQuote\("기타경비"\)/);
   assert.doesNotMatch(component, /label: "기타경비"[^\n]*quote: data\.expenses/);
   assert.match(component, /공사종류가 비어 있어 등록된 건축공사 기준으로 금액을 먼저 계산했습니다/);
