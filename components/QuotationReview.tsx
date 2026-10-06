@@ -247,7 +247,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           </section>
 
           <section className="review-card">
-            <div className="review-heading"><div><span className="section-kicker">금액 구성</span><h2>추출 금액 확인</h2></div><span className="phase4-badge">검토 전 금액 확인</span></div>
+            <div className="review-heading"><div><h2 className="extracted-amount-title">추출 금액 확인</h2></div><span className="phase4-badge">검토 전 금액 확인</span></div>
             <div className="money-grid">
               {moneyFields.map(([field, label, required]) => <label className={required && !data[field] ? "field-missing" : ""} key={field}><span>{label}{required && <em>필수</em>}</span><div><input inputMode="numeric" value={money(data[field] as number | null)} placeholder="확인 필요" onChange={(event) => updateMoney(field, event.target.value)} /><small>원</small></div></label>)}
             </div>
