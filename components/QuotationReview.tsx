@@ -234,7 +234,7 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
       <div className="review-reference-grid">
         <div className="review-reference-main">
           <section className="review-card">
-            <div className="review-heading"><div><span className="section-kicker">기본정보</span><h2>계약 기본정보 확인</h2></div><span className="human-check-badge">담당자 확인 필수</span></div>
+            <div className="review-heading"><div><h2 className="contract-info-title">계약 기본정보 확인</h2></div><span className="human-check-badge">담당자 확인 필수</span></div>
             <div className="review-form-grid">
               {mainFields.map(([field, label, required]) => (
                 <label className={required && !data[field] ? "field-missing" : ""} key={field}>

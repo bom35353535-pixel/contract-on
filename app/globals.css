@@ -401,6 +401,7 @@ a { color: inherit; text-decoration: none; }
 .review-card { margin-top: 16px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: 0 10px 30px rgba(25, 61, 82, .04); }
 .review-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .review-heading h2 { margin: 5px 0 0; font-size: 17px; letter-spacing: -.5px; }
+.review-heading h2.contract-info-title { margin-top: 0; color: var(--green); }
 .human-check-badge, .phase4-badge, .item-count { padding: 6px 8px; border-radius: 7px; font-size: 8px; font-weight: 850; }
 .human-check-badge { background: #f9efdf; color: #9a6827; }
 .phase4-badge { background: #eef2f4; color: #677985; }

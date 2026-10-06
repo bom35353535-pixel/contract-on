@@ -11,6 +11,8 @@ test("estimate review loads the registered building-rate Markdown source from R2
   assert.match(page, /name\.includes\("건축공사"\).*name\.includes\("간접공사비"\)/s);
   assert.match(page, /rateReferenceText=\{rateReferenceText\}/);
   assert.doesNotMatch(review, /지식자료 먼저 준비|지식관리에서 먼저 업로드/);
+  assert.doesNotMatch(review, /section-kicker\">기본정보/);
+  assert.match(review, /contract-info-title\">계약 기본정보 확인/);
 });
 
 test("current-rate reference displays registered formulas and separates rate conditions", async () => {
