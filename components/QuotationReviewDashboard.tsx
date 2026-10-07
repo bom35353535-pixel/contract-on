@@ -4,6 +4,7 @@ import { RunQuotationReviewButton } from "./RunQuotationReviewButton";
 import { LaborReviewRow } from "./LaborReviewRow";
 import { RelatedAuditCases } from "./RelatedAuditCases";
 import type { AuditCase } from "@/lib/audit-cases";
+import { MaterialPriceLookup } from "./MaterialPriceLookup";
 
 const statusInfo = {
   NORMAL: { icon: "✓", label: "정상", className: "normal" },
@@ -48,6 +49,7 @@ export function QuotationReviewDashboard({ contractId, quotation, review, auditC
         })}</div></article>;
       })}
     </section>
+    <MaterialPriceLookup items={quotation.items} />
     <RelatedAuditCases cases={auditCases} sourceStatus={auditSourceStatus} />
     <details className="confirmed-quotation-details"><summary>담당자가 확정한 견적서 추출정보 보기</summary><div className="review-card contract-estimate-card"><p className="estimate-source">원본: {quotation.analysis.originalName} · {quotation.analysis.confirmedAt?.slice(0, 10)} 확정</p><dl className="info-list">{[["총액", quotation.analysis.totalAmount], ["공급가액", quotation.analysis.supplyAmount], ["부가가치세", quotation.analysis.vatAmount], ["재료비", quotation.analysis.materialCost], ["직접노무비", quotation.analysis.directLaborCost], ["경비", quotation.analysis.expenses]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{shownMoney(value as number | null)}</dd></div>)}</dl></div></details>
   </>;

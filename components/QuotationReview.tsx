@@ -10,6 +10,7 @@ import { buildEvidenceTargets, type ReviewItem } from "@/lib/quotation-review";
 import { selectRelevantAuditCases, type AuditCase } from "@/lib/audit-cases";
 import { RelatedAuditCases } from "./RelatedAuditCases";
 import { AppDialog } from "./AppDialog";
+import { MaterialPriceLookup } from "./MaterialPriceLookup";
 
 type Review = { review: QuotationReviewRecord; items: QuotationReviewItemRecord[] } | null;
 type Props = {
@@ -258,6 +259,8 @@ export function QuotationReview({ analysisId, originalName, initial, confirmedCo
           <SupplierSanctionCheck companyName={data.companyName} businessRegistrationNumber={data.businessRegistrationNumber} />
         </aside>
       </div>
+
+      <MaterialPriceLookup items={data.items} />
 
       <section className="review-start-card pre-confirmation-start" aria-label="견적검토 실행">
         <h2>견적검토를 실행하세요.</h2>
