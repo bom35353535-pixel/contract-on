@@ -39,6 +39,15 @@ test("material lookup is user-triggered and added to both quotation result scree
   assert.match(dashboard, /<MaterialPriceLookup items=\{quotation\.items\}/);
 });
 
+test("labor occupations are excluded from the extracted material price lookup", async () => {
+  const source = await read("lib/material-price.ts");
+  assert.match(source, /isLaborItemForMaterialLookup/);
+  assert.match(source, /보통인부/);
+  assert.match(source, /배관공/);
+  assert.match(source, /LABOR_CONTEXT_MARKERS\.some/);
+  assert.match(source, /isLaborItemForMaterialLookup\(item\)/);
+});
+
 test("normalization preserves numbers and recognizes important construction specifications", async () => {
   const source = await read("lib/material-price.ts");
   assert.match(source, /\[㎜\]/);

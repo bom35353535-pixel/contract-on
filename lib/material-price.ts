@@ -125,10 +125,26 @@ export function buildMaterialSearchQueries(originalName: string, specification?:
 const NON_MATERIAL_PATTERN = /노무비|인건비|경비|보험료|관리비|이윤|부가세|세금|운반비|폐기물|철거|시공비|설치비|공임|일위대가|합계|소계/;
 const MATERIAL_CATEGORY_PATTERN = /자재|재료|금속|강재|콘크리트|배관|전기|통신|조명|바닥|타일|도장|방수|단열|창호|철물|위생|기계|냉난방/;
 
+const LABOR_CONTEXT_MARKERS = ["노무비", "인건비", "노임", "직종"];
+const LABOR_OCCUPATIONS = new Set([
+  "작업반장", "보통인부", "특별인부", "조력공", "제도사", "비계공", "형틀목공", "철근공",
+  "철공", "철판공", "철골공", "용접공", "배관공", "도장공", "내선전공", "통신내선공",
+  "건축목공", "조적공", "미장공", "타일공", "방수공",
+]);
+const LABOR_OCCUPATION_SUFFIXES = ["반장", "인부", "기술자", "기사", "목공", "전공", "철공", "용접공", "배관공", "도장공", "미장공", "타일공", "방수공"];
+
+export function isLaborItemForMaterialLookup(item: MaterialItemLike) {
+  const name = normalizeMaterialText(item.itemName || "").replace(/\s+/g, "");
+  const laborContext = `${item.category || ""} ${item.trade || ""}`;
+  return LABOR_CONTEXT_MARKERS.some((marker) => laborContext.includes(marker))
+    || LABOR_OCCUPATIONS.has(name)
+    || LABOR_OCCUPATION_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
 export function isMaterialItem(item: MaterialItemLike) {
   const name = item.itemName?.trim() || "";
   const context = `${item.category || ""} ${item.trade || ""} ${name} ${item.specification || ""} ${item.sourceText || ""}`;
-  if (!name || NON_MATERIAL_PATTERN.test(name)) return false;
+  if (!name || NON_MATERIAL_PATTERN.test(name) || isLaborItemForMaterialLookup(item)) return false;
   return Boolean(findAlias(context) || MATERIAL_CATEGORY_PATTERN.test(`${item.category || ""} ${item.trade || ""}`));
 }
 
