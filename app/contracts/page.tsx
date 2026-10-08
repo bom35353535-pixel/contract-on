@@ -31,7 +31,7 @@ export default async function ContractsPage() {
                 <span className="table-progress"><span>{contract.progress}%</span><span className="progress-track"><span style={{ width: `${contract.progress}%` }} /></span></span>
                 <span className="next-task-cell">{contract.nextTask ?? "[확인 필요]"}</span>
                 <span className={`table-dday ${dday.includes("지남") || dday.includes("D-Day") ? "urgent" : ""}`}>{dday}</span>
-                <span className="contract-row-actions"><a href={`/contracts/${contract.id}`}>열기</a>{contract.currentStage !== "FINISHED" && <DeleteContractButton contractId={contract.id} projectName={contract.projectName} />}</span>
+                <span className="contract-row-actions"><a href={`/contracts/${contract.id}`}>열기</a><DeleteContractButton contractId={contract.id} projectName={contract.projectName} /></span>
               </div>
             );
           })}

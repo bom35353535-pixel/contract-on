@@ -29,7 +29,7 @@ export function DeleteContractButton({ contractId, projectName }: { contractId: 
       <button className="delete-contract-trigger" type="button" onClick={() => { setError(""); setOpen(true); }}>삭제</button>
       {open && <div className="delete-contract-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) setOpen(false); }}>
         <section className="delete-contract-dialog" role="alertdialog" aria-modal="true" aria-labelledby={`delete-title-${contractId}`} aria-describedby={`delete-description-${contractId}`}>
-          <h2 id={`delete-title-${contractId}`}>진행 중 공사를 삭제할까요?</h2>
+          <h2 id={`delete-title-${contractId}`}>이 공사를 삭제할까요?</h2>
           <p id={`delete-description-${contractId}`}><strong>{projectName}</strong><br />계약 진행정보와 제출서류가 함께 삭제되며 되돌릴 수 없습니다.</p>
           {error && <p className="delete-contract-error" role="alert">{error}</p>}
           <div className="delete-contract-actions">
