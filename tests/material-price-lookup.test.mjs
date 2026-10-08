@@ -71,3 +71,10 @@ test("field-specific results are always merged so an exact specification is not 
   assert.match(route, /let fieldRowsFound = false/);
   assert.match(route, /if \(!fieldRowsFound\)/);
 });
+
+test("a dimension without a written unit matches the same official millimetre specification", async () => {
+  const source = await read("lib/material-price.ts");
+  assert.match(source, /specificationTokensEqual/);
+  assert.match(source, /right === `\$\{left\}MM`/);
+  assert.match(source, /rowTokens\.some\(\(rowToken\) => specificationTokensEqual/);
+});

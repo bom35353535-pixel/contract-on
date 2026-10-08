@@ -61,6 +61,18 @@ function comparable(value: string) {
   return normalizeMaterialText(value).toUpperCase().replace(/[\s×+/().-]/g, "");
 }
 
+function comparableSpecificationToken(value: string) {
+  return normalizeMaterialText(value).toUpperCase().replace(/\s/g, "");
+}
+
+function specificationTokensEqual(wanted: string, actual: string) {
+  const left = comparableSpecificationToken(wanted);
+  const right = comparableSpecificationToken(actual);
+  if (left === right) return true;
+  // 견적서 규격에 단위가 생략된 경우 나라장터의 mm 표기와 같은 치수로 비교한다.
+  return right === `${left}MM` || left === `${right}MM`;
+}
+
 export function extractSpecificationTokens(value: string) {
   const normalized = normalizeMaterialText(value).toUpperCase();
   const matches = normalized.match(/(?:Ø\s*)?\d+(?:\.\d+)?(?:\s*×\s*\d+(?:\.\d+)?){0,3}\s*(?:MM|CM|M|A|T|D|SQ|W|H|L)?|\b(?:VG\d|VP|VU|CAT\d[E]?|CV|F-CV|HIV|MCCB|ELB|ELCB)\b/g) || [];
@@ -142,8 +154,8 @@ export function scoreMaterialPrice(queryName: string, querySpecification: string
     (originalNameNeedle && (productName.includes(originalNameNeedle) || originalNameNeedle.includes(productName)))
   );
   const wantedTokens = extractSpecificationTokens(`${queryName} ${querySpecification || ""}`);
-  const rowTokens = new Set(extractSpecificationTokens(`${row.productName} ${row.specification}`).map(comparable));
-  const matched = wantedTokens.filter((token) => rowTokens.has(comparable(token))).length;
+  const rowTokens = extractSpecificationTokens(`${row.productName} ${row.specification}`);
+  const matched = wantedTokens.filter((token) => rowTokens.some((rowToken) => specificationTokensEqual(token, rowToken))).length;
   const exactSpec = wantedTokens.length > 0 && matched === wantedTokens.length;
   const majorSpec = matched > 0;
   const matchLabel: G2bMaterialPrice["matchLabel"] = exactSpec && nameMatch ? "상세규격 일치" : majorSpec && nameMatch ? "주요규격 일치" : nameMatch ? "품명 일치" : "관련 품목";
