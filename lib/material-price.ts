@@ -133,14 +133,24 @@ export function selectableMaterialItems(items: MaterialItemLike[]) {
 export function scoreMaterialPrice(queryName: string, querySpecification: string | null, row: Omit<G2bMaterialPrice, "matchLabel" | "matchScore">) {
   const standardized = standardizeMaterial(queryName, querySpecification);
   const nameNeedle = comparable(standardized.standardName);
-  const rowText = comparable(`${row.productName} ${row.specification}`);
-  const nameMatch = Boolean(nameNeedle && rowText.includes(nameNeedle));
+  const originalNameNeedle = comparable(queryName);
+  const productName = comparable(row.productName);
+  // 규격란에 검색어가 우연히 들어 있는 부속품을 본 품목으로 판정하지 않는다.
+  // 예: "철판" 검색 시 규격에 EGI 철판이 적힌 안전펜스는 관련 품목일 뿐이다.
+  const nameMatch = Boolean(
+    (nameNeedle && (productName.includes(nameNeedle) || nameNeedle.includes(productName))) ||
+    (originalNameNeedle && (productName.includes(originalNameNeedle) || originalNameNeedle.includes(productName)))
+  );
   const wantedTokens = extractSpecificationTokens(`${queryName} ${querySpecification || ""}`);
   const rowTokens = new Set(extractSpecificationTokens(`${row.productName} ${row.specification}`).map(comparable));
   const matched = wantedTokens.filter((token) => rowTokens.has(comparable(token))).length;
   const exactSpec = wantedTokens.length > 0 && matched === wantedTokens.length;
   const majorSpec = matched > 0;
   const matchLabel: G2bMaterialPrice["matchLabel"] = exactSpec && nameMatch ? "상세규격 일치" : majorSpec && nameMatch ? "주요규격 일치" : nameMatch ? "품명 일치" : "관련 품목";
-  const score = (nameMatch ? 60 : 10) + (exactSpec ? 35 : majorSpec ? 20 : 0) + Math.min(5, matched);
+  const score = (nameMatch ? 60 : 0) + (exactSpec ? 35 : majorSpec ? 20 : 0) + Math.min(5, matched);
   return { matchLabel, matchScore: score };
+}
+
+export function isReliableMaterialPriceMatch(row: G2bMaterialPrice) {
+  return row.matchLabel !== "관련 품목" && row.matchScore >= 60;
 }

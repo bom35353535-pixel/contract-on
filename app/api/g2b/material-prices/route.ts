@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import {
   buildMaterialSearchQueries,
+  isReliableMaterialPriceMatch,
   normalizeMaterialText,
   scoreMaterialPrice,
   standardizeMaterial,
@@ -82,7 +83,7 @@ function responseCode(payload: unknown) {
   return { code: String(header.resultCode ?? ""), message: String(header.resultMsg ?? "") };
 }
 
-function mapRows(items: RawItem[], originalName: string, originalSpecification: string | null) {
+function mapRows(items: RawItem[], rankingName: string, rankingSpecification: string | null) {
   return items.map((item) => {
     const base = {
       productName: stringValue(item, "prdctClsfcNoNm") || "[품명 확인 필요]",
@@ -94,7 +95,7 @@ function mapRows(items: RawItem[], originalName: string, originalSpecification: 
       priceType: stringValue(item, "prceDiv") || null,
       deliveryCondition: stringValue(item, "dlvryCndtnNm") || null,
     };
-    return { ...base, ...scoreMaterialPrice(originalName, originalSpecification, base) };
+    return { ...base, ...scoreMaterialPrice(rankingName, rankingSpecification, base) };
   });
 }
 
@@ -159,6 +160,9 @@ async function fetchAcross(endpoints: string[], params: Record<string, string>, 
 
 async function queryPrices(originalName: string, specification: string | null, manualQuery: string | null, key: string) {
   const standardized = standardizeMaterial(originalName, specification);
+  const rankingName = manualQuery || originalName;
+  const rankingSpecification = manualQuery ? null : specification;
+  const rankingStandardized = standardizeMaterial(rankingName, rankingSpecification);
   const queries = manualQuery
     ? buildMaterialSearchQueries(manualQuery, null)
     : buildMaterialSearchQueries(originalName, specification);
@@ -178,25 +182,36 @@ async function queryPrices(originalName: string, specification: string | null, m
     // 종합 조회의 일자 범위 오류·일시 장애는 분야별 품명 조회로 보완한다.
     if (error instanceof UpstreamError && [429, 503].includes(error.status)) throw error;
   }
-  const comparableQueries = queries.map((query) => normalizeMaterialText(query).toUpperCase().replace(/\s/g, ""));
+  const productNameQueries = [...new Set([
+    rankingStandardized.standardName,
+    normalizeMaterialText(rankingName),
+  ].filter(Boolean))];
+  const comparableProductNames = productNameQueries.map((query) => normalizeMaterialText(query).toUpperCase().replace(/\s/g, ""));
   collected.push(...recent.filter((item) => {
-    const value = normalizeMaterialText(`${stringValue(item, "prdctClsfcNoNm")} ${stringValue(item, "krnPrdctNm")}`).toUpperCase().replace(/\s/g, "");
-    return comparableQueries.some((query) => value.includes(query) || query.includes(value));
+    const value = normalizeMaterialText(stringValue(item, "prdctClsfcNoNm")).toUpperCase().replace(/\s/g, "");
+    return comparableProductNames.some((query) => value.includes(query) || query.includes(value));
   }));
 
   if (!collected.length) {
-    const endpoints = endpointsFor(standardized.category);
-    for (const query of queries) {
-      const rows = await fetchAcross(endpoints, { krnPrdctNm: query }, key);
+    const endpoints = endpointsFor(rankingStandardized.category || standardized.category);
+    // 공식 품명 필드를 먼저 조회하고, 규격 필드 검색은 보완 수단으로만 사용한다.
+    for (const query of productNameQueries) {
+      const rows = await fetchAcross(endpoints, { prdctClsfcNoNm: query }, key);
       collected.push(...rows);
       if (collected.length) break;
     }
     if (!collected.length) {
-      const rows = await fetchAcross(endpoints, { prdctClsfcNoNm: standardized.standardName }, key);
-      collected.push(...rows);
+      for (const query of productNameQueries) {
+        const rows = await fetchAcross(endpoints, { krnPrdctNm: query }, key);
+        collected.push(...rows);
+        if (collected.length) break;
+      }
     }
   }
-  return { standardized, queries, results: deduplicate(mapRows(collected, originalName, specification)).slice(0, 30) };
+  const ranked = deduplicate(mapRows(collected, rankingName, rankingSpecification));
+  // 규격에만 검색어가 포함된 부속품·복합품은 일치 결과로 제시하지 않는다.
+  const reliable = ranked.filter(isReliableMaterialPriceMatch);
+  return { standardized, queries, results: reliable.slice(0, 30) };
 }
 
 function errorResponse(message: string, status = 503) {

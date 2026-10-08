@@ -49,3 +49,18 @@ test("normalization preserves numbers and recognizes important construction spec
   assert.match(source, /주요규격 일치/);
   assert.match(source, /견적서 원문/);
 });
+
+test("material matching prioritizes the official product-name field and rejects specification-only false positives", async () => {
+  const route = await read("app/api/g2b/material-prices/route.ts");
+  const source = await read("lib/material-price.ts");
+  assert.match(route, /\{ prdctClsfcNoNm: query \}/);
+  assert.match(route, /filter\(isReliableMaterialPriceMatch\)/);
+  assert.match(source, /const productName = comparable\(row\.productName\)/);
+  assert.match(source, /row\.matchLabel !== "관련 품목"/);
+});
+
+test("manual searches are ranked with the manual term instead of the original estimate item", async () => {
+  const route = await read("app/api/g2b/material-prices/route.ts");
+  assert.match(route, /const rankingName = manualQuery \|\| originalName/);
+  assert.match(route, /scoreMaterialPrice\(rankingName, rankingSpecification/);
+});
