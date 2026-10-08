@@ -26,6 +26,9 @@ test("quotation review adds only a compact related-audit section", async () => {
   assert.doesNotMatch(component, /<p>{item\.summary}<\/p>/);
   assert.match(component, /관련 규정/);
   assert.match(component, /실제 감사사례/);
+  assert.match(component, /audit-detail-panel audit-regulations/);
+  assert.match(component, /audit-detail-panel audit-finding/);
+  assert.match(component, /audit-detail-body/);
   assert.match(source, /공사계약 Q&A 및 사례연습\(2025\. 6\.\)_감사사례만\.md/);
   assert.doesNotMatch(source, /openai|generate|chat/i);
 });
