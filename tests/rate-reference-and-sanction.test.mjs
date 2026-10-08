@@ -64,7 +64,7 @@ test("quotation extraction keeps statutory cost summary rows separate", async ()
   assert.match(source, /여러 비목을 경비 합계 하나로 합치지 마세요/);
 });
 
-test("supplier sanction lookup validates an exact business number and explains current-only coverage", async () => {
+test("supplier sanction lookup validates an exact business number and shows a concise empty result", async () => {
   const route = await read("app/api/g2b/sanctions/route.ts");
   const component = await read("components/SupplierSanctionCheck.tsx");
   const validator = await read("lib/business-registration.ts");
@@ -78,8 +78,9 @@ test("supplier sanction lookup validates an exact business number and explains c
   assert.match(validator, /weights = \[1, 3, 7, 1, 3, 7, 1, 3, 5\]/);
   assert.match(route, /isValidBusinessRegistrationNumber\(bizno\)/);
   assert.match(component, /유효하지 않은 사업자등록번호입니다/);
-  assert.match(component, /0건은 업체의 실재 여부나 과거 제재 이력이 없다는 뜻이 아니며/);
-  assert.match(component, /업체 존재 여부를 확인한 결과는 아닙니다/);
+  assert.match(component, /부정당제재 결과 없음/);
+  assert.doesNotMatch(component, /0건은 업체의 실재 여부나 과거 제재 이력이 없다는 뜻이 아니며/);
+  assert.doesNotMatch(component, /업체 존재 여부를 확인한 결과는 아닙니다/);
   assert.match(component, /조달청 나라장터 부정당제재업체정보/);
   assert.match(component, /businessRegistrationNumber/);
   assert.match(component, /useEffect/);

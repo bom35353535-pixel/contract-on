@@ -62,7 +62,7 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
     return () => controller.abort();
   }, [digits, invalidBusinessNumber, attempt]);
 
-  const badge = busy ? "자동 조회 중" : invalidBusinessNumber ? "번호 확인 필요" : !result ? "확인 필요" : result.totalCount > 0 ? `유효 제재 ${result.totalCount}건` : "현재 유효 제재 0건";
+  const badge = busy ? "자동 조회 중" : invalidBusinessNumber ? "번호 확인 필요" : !result ? "확인 필요" : result.totalCount > 0 ? `유효 제재 ${result.totalCount}건` : "부정당제재 결과 없음";
   return <section className="sanction-check-card">
     <div className="sanction-check-heading">
       <div><span>견적서 사업자번호 자동 연계</span><h2>부정당제재 상태</h2></div>
@@ -75,8 +75,8 @@ export function SupplierSanctionCheck({ companyName, businessRegistrationNumber 
     {busy && <div className="sanction-loading"><span /><strong>나라장터 공개정보를 자동 조회하고 있습니다.</strong></div>}
     {error && <div className="sanction-error"><p>{error}</p><button type="button" onClick={() => setAttempt((value) => value + 1)} disabled={busy}>다시 조회</button></div>}
     {result && result.items.length > 0 && <div className="sanction-result-list">{result.items.map((item, index) => <article key={`${item.startDate}-${index}`}><strong>{item.corpName || companyName || "업체명 [확인 필요]"}</strong><dl><div><dt>제재기간</dt><dd>{item.startDate || "[확인 필요]"} ~ {item.endDate || "[확인 필요]"}</dd></div><div><dt>처분기관</dt><dd>{item.institution || "[확인 필요]"}</dd></div><div><dt>진행상태</dt><dd>{item.status || "[확인 필요]"}</dd></div>{item.reason && <div><dt>사유·근거</dt><dd>{item.reason}</dd></div>}</dl></article>)}</div>}
-    {result && result.totalCount === 0 && <div className="sanction-clear-result neutral"><strong>조회 결과는 0건이지만 업체 존재 여부를 확인한 결과는 아닙니다.</strong><span>{new Date(result.checkedAt).toLocaleString("ko-KR")} 자동 조회</span></div>}
-    <p className="sanction-coverage">조회시점 현재 유효한 부정당제재만 확인합니다. 0건은 업체의 실재 여부나 과거 제재 이력이 없다는 뜻이 아니며, 계약 판단 전 사업자 상태와 공식 조회결과를 함께 확인하세요.</p>
+    {result && result.totalCount === 0 && <div className="sanction-clear-result neutral"><strong>부정당제재 결과 없음</strong><span>{new Date(result.checkedAt).toLocaleString("ko-KR")} 자동 조회</span></div>}
+    {(!result || result.totalCount > 0) && <p className="sanction-coverage">조회시점 현재 유효한 부정당제재만 확인합니다.</p>}
     <footer>조회 출처: 조달청 나라장터 부정당제재업체정보</footer>
   </section>;
 }
