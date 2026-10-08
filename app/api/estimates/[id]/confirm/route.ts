@@ -30,10 +30,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const body = await request.json().catch(() => null);
   const values = normalizeQuotationExtraction(body);
   const reviewedQuotation = await getQuotationAnalysis(id);
-  const reviewedValues = reviewedQuotation ? normalizeQuotationExtraction({
-    ...reviewedQuotation.analysis,
-    items: reviewedQuotation.items,
-  }) : null;
+  let reviewedValues = null;
+  if (reviewedQuotation) {
+    let reviewedExtraction: Record<string, unknown> = {};
+    try {
+      const parsed = JSON.parse(reviewedQuotation.analysis.extractionJson);
+      if (parsed && typeof parsed === "object") reviewedExtraction = parsed as Record<string, unknown>;
+    } catch {
+      // Older records may not contain a readable extraction snapshot.
+    }
+    reviewedValues = normalizeQuotationExtraction({
+      ...reviewedExtraction,
+      ...reviewedQuotation.analysis,
+      items: reviewedQuotation.items,
+    });
+  }
   if (!reviewedValues || JSON.stringify(values) !== JSON.stringify(reviewedValues)) {
     return responseError("검토 후 입력값이 변경되었습니다. 현재 내용으로 견적검토를 다시 실행해 주세요.", 409);
   }

@@ -16,6 +16,8 @@ test("Quotation review is required before dashboard registration", async () => {
   assert.ok(confirmRoute.indexOf("SELECT id FROM quotation_reviews") < confirmRoute.indexOf("INSERT INTO contracts"));
   assert.match(confirmRoute, /먼저 견적검토를 실행하고 결과를 확인해 주세요/);
   assert.match(confirmRoute, /JSON\.stringify\(values\) !== JSON\.stringify\(reviewedValues\)/);
+  assert.match(confirmRoute, /JSON\.parse\(reviewedQuotation\.analysis\.extractionJson\)/);
+  assert.match(confirmRoute, /\.\.\.reviewedExtraction,[\s\S]*\.\.\.reviewedQuotation\.analysis/);
   assert.match(confirmRoute, /검토 후 입력값이 변경되었습니다/);
 });
 
