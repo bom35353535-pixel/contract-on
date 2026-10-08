@@ -141,6 +141,7 @@ function endpointsFor(category: string | null) {
   if (category && /전기|정보통신|조명/.test(category)) return [FIELD_ENDPOINTS.electrical, FIELD_ENDPOINTS.building];
   if (category && /배관|위생|기계|냉난방/.test(category)) return [FIELD_ENDPOINTS.mechanical, FIELD_ENDPOINTS.building];
   if (category && /콘크리트|외부/.test(category)) return [FIELD_ENDPOINTS.civil, FIELD_ENDPOINTS.building];
+  if (category && /천장|벽체|목재|판재|바닥|도장|방수|단열|창호|문|철물/.test(category)) return [FIELD_ENDPOINTS.building];
   return [FIELD_ENDPOINTS.building, FIELD_ENDPOINTS.civil, FIELD_ENDPOINTS.mechanical, FIELD_ENDPOINTS.electrical];
 }
 
@@ -192,20 +193,23 @@ async function queryPrices(originalName: string, specification: string | null, m
     return comparableProductNames.some((query) => value.includes(query) || query.includes(value));
   }));
 
-  if (!collected.length) {
-    const endpoints = endpointsFor(rankingStandardized.category || standardized.category);
-    // 공식 품명 필드를 먼저 조회하고, 규격 필드 검색은 보완 수단으로만 사용한다.
-    for (const query of productNameQueries) {
-      const rows = await fetchAcross(endpoints, { prdctClsfcNoNm: query }, key);
-      collected.push(...rows);
-      if (collected.length) break;
+  const endpoints = endpointsFor(rankingStandardized.category || standardized.category);
+  // 종합 조회는 최대 건수 때문에 일부 규격이 빠질 수 있으므로 분야별 품명 결과를 항상 합친다.
+  let fieldRowsFound = false;
+  for (const query of productNameQueries) {
+    const rows = await fetchAcross(endpoints, { prdctClsfcNoNm: query }, key);
+    collected.push(...rows);
+    if (rows.length) {
+      fieldRowsFound = true;
+      break;
     }
-    if (!collected.length) {
-      for (const query of productNameQueries) {
-        const rows = await fetchAcross(endpoints, { krnPrdctNm: query }, key);
-        collected.push(...rows);
-        if (collected.length) break;
-      }
+  }
+  // 공식 품명 조회가 비었을 때에만 규격 필드 검색을 보완 수단으로 사용한다.
+  if (!fieldRowsFound) {
+    for (const query of productNameQueries) {
+      const rows = await fetchAcross(endpoints, { krnPrdctNm: query }, key);
+      collected.push(...rows);
+      if (rows.length) break;
     }
   }
   const ranked = deduplicate(mapRows(collected, rankingName, rankingSpecification));

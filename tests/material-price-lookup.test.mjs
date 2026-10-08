@@ -64,3 +64,10 @@ test("manual searches are ranked with the manual term instead of the original es
   assert.match(route, /const rankingName = manualQuery \|\| originalName/);
   assert.match(route, /scoreMaterialPrice\(rankingName, rankingSpecification/);
 });
+
+test("field-specific results are always merged so an exact specification is not truncated by the total endpoint", async () => {
+  const route = await read("app/api/g2b/material-prices/route.ts");
+  assert.match(route, /분야별 품명 결과를 항상 합친다/);
+  assert.match(route, /let fieldRowsFound = false/);
+  assert.match(route, /if \(!fieldRowsFound\)/);
+});
