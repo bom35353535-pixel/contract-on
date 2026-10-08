@@ -1,5 +1,43 @@
 import type { AuditCase } from "@/lib/audit-cases";
 
+type DetailSection = "regulations" | "case";
+
+const SECTION_HEADING: Record<DetailSection, RegExp> = {
+  regulations: /^(?:관련\s*(?:규정|법령|근거)|적용\s*규정)\s*[:：]?\s*$/,
+  case: /^(?:(?:실제\s*)?감사\s*사례|감사\s*지적(?:사항|내용)?|지적\s*사항|사례)\s*[:：]?\s*$/,
+};
+
+const SECTION_PREFIX: Record<DetailSection, RegExp> = {
+  regulations: /^(?:관련\s*(?:규정|법령|근거)|적용\s*규정)\s*[:：]?\s*/,
+  case: /^(?:(?:실제\s*)?감사\s*사례|감사\s*지적(?:사항|내용)?|지적\s*사항|사례)\s*[:：]?\s*/,
+};
+
+function cleanAuditLines(value: string, section: DetailSection) {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !/^(?:-{3,}|\*{3,}|_{3,})$/.test(line) && !/^```/.test(line))
+    .map((line) => line
+      .replace(/^#{1,6}\s*/, "")
+      .replace(/^\s*(?:[-+*]|\d+[.)])\s+/, "")
+      .replace(/\*\*/g, "")
+      .replace(/`/g, "")
+      .replace(/\\+$/, "")
+      .trim())
+    .filter((line) => line && !SECTION_HEADING[section].test(line))
+    .map((line) => line.replace(SECTION_PREFIX[section], "").trim())
+    .filter(Boolean);
+}
+
+function AuditText({ value, section }: { value: string; section: DetailSection }) {
+  const lines = cleanAuditLines(value, section);
+  return <div className="audit-detail-body">
+    {lines.map((line, index) => <p key={`${index}-${line.slice(0, 24)}`}>{line}</p>)}
+  </div>;
+}
+
 export function RelatedAuditCases({ cases, sourceStatus }: { cases: AuditCase[]; sourceStatus: "READY" | "MISSING" | "INVALID" }) {
   return <section className="related-audit-cases" aria-labelledby="related-audit-title">
     <div className="related-audit-heading">
@@ -20,15 +58,15 @@ export function RelatedAuditCases({ cases, sourceStatus }: { cases: AuditCase[];
           <span>{item.matchReason || "현재 공사의 공종과 업무단계가 이 감사사례의 지적내용과 관련되어 있어 안내합니다."}</span>
         </div>
         <details>
-          <summary>자세히 보기 <span>⌄</span></summary>
+          <summary>자세히 보기 <span aria-hidden="true">⌄</span></summary>
           <div className="audit-case-detail">
             {item.relatedRegulations && <section className="audit-detail-panel audit-regulations" aria-label="관련 규정">
-              <header className="audit-detail-header"><span className="audit-detail-number">01</span><h5>관련 규정</h5></header>
-              <div className="audit-detail-body">{item.relatedRegulations}</div>
+              <header className="audit-detail-header"><h5>관련 규정</h5></header>
+              <AuditText value={item.relatedRegulations} section="regulations" />
             </section>}
             <section className="audit-detail-panel audit-finding" aria-label="실제 감사사례">
-              <header className="audit-detail-header"><span className="audit-detail-number">02</span><h5>실제 감사사례</h5></header>
-              <div className="audit-detail-body">{item.actualCase}</div>
+              <header className="audit-detail-header"><h5>실제 감사사례</h5></header>
+              <AuditText value={item.actualCase} section="case" />
             </section>
           </div>
         </details>

@@ -16,6 +16,14 @@ export async function listContracts() {
   return getDb().select().from(contracts).orderBy(desc(contracts.updatedAt), contracts.id);
 }
 
+export async function countContracts() {
+  await ensureDatabase();
+  const row = await getD1()
+    .prepare("SELECT COUNT(*) AS count FROM contracts")
+    .first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
+
 export async function getContract(id: string) {
   await ensureDatabase();
   const [contract] = await getDb().select().from(contracts).where(eq(contracts.id, id)).limit(1);

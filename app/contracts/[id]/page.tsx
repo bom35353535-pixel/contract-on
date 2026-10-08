@@ -11,7 +11,7 @@ import { Phase7ConstructionWorkspace } from "@/components/Phase7ConstructionWork
 import { Phase7InspectionWorkspace } from "@/components/Phase7InspectionWorkspace";
 import { Phase8WarrantyWorkspace } from "@/components/Phase8WarrantyWorkspace";
 import { StageTimeline } from "@/components/StageTimeline";
-import { formatWon, getContract, getContractHistory, getDeadlineForContract, getPhase7CompletionStatus, listContracts } from "@/lib/contracts";
+import { countContracts, formatWon, getContract, getContractHistory, getDeadlineForContract, getPhase7CompletionStatus } from "@/lib/contracts";
 import { buildConstructionPlanContent, buildInternalApprovalContent, buildPurchaseRequestContent } from "@/lib/administrative-document-content";
 import { getAdministrativeDocuments } from "@/lib/administrative-documents";
 import { getLatestQuotationReview, getQuotationByContract } from "@/lib/quotations";
@@ -48,11 +48,20 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   const requestedTab = (await searchParams)?.tab;
   const availableTabs = ["estimate", "documents", "contract-documents", "g2b", "commitment", "construction-documents", "construction-progress", "completion-documents", "inspection", "warranty"];
   const tab = requestedTab && availableTabs.includes(requestedTab) ? requestedTab : "basic";
-  const [contract, contracts, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments, phase7Completion] = await Promise.all([
-    getContract(id), listContracts(), getContractHistory(id), getQuotationByContract(id), getLatestQuotationReview(id), getAdministrativeDocuments(id),
-    getPhase6DocumentWorkspace(id, "NARA_CONTRACT"), getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION"),
-    getPhase6DocumentWorkspace(id, "COMPLETION"), getConstructionChecklist(id), getWarrantyWorkspace(id),
-    tab === "estimate" || tab === "documents" ? listKnowledgeDocuments() : Promise.resolve([]), getPhase7CompletionStatus(id),
+  const [contract, contractCount, history, quotation, quotationReview, administrativeDocuments, contractDocuments, constructionDocuments, completionDocuments, constructionChecklist, warrantyWorkspace, knowledgeDocuments, phase7Completion] = await Promise.all([
+    getContract(id),
+    countContracts(),
+    tab === "basic" ? getContractHistory(id) : Promise.resolve([]),
+    getQuotationByContract(id),
+    tab === "estimate" ? getLatestQuotationReview(id) : Promise.resolve(null),
+    tab === "documents" ? getAdministrativeDocuments(id) : Promise.resolve([]),
+    tab === "contract-documents" ? getPhase6DocumentWorkspace(id, "NARA_CONTRACT") : Promise.resolve({ files: [], review: null, items: [] }),
+    tab === "construction-documents" ? getPhase6DocumentWorkspace(id, "PRE_CONSTRUCTION") : Promise.resolve({ files: [], review: null, items: [] }),
+    tab === "completion-documents" ? getPhase6DocumentWorkspace(id, "COMPLETION") : Promise.resolve({ files: [], review: null, items: [] }),
+    tab === "construction-progress" ? getConstructionChecklist(id) : Promise.resolve({ run: null, items: [], history: [] }),
+    tab === "warranty" || tab === "basic" ? getWarrantyWorkspace(id) : Promise.resolve({ criteria: [], warranty: null, inspections: [] }),
+    tab === "estimate" || tab === "documents" ? listKnowledgeDocuments() : Promise.resolve([]),
+    tab === "inspection" ? getPhase7CompletionStatus(id) : Promise.resolve({ utilityNoticeDate: null }),
   ]);
   if (!contract || !isContractStage(contract.currentStage)) notFound();
   const currentStage = contract.currentStage;
@@ -78,7 +87,7 @@ export default async function ContractDetailPage({ params, searchParams }: Detai
   ];
 
   return (
-    <AppShell active="contracts" contractCount={contracts.length}>
+    <AppShell active="contracts" contractCount={contractCount}>
       <a className="back-link" href="/contracts">← 계약 현황으로</a>
       <header className="detail-header">
         <div><span className="contract-id">{contract.id}</span><h1>{contract.projectName}</h1><p>{contract.companyName} · {formatWon(contract.contractAmount)}</p></div>
